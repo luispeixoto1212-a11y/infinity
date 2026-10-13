@@ -1,0 +1,63 @@
+/*
+ * Universe Infinity — tokens de design
+ * Preto azulado profundo, azul ionizado para interação, violeta de nebulosa como segundo tom,
+ * e um único apontamento quente (dourado solar) reservado ao Sol e ao relógio da simulação.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Cor */
+  --void: #04060f;
+  --abyss: #070b19;
+  --deep: #0c1328;
+  --glass: rgba(12, 19, 40, 0.74);
+  --glass-strong: rgba(10, 16, 34, 0.9);
+  --line: rgba(150, 175, 230, 0.14);
+  --line-strong: rgba(150, 175, 230, 0.28);
+  --ion: #7aa2ff;
+  --ion-strong: #9dbbff;
+  --ion-soft: rgba(122, 162, 255, 0.14);
+  --nebula: #a98bff;
+  --sol: #ffc874;
+  --star: #e9edf8;
+  --dust: #9aa5c4;
+  --dust-dim: #6f7a9a;
+  --danger: #ff8f7a;
+
+  /* Tipos de valor */
+  --kind-measured: #7fd6c2;
+  --kind-derived: #9dbbff;
+  --kind-average: #d6c27f;
+  --kind-estimate: #f0a58a;
+
+  /* Tipografia */
+  --font-display: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.5rem;
+  --fs-3xl: 3.5rem;
+  --fs-hero: clamp(3.25rem, 7vw, 5.5rem);
+
+  /* Espaço e forma */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --topbar-h: 60px;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --blur: blur(14px) saturate(130%);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
