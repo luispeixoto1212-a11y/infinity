@@ -3,7 +3,7 @@ import { href } from '../../app/router';
 import { FavoriteButton } from '../../components/FavoriteButton';
 import { Icon } from '../../components/Icon';
 import { formatDate, formatNumber } from '../../core/format';
-import { BODIES, findBodyById, findBodyBySlug, tr } from '../../data/catalog';
+import { findBodyById, findBodyBySlug, siblingsOf, tr } from '../../data/catalog';
 import { SOURCES } from '../../data/sources';
 import type { CelestialBody } from '../../data/types';
 import { useI18n } from '../../i18n';
@@ -20,9 +20,10 @@ function isoToText(iso: string) {
 }
 
 function Neighbours({ body }: { body: CelestialBody }) {
-  const i = BODIES.findIndex((b) => b.id === body.id);
-  const prev = BODIES[i - 1];
-  const next = BODIES[i + 1];
+  const group = siblingsOf(body);
+  const i = group.findIndex((b) => b.id === body.id);
+  const prev = group[i - 1];
+  const next = group[i + 1];
   return (
     <nav className="neighbours" aria-label="Objetos vizinhos">
       {prev ? (
@@ -79,8 +80,8 @@ export default function BodyPage({ slug }: { slug: string }) {
             {t.categories[body.type]}
             {parent ? (
               <>
-                {' '}
-                de <a href={href({ name: 'body', slug: parent.slug })}>{tr(parent.name)}</a>
+                {parent.id === 'earth' ? ' da ' : ' de '}
+                <a href={href({ name: 'body', slug: parent.slug })}>{tr(parent.name)}</a>
               </>
             ) : null}
           </p>
@@ -180,7 +181,8 @@ export default function BodyPage({ slug }: { slug: string }) {
                       <span className="mission-agency">{m.agency}</span>
                     </div>
                     <p className="mission-when">
-                      {tr(m.when)}, {t.missionKinds[m.kind].toLowerCase()}
+                      <span className="mission-kind">{t.missionKinds[m.kind]}</span>
+                      {tr(m.when)}
                     </p>
                     <p>{tr(m.summary)}</p>
                     {m.timeSensitive ? (

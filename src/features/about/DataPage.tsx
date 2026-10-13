@@ -8,6 +8,8 @@ import { formatNumber } from '../../core/format';
 import { BODIES, findBodyById, tr } from '../../data/catalog';
 import { ALL_SOURCES } from '../../data/sources';
 import { HORIZONS_EPOCH_JD, HORIZONS_REFERENCE } from '../../data/validation';
+import { MOON_CHECK_DATES, MOON_CHECK_VECTORS } from '../../data/moonValidation';
+import { planetocentricOffsetKm } from '../../core/astro/positions';
 import { useI18n } from '../../i18n';
 
 const AU_KM = 149_597_870.7;
@@ -29,9 +31,27 @@ export function useValidationRows() {
   );
 }
 
+export function useMoonValidationRows() {
+  return useMemo(
+    () =>
+      MOON_CHECK_VECTORS.map((ref) => {
+        const body = findBodyById(ref.id);
+        if (!body) return null;
+        const errorsDeg = MOON_CHECK_DATES.map((d, i) => {
+          const offset = planetocentricOffsetKm(body, d.jd);
+          return offset ? angleBetweenDeg(offset, ref.vectorsKm[i]!) : Number.NaN;
+        });
+        const parent = body.parent ? findBodyById(body.parent) : undefined;
+        return { body, parent, errorsDeg };
+      }).filter((r): r is NonNullable<typeof r> => r !== null),
+    [],
+  );
+}
+
 export function DataPage() {
   const { t } = useI18n();
   const rows = useValidationRows();
+  const moonRows = useMoonValidationRows();
   const earthExaggeration = sizeExaggerationAt(1, 6371);
   const illustrative = BODIES.filter((b) => !b.render.texture);
 
@@ -49,6 +69,7 @@ export function DataPage() {
         <ol>
           <li><a href="#posicoes" onClick={(e) => jump(e, 'posicoes')}>Posições dos planetas</a></li>
           <li><a href="#validacao" onClick={(e) => jump(e, 'validacao')}>Validação com o JPL Horizons</a></li>
+          <li><a href="#luas" onClick={(e) => jump(e, 'luas')}>Órbitas das luas</a></li>
           <li><a href="#escala" onClick={(e) => jump(e, 'escala')}>Escala da vista 3D</a></li>
           <li><a href="#orientacao" onClick={(e) => jump(e, 'orientacao')}>Orientação, rotação e tempo</a></li>
           <li><a href="#dados" onClick={(e) => jump(e, 'dados')}>Dados físicos e tipos de valor</a></li>
@@ -118,6 +139,57 @@ export function DataPage() {
         </p>
       </section>
 
+      <section id="luas" className="prose-section">
+        <h2>Órbitas das luas</h2>
+        <p>
+          As 20 luas além da nossa usam órbitas ajustadas às efemérides do JPL Horizons. A partir da posição e da velocidade
+          de cada lua em relação ao planeta a 13 de outubro de 2026, a aplicação calcula os elementos orbitais e ajusta o
+          movimento médio às posições do Horizons 400 dias antes e um ano depois, contando as voltas com o período sideral
+          publicado pelo JPL. A órbita fica depois fixa: não inclui a precessão nem as perturbações entre luas.
+        </p>
+        <p>
+          Para medir o erro de forma independente, a tabela compara o modelo com posições do Horizons em duas datas que não entraram
+          no ajuste: uma entre as datas usadas e outra dois anos depois. Os períodos obtidos coincidem com os publicados
+          (por exemplo, 1,769 dias para Io e 0,3189 dias para Fobos) e Tritão surge, como deve, numa órbita retrógrada
+          inclinada cerca de 157° face ao equador de Neptuno. Os maiores desvios, entre 2° e 6°, são os de Fobos, Mimas,
+          Miranda, Europa e Tétis, cujas órbitas mudam depressa (achatamento do planeta e ressonâncias entre luas). Fora de
+          2025–2028 os erros crescem; para datas a décadas de distância, as posições das luas são apenas indicativas.
+        </p>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Lua</th>
+                <th scope="col">Planeta</th>
+                {MOON_CHECK_DATES.map((d) => (
+                  <th key={d.jd} scope="col" className="num">
+                    Diferença a {d.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {moonRows.map((r) => (
+                <tr key={r.body.id}>
+                  <th scope="row">{tr(r.body.name)}</th>
+                  <td>{r.parent ? tr(r.parent.name) : '—'}</td>
+                  {r.errorsDeg.map((e, i) => (
+                    <td key={i} className="num">
+                      {e < 0.01 ? '< 0,01°' : `${formatNumber(e, e < 1 ? 2 : 1)}°`}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="section-note">
+          Diferença angular vista do centro do planeta, calculada agora com o mesmo código da vista 3D. As luas com rotação
+          síncrona mostram sempre a mesma face ao planeta. Os mapas das luas e de Plutão são da coleção
+          NASA 3D Resources; as zonas que nenhuma sonda fotografou aparecem com um tom neutro uniforme.
+        </p>
+      </section>
+
       <section id="escala" className="prose-section">
         <h2>Escala da vista 3D</h2>
         <p>
@@ -137,7 +209,12 @@ export function DataPage() {
             do que deveriam em relação às distâncias.
           </li>
           <li>O Sol é desenhado com um tamanho fixo e reduzido, para não cobrir as órbitas interiores.</li>
-          <li>A Lua é colocada a {SCENE_SCALE.moonDistanceEarthRadii} raios terrestres (desenhados) da Terra, na direção real.</li>
+          <li>
+            Luas: a direção em relação ao planeta é a real, mas a distância é comprimida em escala logarítmica, d = R ×
+            ({SCENE_SCALE.moonDistanceBase} + {SCENE_SCALE.moonDistanceLog} × ln(r / R)), em que R é o raio desenhado do
+            planeta e r / R a distância real em raios do planeta. A ordem das órbitas mantém-se e as luas ficam fora dos
+            anéis desenhados.
+          </li>
         </ul>
         <p>
           Para comparar tamanhos reais entre si, use a vista <a href={href({ name: 'solar-system' })}>Tamanhos relativos</a> do
@@ -193,7 +270,8 @@ export function DataPage() {
           </li>
           <li>
             Representações ilustrativas, sem textura fiável nesta versão:{' '}
-            {illustrative.map((b) => tr(b.name)).join(', ')}.
+            {illustrative.map((b) => tr(b.name)).join(', ')}. As luas e Plutão usam mapas da NASA 3D Resources (sem
+            direitos de autor).
           </li>
           <li>
             Fotografias nas fichas: obtidas em tempo real da NASA Image and Video Library, com o título, a data e o
@@ -211,7 +289,8 @@ export function DataPage() {
         <h2>Limitações conhecidas</h2>
         <ul className="prose-list">
           <li>Não há sombras projetadas (por exemplo, a sombra dos anéis em Saturno) nem eclipses.</li>
-          <li>As luas, além da nossa, ainda não estão representadas na vista 3D; aparecem nas fichas dos planetas.</li>
+          <li>Na vista 3D, as luas, as suas órbitas e as etiquetas só aparecem quando a câmara se aproxima do planeta.</li>
+          <li>Fobos e Deimos são muito irregulares, mas aparecem como esferas.</li>
           <li>As posições não incluem a aberração da luz nem o tempo de viagem da luz: são posições geométricas.</li>
           <li>A interface está em português de Portugal; a estrutura está preparada para inglês e espanhol.</li>
         </ul>

@@ -32,6 +32,24 @@ describe('pesquisa', () => {
     expect(first('mrate')).toBe('mars');
   });
 
+  it('encontra as luas pelos nomes em português e em inglês', () => {
+    expect(first('Ganímedes')).toBe('ganymede');
+    expect(first('Ganymede')).toBe('ganymede');
+    expect(first('Tritão')).toBe('triton');
+    expect(first('Titan')).toBe('titan');
+    expect(first('Caronte')).toBe('charon');
+    expect(first('Io')).toBe('io');
+    expect(first('encelado')).toBe('enceladus');
+    expect(search(index, 'lua galileana').map((r) => r.entry.id)).toEqual(
+      expect.arrayContaining(['io', 'europa', 'ganymede', 'callisto']),
+    );
+  });
+
+  it('em caso de empate, o planeta aparece antes das suas luas', () => {
+    expect(first('saturo')).toBe('saturn');
+    expect(search(index, 'Saturno')[0]?.entry.id).toBe('saturn');
+  });
+
   it('encontra secções da aplicação', () => {
     expect(first('fontes')).toBe('page:data');
     expect(search(index, 'sistema solar').map((r) => r.entry.id)).toContain('page:solar-system');
@@ -77,6 +95,17 @@ describe('formatação em português de Portugal', () => {
     expect(dist.secondary).toBe('≈ 1 UA');
     const ceresDia = formatFact(getFact(getBody('ceres'), 'diameter')!);
     expect(ceresDia.text.startsWith('≈ ')).toBe(true);
+  });
+
+  it('formata os dados das luas', () => {
+    // Incerteza com pelo menos um algarismo significativo e o valor com as mesmas casas decimais
+    expect(formatFact(getFact(getBody('phobos'), 'diameter')!).text).toBe('22,16 ± 0,08 km');
+    expect(formatFact(getFact(getBody('io'), 'diameter')!).text).toBe('3643 ± 1 km');
+    // Intervalo com valores negativos usa "a" em vez de hífen
+    expect(formatFact(getFact(getBody('rhea'), 'temperatureRange')!).text).toMatch(/^[−-]220 a [−-]174 °C$/);
+    const triton = formatFact(getFact(getBody('triton'), 'siderealRotation')!);
+    expect(triton.secondary).toContain('retrógrada');
+    expect(formatFact(getFact(getBody('mimas'), 'orbitalPeriod')!).text).toBe('0,9424 dias');
   });
 });
 

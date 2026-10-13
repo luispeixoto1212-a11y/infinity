@@ -524,8 +524,8 @@ export const mars: CelestialBody = {
     asOf: '2026-10-13',
     sourceId: 'jpl-sat-discovery',
     notable: [
-      { name: pt('Fobos'), radiusKm: 11.08, radiusUncertaintyKm: 0.04 },
-      { name: pt('Deimos'), radiusKm: 6.2, radiusUncertaintyKm: 0.24 },
+      { name: pt('Fobos'), radiusKm: 11.08, radiusUncertaintyKm: 0.04, bodyId: 'phobos' },
+      { name: pt('Deimos'), radiusKm: 6.2, radiusUncertaintyKm: 0.24, bodyId: 'deimos' },
     ],
   },
   features: [

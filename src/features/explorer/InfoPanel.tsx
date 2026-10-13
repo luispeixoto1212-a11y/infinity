@@ -2,14 +2,15 @@ import { useEffect, useRef } from 'react';
 import { Icon } from '../../components/Icon';
 import { FavoriteButton } from '../../components/FavoriteButton';
 import { formatNumber } from '../../core/format';
-import { getFact, tr } from '../../data/catalog';
+import { findBodyById, getFact, tr } from '../../data/catalog';
 import type { CelestialBody, FactKey } from '../../data/types';
 import { useI18n } from '../../i18n';
 import { href } from '../../app/router';
-import { formatDurationSeconds, formatFact } from '../body/formatFact';
+import { formatDurationSeconds, formatFact, factLabel } from '../body/formatFact';
 import type { LiveInfo } from './engine/SolarSystemEngine';
 
 const PANEL_FACTS: FactKey[] = ['diameter', 'mass', 'gravity', 'dayLength', 'siderealRotation', 'orbitalPeriod', 'meanTemperature'];
+const MOON_FACTS: FactKey[] = ['diameter', 'mass', 'density', 'orbitalPeriod', 'meanTemperature', 'discovery'];
 const AU_KM = 149_597_870.7;
 const C_KM_S = 299_792.458;
 
@@ -29,14 +30,21 @@ export function InfoPanel({ body, live, onClose, onFocus }: Props) {
   }, [body.id]);
 
   // Duração do dia e rotação sideral: mostra só uma (prioridade ao dia solar)
-  const keys = PANEL_FACTS.filter((k) => !(k === 'siderealRotation' && getFact(body, 'dayLength')));
+  const keys =
+    body.type === 'moon' && body.id !== 'moon'
+      ? MOON_FACTS
+      : PANEL_FACTS.filter((k) => !(k === 'siderealRotation' && getFact(body, 'dayLength')));
+  const parent = body.type === 'moon' && body.parent && body.parent !== 'earth' ? findBodyById(body.parent) : undefined;
   const facts = keys.map((k) => getFact(body, k)).filter((f): f is NonNullable<typeof f> => Boolean(f));
 
   return (
     <aside className="info-panel" aria-labelledby="info-title">
       <div className="info-head">
         <div>
-          <p className="info-type">{t.categories[body.type]}</p>
+          <p className="info-type">
+            {t.categories[body.type]}
+            {parent ? ` de ${tr(parent.name)}` : ''}
+          </p>
           <h2 id="info-title" ref={headingRef} tabIndex={-1}>
             {tr(body.name)}
           </h2>
@@ -52,7 +60,13 @@ export function InfoPanel({ body, live, onClose, onFocus }: Props) {
 
       {live ? (
         <dl className="live-facts">
-          {body.id !== 'sun' ? (
+          {parent && live.distanceParentKm !== undefined ? (
+            <div>
+              <dt>{t.panel.distanceParent(tr(parent.name))}</dt>
+              <dd>{formatNumber(live.distanceParentKm, 0)} km</dd>
+            </div>
+          ) : null}
+          {body.id !== 'sun' && !parent ? (
             <div>
               <dt>{t.panel.distanceSun}</dt>
               <dd>
@@ -82,7 +96,7 @@ export function InfoPanel({ body, live, onClose, onFocus }: Props) {
           const ff = formatFact(f);
           return (
             <div key={f.key}>
-              <dt>{t.facts[f.key]}</dt>
+              <dt>{factLabel(t, f.key, body.type)}</dt>
               <dd>
                 {ff.text}
                 {ff.secondary ? <span className="secondary">{ff.secondary}</span> : null}

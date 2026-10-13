@@ -1,6 +1,7 @@
 import type { MajorPlanetKey, OsculatingElements } from '../core/astro/elements';
 import type { PoleModel } from '../core/astro/orientation';
 import type { SourceId } from './sources';
+import type { SatelliteKey } from './moonOrbits';
 
 /** Texto preparado para várias línguas; pt-PT é obrigatório e serve de alternativa. */
 export interface LocalizedText {
@@ -21,7 +22,27 @@ export type BodyId =
   | 'saturn'
   | 'uranus'
   | 'neptune'
-  | 'pluto';
+  | 'pluto'
+  | 'phobos'
+  | 'deimos'
+  | 'io'
+  | 'europa'
+  | 'ganymede'
+  | 'callisto'
+  | 'mimas'
+  | 'enceladus'
+  | 'tethys'
+  | 'dione'
+  | 'rhea'
+  | 'titan'
+  | 'iapetus'
+  | 'miranda'
+  | 'ariel'
+  | 'umbriel'
+  | 'titania'
+  | 'oberon'
+  | 'triton'
+  | 'charon';
 
 export type BodyType = 'star' | 'planet' | 'dwarf-planet' | 'moon';
 
@@ -67,6 +88,7 @@ export type FactKey =
   | 'perihelion'
   | 'aphelion'
   | 'distanceEarth'
+  | 'distancePlanet'
   | 'perigee'
   | 'apogee'
   | 'lightTime'
@@ -76,6 +98,7 @@ export type FactKey =
   | 'synodicPeriod'
   | 'orbitalVelocity'
   | 'inclination'
+  | 'inclinationEquator'
   | 'eccentricity'
   | 'obliquity'
   | 'meanTemperature'
@@ -161,7 +184,8 @@ export type OrbitModel =
   | { kind: 'none' }
   | { kind: 'jpl-approx'; key: MajorPlanetKey }
   | { kind: 'osculating'; elements: OsculatingElements }
-  | { kind: 'lunar-mean' };
+  | { kind: 'lunar-mean' }
+  | { kind: 'satellite'; key: SatelliteKey };
 
 export interface RenderInfo {
   /** Mapa de cor (sem extensão; existem versões -512 e -2k em public/textures). */
@@ -180,6 +204,8 @@ export interface RenderInfo {
     radiiKm?: number[];
   };
   clouds?: boolean;
+  /** Rotação síncrona: a face com longitude 0° está sempre virada para o planeta. */
+  synchronous?: boolean;
   atmosphereGlow?: string;
   /** Ícone para listas: cor de destaque. */
   accent: string;

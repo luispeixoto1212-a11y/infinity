@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { tr } from '../../data/catalog';
 import { SOURCES } from '../../data/sources';
-import type { CelestialBody, Fact, ValueKind } from '../../data/types';
+import type { BodyType, CelestialBody, Fact, ValueKind } from '../../data/types';
 import { useI18n } from '../../i18n';
-import { formatFact } from './formatFact';
+import { factLabel, formatFact } from './formatFact';
 
 const KEY_FACTS: Fact['key'][] = [
   'diameter',
@@ -29,14 +29,14 @@ function KindBadge({ kind }: { kind: ValueKind }) {
   );
 }
 
-function FactRow({ f }: { f: Fact }) {
+function FactRow({ f, bodyType }: { f: Fact; bodyType: BodyType }) {
   const { t } = useI18n();
   const ff = formatFact(f);
   const source = SOURCES[f.sourceId];
   return (
     <tr>
       <th scope="row">
-        {t.facts[f.key]}
+        {factLabel(t, f.key, bodyType)}
         {f.note ? <span className="fact-note">{tr(f.note)}</span> : null}
       </th>
       <td className="num">
@@ -76,7 +76,7 @@ export function FactsTable({ body }: { body: CelestialBody }) {
           </thead>
           <tbody>
             {rows.map((f) => (
-              <FactRow key={f.key} f={f} />
+              <FactRow key={f.key} f={f} bodyType={body.type} />
             ))}
           </tbody>
         </table>

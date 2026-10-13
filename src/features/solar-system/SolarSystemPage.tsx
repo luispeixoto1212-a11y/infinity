@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { href } from '../../app/router';
 import { BodyThumb } from '../../components/BodyThumb';
 import { formatNumber } from '../../core/format';
-import { BODIES, getBody, getFact, numericFact, tr } from '../../data/catalog';
+import { MOON_BODIES, PRIMARY_BODIES, findBodyById, getBody, getFact, numericFact, tr } from '../../data/catalog';
 import type { CelestialBody } from '../../data/types';
 import { useI18n } from '../../i18n';
 
@@ -55,10 +55,10 @@ function ListView() {
           </tr>
         </thead>
         <tbody>
-          {BODIES.map((b) => {
+          {PRIMARY_BODIES.map((b) => {
             const dia = getFact(b, 'diameter');
             return (
-              <tr key={b.id} className={b.type === 'moon' ? 'is-child' : undefined}>
+              <tr key={b.id}>
                 <th scope="row">
                   <a className="system-name" href={href({ name: 'body', slug: b.slug })}>
                     <BodyThumb body={b} size={b.type === 'star' ? 34 : 28} />
@@ -82,10 +82,55 @@ function ListView() {
   );
 }
 
+function MoonsTable() {
+  const { t } = useI18n();
+  const c = t.solarSystem.moonColumns;
+  return (
+    <section className="body-section moons-section" aria-labelledby="moons-title">
+      <h2 id="moons-title">{t.solarSystem.moonsTitle}</h2>
+      <p className="section-note">{t.solarSystem.moonsIntro}</p>
+      <div className="table-scroll">
+        <table className="data-table system-table">
+          <thead>
+            <tr>
+              <th scope="col">{c.name}</th>
+              <th scope="col">{c.parent}</th>
+              <th scope="col" className="num">{c.distance}</th>
+              <th scope="col" className="num">{c.diameter}</th>
+              <th scope="col" className="num">{c.period}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {MOON_BODIES.map((m) => {
+              const parent = m.parent ? findBodyById(m.parent) : undefined;
+              const dist = numericFact(m, 'distancePlanet') ?? (numericFact(m, 'distanceEarth') ?? 0) * 1e6;
+              const period = numericFact(m, 'orbitalPeriod');
+              return (
+                <tr key={m.id}>
+                  <th scope="row">
+                    <a className="system-name system-name--small" href={href({ name: 'body', slug: m.slug })}>
+                      <BodyThumb body={m} size={24} />
+                      <span>{tr(m.name)}</span>
+                    </a>
+                  </th>
+                  <td>{parent ? tr(parent.name) : '—'}</td>
+                  <td className="num">{formatNumber(dist, 0)} km</td>
+                  <td className="num">{formatNumber(diameterKm(m), diameterKm(m) < 100 ? 1 : 0)} km</td>
+                  <td className="num">{period ? `${formatNumber(period, 2)} dias` : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 /** Diâmetros à mesma escala; o Sol aparece como um arco à esquerda. */
 function SizeView() {
   const { t } = useI18n();
-  const items = BODIES.filter((b) => b.type !== 'star');
+  const items = PRIMARY_BODIES.filter((b) => b.type !== 'star').flatMap((b) => (b.id === 'earth' ? [b, getBody('moon')] : [b]));
   const sun = getBody('sun');
   const pxPerKm = 150 / diameterKm(getBody('jupiter'));
   const sunR = (diameterKm(sun) / 2) * pxPerKm;
@@ -160,7 +205,16 @@ export function SolarSystemPage() {
           ))}
         </div>
       </header>
-      <div role="tabpanel">{mode === 'list' ? <ListView /> : <SizeView />}</div>
+      <div role="tabpanel">
+        {mode === 'list' ? (
+          <>
+            <ListView />
+            <MoonsTable />
+          </>
+        ) : (
+          <SizeView />
+        )}
+      </div>
     </div>
   );
 }

@@ -18,11 +18,15 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { osculatingPositionAu, planetPositionAu } from '../../../core/astro/kepler';
 import { moonGeocentricKm } from '../../../core/astro/moon';
+import { AU_KM, planetocentricOffsetKm, referenceRadiusKm } from '../../../core/astro/positions';
+import { sampleSatelliteOrbitKm, satelliteOrbitNormal } from '../../../core/astro/satellites';
 import {
   SCENE_SCALE,
   bodyRadiusToScene,
   eclipticToScene,
   heliocentricAuToScene,
+  moonDistanceToScene,
+  moonRadiusToScene,
 } from '../../../core/astro/scale';
 import { clampToValidity } from '../../../core/astro/time';
 import { type Vec3, length as vlen, normalize as vnorm, sub as vsub } from '../../../core/astro/vector';
@@ -39,6 +43,17 @@ export type ViewMode = 'overview' | 'top' | 'edge';
 export interface LiveInfo {
   distanceSunAu: number;
   distanceEarthAu: number;
+  /** Só para luas: distância atual ao centro do planeta (km). */
+  distanceParentKm?: number;
+}
+
+interface MoonOrbit {
+  line: Line;
+  group: Group;
+  material: LineBasicMaterial;
+  computedAt: number;
+  /** Intervalo (dias) ao fim do qual a órbita é recalculada. */
+  refreshDays: number;
 }
 
 export interface EngineCallbacks {
@@ -81,8 +96,9 @@ interface Label {
   width: number;
 }
 
-const AU_KM = 149_597_870.7;
 const PICK_MIN_PX = 14;
+/** As luas (etiquetas, órbitas e seleção) só aparecem com a câmara a menos de N raios do planeta. */
+const MOON_NEAR_RADII = 45;
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -98,7 +114,9 @@ export class SolarSystemEngine {
   private readonly positionsScene = new Map<BodyId, Vector3>();
   private readonly starGroup = new Group();
   private stars?: Points;
-  private moonOrbit?: { line: Line; group: Group; computedAt: number };
+  private readonly moonOrbits = new Map<BodyId, MoonOrbit>();
+  private readonly nearParent = new Map<BodyId, boolean>();
+  private showOrbits = true;
   private readonly abort = new AbortController();
   private readonly resizeObserver: ResizeObserver;
   private raf = 0;
@@ -185,7 +203,11 @@ export class SolarSystemEngine {
   private buildBodies() {
     for (const body of this.opts.bodies) {
       const radius =
-        body.type === 'star' ? SCENE_SCALE.sunRadiusUnits : bodyRadiusToScene(body.meanRadiusKm);
+        body.type === 'star'
+          ? SCENE_SCALE.sunRadiusUnits
+          : body.type === 'moon'
+            ? moonRadiusToScene(body.meanRadiusKm)
+            : bodyRadiusToScene(body.meanRadiusKm);
       const visual = createBodyVisual(body, radius, {
         quality: this.opts.quality,
         onTextureError: (f) => this.opts.callbacks.onTextureError(f),
@@ -203,37 +225,56 @@ export class SolarSystemEngine {
       this.orbits.set(body.id, orbit);
       this.scene.add(orbit.line);
     }
-    if (this.visuals.has('moon') && this.visuals.has('earth')) {
+    for (const body of this.opts.bodies) {
+      if (body.orbit.kind !== 'lunar-mean' && body.orbit.kind !== 'satellite') continue;
       const group = new Group();
-      const material = new LineBasicMaterial({ color: new Color('#d9d6cf'), transparent: true, opacity: 0.3, depthWrite: false });
+      const material = new LineBasicMaterial({
+        color: new Color(body.render.accent),
+        transparent: true,
+        opacity: 0.32,
+        depthWrite: false,
+      });
       const line = new Line(new BufferGeometry(), material);
-      line.name = 'moon-orbit';
+      line.name = `${body.id}-orbit`;
+      line.frustumCulled = false;
       group.add(line);
       this.scene.add(group);
-      this.moonOrbit = { line, group, computedAt: Number.NaN };
-      this.updateMoonOrbit();
+      // A órbita da Lua (Meeus) precessa: recalculada a cada 3 dias simulados; as restantes são elipses fixas.
+      this.moonOrbits.set(body.id, {
+        line,
+        group,
+        material,
+        computedAt: Number.NaN,
+        refreshDays: body.orbit.kind === 'lunar-mean' ? 3 : 3650,
+      });
+      this.updateMoonOrbit(body);
     }
   }
 
-  private moonVisualDistance(): number {
-    const earth = this.visuals.get('earth');
-    return (earth?.radius ?? 1) * SCENE_SCALE.moonDistanceEarthRadii;
+  /** Distância de desenho de uma lua ao planeta, a partir da distância real (km). */
+  private moonSceneDistance(body: CelestialBody, distanceKm: number): number {
+    const parent = body.parent ? this.visuals.get(body.parent) : undefined;
+    if (!parent) return 1;
+    return moonDistanceToScene(distanceKm, referenceRadiusKm(parent.body), parent.radius);
   }
 
-  private updateMoonOrbit() {
-    if (!this.moonOrbit) return;
+  private updateMoonOrbit(body: CelestialBody) {
+    const orbit = this.moonOrbits.get(body.id);
+    if (!orbit) return;
+    const offsets =
+      body.orbit.kind === 'satellite'
+        ? sampleSatelliteOrbitKm(body.orbit.key, this.jd, 180)
+        : Array.from({ length: 121 }, (_, i) => moonGeocentricKm(this.jd + (27.321661 * i) / 120));
     const pts: number[] = [];
-    const d = this.moonVisualDistance();
-    const N = 120;
-    for (let i = 0; i <= N; i += 1) {
-      const dir = vnorm(moonGeocentricKm(this.jd + (27.321661 * i) / N));
-      const s = eclipticToScene(dir);
+    for (const o of offsets) {
+      const d = this.moonSceneDistance(body, vlen(o));
+      const s = eclipticToScene(vnorm(o));
       pts.push(s.x * d, s.y * d, s.z * d);
     }
-    const g = this.moonOrbit.line.geometry;
+    const g = orbit.line.geometry;
     g.setAttribute('position', new Float32BufferAttribute(pts, 3));
     g.computeBoundingSphere();
-    this.moonOrbit.computedAt = this.jd;
+    orbit.computedAt = this.jd;
   }
 
   private buildLabels() {
@@ -251,7 +292,14 @@ export class SolarSystemEngine {
         this.select(body.id, { fly: true });
       });
       layer.appendChild(el);
-      const priority = body.type === 'star' ? 1000 : body.type === 'planet' ? 500 + body.meanRadiusKm / 1000 : body.meanRadiusKm / 100;
+      const priority =
+        body.type === 'star'
+          ? 1000
+          : body.type === 'planet'
+            ? 500 + body.meanRadiusKm / 1000
+            : body.type === 'dwarf-planet'
+              ? 200
+              : body.meanRadiusKm / 100;
       this.labels.push({ id: body.id, el, priority, width: name.length * 7.5 + 22 });
     }
   }
@@ -281,26 +329,31 @@ export class SolarSystemEngine {
         return planetPositionAu(body.orbit.key, this.jd);
       case 'osculating':
         return osculatingPositionAu(body.orbit.elements, this.jd);
-      case 'lunar-mean': {
-        const earth = this.positionsAu.get('earth') ?? planetPositionAu('emb', this.jd);
-        const m = moonGeocentricKm(this.jd);
-        return { x: earth.x + m.x / AU_KM, y: earth.y + m.y / AU_KM, z: earth.z + m.z / AU_KM };
+      case 'lunar-mean':
+      case 'satellite': {
+        const parent = (body.parent && this.positionsAu.get(body.parent)) || { x: 0, y: 0, z: 0 };
+        const m = planetocentricOffsetKm(body, this.jd)!;
+        return { x: parent.x + m.x / AU_KM, y: parent.y + m.y / AU_KM, z: parent.z + m.z / AU_KM };
       }
       default:
         return { x: 0, y: 0, z: 0 };
     }
   }
 
+  private readonly tmpX = new Vector3();
+  private readonly tmpY = new Vector3();
+
   private updatePositions() {
     for (const body of this.opts.bodies) {
       const au = this.computePositionAu(body);
       this.positionsAu.set(body.id, au);
       let scene: Vector3;
-      if (body.orbit.kind === 'lunar-mean') {
-        const earthScene = this.positionsScene.get('earth') ?? new Vector3();
-        const dir = eclipticToScene(vnorm(moonGeocentricKm(this.jd)));
-        const d = this.moonVisualDistance();
-        scene = new Vector3(earthScene.x + dir.x * d, earthScene.y + dir.y * d, earthScene.z + dir.z * d);
+      const offset = planetocentricOffsetKm(body, this.jd);
+      if (offset && body.parent) {
+        const parentScene = this.positionsScene.get(body.parent) ?? new Vector3();
+        const dir = eclipticToScene(vnorm(offset));
+        const d = this.moonSceneDistance(body, vlen(offset));
+        scene = new Vector3(parentScene.x + dir.x * d, parentScene.y + dir.y * d, parentScene.z + dir.z * d);
       } else {
         const s = heliocentricAuToScene(au);
         scene = new Vector3(s.x, s.y, s.z);
@@ -309,21 +362,36 @@ export class SolarSystemEngine {
       if (prev) prev.copy(scene);
       else this.positionsScene.set(body.id, scene);
       const visual = this.visuals.get(body.id);
-      if (visual) {
-        visual.group.position.copy(scene);
-        visual.updateOrientation(this.jd);
-        if (visual.atmosphere) {
-          const sunDir = visual.atmosphere.uniforms.uSunDir!.value as Vector3;
-          sunDir.copy(scene).negate().normalize();
+      if (!visual) continue;
+      visual.group.position.copy(scene);
+      if (body.render.synchronous && body.orbit.kind === 'satellite' && body.parent) {
+        // Rotação síncrona: longitude 0° virada para o planeta; polo norte IAU do lado norte do plano
+        // invariável (exceto no sistema de Plutão, onde a IAU usa a regra da mão direita).
+        const parentScene = this.positionsScene.get(body.parent);
+        const parentType = this.visuals.get(body.parent)?.body.type;
+        if (parentScene) {
+          const h = satelliteOrbitNormal(body.orbit.key);
+          const sign = parentType === 'dwarf-planet' || h.z >= 0 ? 1 : -1;
+          const n = eclipticToScene({ x: h.x * sign, y: h.y * sign, z: h.z * sign });
+          this.tmpY.set(n.x, n.y, n.z).normalize();
+          this.tmpX.copy(parentScene).sub(scene).normalize();
+          visual.orientSynchronous(this.tmpX, this.tmpY);
         }
+      } else {
+        visual.updateOrientation(this.jd);
+      }
+      if (visual.atmosphere) {
+        const sunDir = visual.atmosphere.uniforms.uSunDir!.value as Vector3;
+        sunDir.copy(scene).negate().normalize();
       }
     }
-    if (this.moonOrbit) {
-      const earthScene = this.positionsScene.get('earth');
-      if (earthScene) this.moonOrbit.group.position.copy(earthScene);
-      if (!(Math.abs(this.jd - this.moonOrbit.computedAt) < 3)) this.updateMoonOrbit();
+    for (const [id, orbit] of this.moonOrbits) {
+      const body = this.visuals.get(id)?.body;
+      const parentScene = body?.parent ? this.positionsScene.get(body.parent) : undefined;
+      if (parentScene) orbit.group.position.copy(parentScene);
+      if (body && !(Math.abs(this.jd - orbit.computedAt) < orbit.refreshDays)) this.updateMoonOrbit(body);
     }
-    // As elipses mudam muito devagar: recalculadas a cada 5 anos simulados
+    // As elipses dos planetas mudam muito devagar: recalculadas a cada 5 anos simulados
     for (const [id, orbit] of this.orbits) {
       if (Math.abs(this.jd - orbit.computedAt) > 1826) {
         const body = this.visuals.get(id)?.body;
@@ -331,6 +399,28 @@ export class SolarSystemEngine {
         if (pts) orbit.update(pts, this.jd);
       }
     }
+  }
+
+  /** Atualiza, para cada lua, se a câmara está suficientemente perto do planeta. */
+  private updateNearParent() {
+    for (const [id, visual] of this.visuals) {
+      const parentId = visual.body.type === 'moon' ? visual.body.parent : undefined;
+      if (!parentId) continue;
+      const parent = this.visuals.get(parentId);
+      const parentPos = this.positionsScene.get(parentId);
+      if (!parent || !parentPos) continue;
+      const near =
+        this.selected === id ||
+        this.selected === parentId ||
+        this.camera.position.distanceTo(parentPos) < parent.radius * MOON_NEAR_RADII;
+      this.nearParent.set(id, near);
+      const orbit = this.moonOrbits.get(id);
+      if (orbit) orbit.line.visible = this.showOrbits && near;
+    }
+  }
+
+  private isPickable(id: BodyId): boolean {
+    return this.nearParent.get(id) ?? true;
   }
 
   // ---------------------------------------------------------------- API pública
@@ -358,8 +448,9 @@ export class SolarSystemEngine {
   }
 
   setShowOrbits(show: boolean) {
+    this.showOrbits = show;
     for (const o of this.orbits.values()) o.line.visible = show;
-    if (this.moonOrbit) this.moonOrbit.line.visible = show;
+    this.updateNearParent();
   }
 
   setShowLabels(show: boolean) {
@@ -371,7 +462,11 @@ export class SolarSystemEngine {
     const p = this.positionsAu.get(id);
     const e = this.positionsAu.get('earth');
     if (!p || !e) return null;
-    return { distanceSunAu: vlen(p), distanceEarthAu: id === 'earth' ? 0 : vlen(vsub(p, e)) };
+    const info: LiveInfo = { distanceSunAu: vlen(p), distanceEarthAu: id === 'earth' ? 0 : vlen(vsub(p, e)) };
+    const body = this.visuals.get(id)?.body;
+    const offset = body ? planetocentricOffsetKm(body, this.jd) : null;
+    if (offset) info.distanceParentKm = vlen(offset);
+    return info;
   }
 
   select(id: BodyId | null, options: { fly?: boolean; emit?: boolean } = {}) {
@@ -395,7 +490,8 @@ export class SolarSystemEngine {
     const pos = this.positionsScene.get(id);
     if (!visual || !pos) return;
     const ringFactor = visual.body.render.rings?.style === 'saturn' ? 2.4 : 1;
-    const dist = Math.max(visual.radius * 5.5 * ringFactor, 2.2);
+    const dist =
+      visual.body.type === 'moon' ? Math.max(visual.radius * 7, 0.6) : Math.max(visual.radius * 5.5 * ringFactor, 2.2);
     // Ver o corpo do lado iluminado, ligeiramente de lado para mostrar o terminador
     const toSun = pos.lengthSq() > 0 ? pos.clone().negate().normalize() : new Vector3(0, 0, 1);
     const side = new Vector3(0, 1, 0).cross(toSun).normalize();
@@ -446,9 +542,9 @@ export class SolarSystemEngine {
     this.controls.dispose();
     for (const v of this.visuals.values()) v.dispose();
     for (const o of this.orbits.values()) o.dispose();
-    if (this.moonOrbit) {
-      this.moonOrbit.line.geometry.dispose();
-      (this.moonOrbit.line.material as LineBasicMaterial).dispose();
+    for (const o of this.moonOrbits.values()) {
+      o.line.geometry.dispose();
+      o.material.dispose();
     }
     if (this.stars) {
       this.stars.geometry.dispose();
@@ -544,6 +640,7 @@ export class SolarSystemEngine {
     this.followSelected(prevFollow);
     this.updateFlight(now);
     this.controls.update(dt);
+    this.updateNearParent();
     this.starGroup.position.copy(this.camera.position);
     this.renderer.render(this.scene, this.camera);
     if (this.showLabels) this.updateLabels();
@@ -595,8 +692,6 @@ export class SolarSystemEngine {
   private updateLabels() {
     const placed: Array<{ x: number; y: number; w: number }> = [];
     const scr = { x: 0, y: 0, visible: false };
-    const earthPos = this.positionsScene.get('earth');
-    const camToEarth = earthPos ? this.camera.position.distanceTo(earthPos) : Infinity;
     const sorted = [...this.labels].sort((a, b) => {
       if (a.id === this.selected) return -1;
       if (b.id === this.selected) return 1;
@@ -608,7 +703,7 @@ export class SolarSystemEngine {
       if (!pos || !visual) continue;
       this.projectToScreen(pos, scr);
       let show = scr.visible;
-      if (label.id === 'moon' && this.selected !== 'moon' && camToEarth > 45) show = false;
+      if (!this.isPickable(label.id)) show = false;
       const rPx = this.screenRadius(pos, visual.radius);
       const y = scr.y + Math.min(rPx, 220) + 8;
       if (show) {
@@ -637,10 +732,7 @@ export class SolarSystemEngine {
     for (const [id, visual] of this.visuals) {
       const pos = this.positionsScene.get(id);
       if (!pos) continue;
-      if (id === 'moon' && this.selected !== 'moon' && this.selected !== 'earth') {
-        const earth = this.positionsScene.get('earth');
-        if (earth && this.camera.position.distanceTo(earth) > 45) continue;
-      }
+      if (!this.isPickable(id)) continue;
       this.projectToScreen(pos, scr);
       if (!scr.visible) continue;
       const r = Math.max(this.screenRadius(pos, visual.radius), PICK_MIN_PX);

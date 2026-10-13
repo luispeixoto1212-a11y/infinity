@@ -83,10 +83,11 @@ export function GlobeViewer({ body }: { body: CelestialBody }) {
     // e rotação acelerada: uma volta em ~40 s, no sentido real (negativo = retrógrado).
     // Com rotação retrógrada (período negativo), o polo norte IAU — o do topo da textura — fica a
     // 180° − obliquidade da normal da órbita e o corpo roda no sentido inverso em torno dele.
-    const obliquityRaw = numericFact(body, 'obliquity') ?? 0;
+    // Sem obliquidade conhecida (luas síncronas), o eixo fica perpendicular à órbita e só o sentido muda.
+    const obliquityRaw = numericFact(body, 'obliquity');
     const rotation = numericFact(body, 'siderealRotation') ?? 24;
     const spinSign = rotation < 0 ? -1 : 1;
-    const obliquity = rotation < 0 ? 180 - obliquityRaw : obliquityRaw;
+    const obliquity = obliquityRaw === undefined ? 0 : rotation < 0 ? 180 - obliquityRaw : obliquityRaw;
     const tilt = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -MathUtils.degToRad(obliquity));
     const spin = new Quaternion();
     const yAxis = new Vector3(0, 1, 0);

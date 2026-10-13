@@ -46,6 +46,13 @@ describe('NASA Image and Video Library', () => {
     expect(filterRelevant(imgs, ['saturn'], 5).map((i) => i.nasaId)).toEqual(['1', '4']);
   });
 
+  it('a relevância usa palavras inteiras (Io não corresponde a "Galileo")', () => {
+    const imgs = parseNasaResponse({
+      collection: { items: [item('g', 'Galileo spacecraft assembly'), item('i', 'Io volcano Pele'), item('b', 'Jupiter and Io')] },
+    });
+    expect(filterRelevant(imgs, ['io'], 5).map((i) => i.nasaId)).toEqual(['i', 'b']);
+  });
+
   it('propaga erros HTTP para a interface mostrar a mensagem certa', async () => {
     const fakeFetch = (async () => new Response('erro', { status: 503 })) as typeof fetch;
     await expect(searchNasaImages('Mars teste 503', ['mars'], { fetchImpl: fakeFetch })).rejects.toThrow('503');

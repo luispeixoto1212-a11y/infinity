@@ -128,13 +128,17 @@ function scoreTerm(query: string, term: string): number {
   if (t.includes(query)) return 55;
   if (query.length >= 4) {
     const max = query.length >= 7 ? 2 : 1;
-    for (const w of [t, ...words]) {
+    // Um erro no nome completo pesa mais do que num dos termos (ex.: "Saturno IV" de Dione)
+    for (const [w, score] of [[t, 45], ...words.map((x) => [x, 35] as const)] as Array<readonly [string, number]>) {
       const candidate = w.slice(0, Math.max(query.length, Math.min(w.length, query.length + 1)));
-      if (editDistance(query, w, max) <= max || editDistance(query, candidate, max) <= max) return 40;
+      if (editDistance(query, w, max) <= max || editDistance(query, candidate, max) <= max) return score;
     }
   }
   return 0;
 }
+
+/** Em caso de empate, estrelas e planetas aparecem antes das luas. */
+const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page'];
 
 export function search(index: readonly SearchEntry[], rawQuery: string, limit = 8): SearchResult[] {
   const query = normalize(rawQuery);
@@ -145,5 +149,12 @@ export function search(index: readonly SearchEntry[], rawQuery: string, limit = 
     for (const term of [entry.title, ...entry.terms]) best = Math.max(best, scoreTerm(query, term));
     if (best > 0) results.push({ entry, score: best + (entry.category === 'page' ? -5 : 0) });
   }
-  return results.sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title, 'pt-PT')).slice(0, limit);
+  return results
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        CATEGORY_ORDER.indexOf(a.entry.category) - CATEGORY_ORDER.indexOf(b.entry.category) ||
+        a.entry.title.localeCompare(b.entry.title, 'pt-PT'),
+    )
+    .slice(0, limit);
 }

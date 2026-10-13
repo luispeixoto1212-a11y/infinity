@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BODIES, findBodyBySlug, getBody, getFact, numericFact, validateCatalog } from './catalog';
+import { existsSync } from 'node:fs';
+import { BODIES, MOON_BODIES, PRIMARY_BODIES, findBodyBySlug, getBody, getFact, moonsOf, numericFact, siblingsOf, validateCatalog } from './catalog';
 import { ALL_SOURCES, SOURCES } from './sources';
 import type { CelestialBody } from './types';
 
@@ -85,6 +86,91 @@ describe('catálogo de objetos', () => {
     expect(findBodyBySlug('neptuno')?.id).toBe('neptune');
     expect(findBodyBySlug('plutao')?.id).toBe('pluto');
     expect(findBodyBySlug('inexistente')).toBeUndefined();
+  });
+});
+
+describe('luas', () => {
+  const MOONS = MOON_BODIES.filter((m) => m.id !== 'moon');
+
+  it('separa os objetos principais (11) das luas (21)', () => {
+    expect(PRIMARY_BODIES).toHaveLength(11);
+    expect(MOON_BODIES).toHaveLength(21);
+    expect(PRIMARY_BODIES.some((b) => b.type === 'moon')).toBe(false);
+    expect(MOON_BODIES.every((b) => b.type === 'moon' && b.parent)).toBe(true);
+  });
+
+  it('agrupa as luas pelo planeta, por ordem de distância', () => {
+    expect(moonsOf('mars').map((m) => m.id)).toEqual(['phobos', 'deimos']);
+    expect(moonsOf('jupiter').map((m) => m.id)).toEqual(['io', 'europa', 'ganymede', 'callisto']);
+    expect(moonsOf('saturn')).toHaveLength(7);
+    expect(moonsOf('uranus').map((m) => m.id)).toEqual(['miranda', 'ariel', 'umbriel', 'titania', 'oberon']);
+    expect(moonsOf('neptune').map((m) => m.id)).toEqual(['triton']);
+    expect(moonsOf('pluto').map((m) => m.id)).toEqual(['charon']);
+    expect(siblingsOf(getBody('europa')).map((m) => m.id)).toContain('callisto');
+    expect(siblingsOf(getBody('mars'))).toBe(PRIMARY_BODIES);
+  });
+
+  it('cada lua tem os dados da ficha, órbita ajustada e rotação síncrona', () => {
+    for (const m of MOONS) {
+      for (const key of ['diameter', 'mass', 'density', 'gravity', 'distancePlanet', 'orbitalPeriod', 'siderealRotation', 'inclinationEquator', 'discovery'] as const) {
+        expect(getFact(m, key), `${m.id}: ${key}`).toBeDefined();
+      }
+      expect(m.orbit.kind, m.id).toBe('satellite');
+      expect(m.render.synchronous, m.id).toBe(true);
+      expect(m.sources, m.id).toEqual(expect.arrayContaining(['jpl-sat-phys', 'horizons-moons']));
+      expect(m.description.length, m.id).toBeGreaterThan(0);
+      // Rotação síncrona: período de rotação = período orbital
+      const rot = Math.abs(numericFact(m, 'siderealRotation')!) / 24;
+      expect(rot / numericFact(m, 'orbitalPeriod')!, m.id).toBeCloseTo(1, 9);
+    }
+  });
+
+  it('a massa calculada a partir de GM é coerente com a densidade e o raio', () => {
+    for (const m of MOONS) {
+      const mass = numericFact(m, 'mass')!;
+      const r = m.meanRadiusKm * 1000;
+      const density = mass / ((4 / 3) * Math.PI * r ** 3);
+      // Fobos e Deimos são muito irregulares: o raio médio esférico dá um volume aproximado
+      const tolerance = ['phobos', 'deimos'].includes(m.id) ? 0.25 : 0.02;
+      expect(Math.abs(density / numericFact(m, 'density')! - 1), m.id).toBeLessThan(tolerance);
+    }
+  });
+
+  it('valores conhecidos: Titã, Ganimedes e Tritão', () => {
+    expect(numericFact(getBody('ganymede'), 'diameter')).toBeGreaterThan(numericFact(getBody('titan'), 'diameter')!);
+    expect(numericFact(getBody('titan'), 'surfacePressure')).toBeCloseTo(1.5, 0);
+    expect(getBody('titan').atmosphere?.components[0]?.formula).toBe('N₂');
+    expect(numericFact(getBody('triton'), 'siderealRotation')).toBeLessThan(0);
+    expect(numericFact(getBody('triton'), 'inclinationEquator')).toBeGreaterThan(150);
+  });
+
+  it('os slugs em português abrem a lua certa', () => {
+    expect(findBodyBySlug('ganimedes')?.id).toBe('ganymede');
+    expect(findBodyBySlug('tita')?.id).toBe('titan');
+    expect(findBodyBySlug('tritao')?.id).toBe('triton');
+    expect(findBodyBySlug('caronte')?.id).toBe('charon');
+  });
+
+  it('as luas principais referidas nas fichas dos planetas têm ligação para a ficha da lua', () => {
+    for (const b of PRIMARY_BODIES) {
+      for (const n of b.moons?.notable ?? []) {
+        if (n.bodyId) expect(getBody(n.bodyId).parent, `${b.id} → ${n.bodyId}`).toBe(b.id);
+      }
+    }
+    const jupiterLinks = getBody('jupiter').moons?.notable.filter((n) => n.bodyId).length ?? 0;
+    expect(jupiterLinks).toBe(4);
+  });
+});
+
+describe('texturas', () => {
+  it('cada textura referida existe nas duas resoluções', () => {
+    for (const b of BODIES) {
+      if (!b.render.texture) continue;
+      for (const size of ['2k', '512']) {
+        const file = new URL(`../../public/textures/${b.render.texture}-${size}.jpg`, import.meta.url);
+        expect(existsSync(file), `${b.id}: ${b.render.texture}-${size}.jpg`).toBe(true);
+      }
+    }
   });
 });
 

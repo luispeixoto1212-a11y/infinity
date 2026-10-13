@@ -14,8 +14,11 @@ export const SCENE_SCALE = {
   earthRadiusUnits: 1,
   minBodyRadius: 0.3,
   sunRadiusUnits: 5,
-  moonDistanceEarthRadii: 2.6,
   earthRadiusKm: 6371.0,
+  /** Luas: raio mínimo desenhado e parâmetros da compressão logarítmica das distâncias. */
+  moonMinRadius: 0.08,
+  moonDistanceBase: 1.6,
+  moonDistanceLog: 1.5,
 } as const;
 
 export function compressDistanceAu(rAu: number): number {
@@ -51,4 +54,19 @@ export function sizeExaggerationAt(rAu: number, radiusKm: number): number {
   const realRadiusAu = radiusKm / 149_597_870.7;
   const realOnScreen = (realRadiusAu / rAu) * compressDistanceAu(rAu);
   return bodyRadiusToScene(radiusKm) / realOnScreen;
+}
+
+/** Raio de desenho de uma lua (mínimo menor do que o dos planetas, para não esconder o planeta). */
+export function moonRadiusToScene(radiusKm: number): number {
+  return Math.max(SCENE_SCALE.moonMinRadius, SCENE_SCALE.earthRadiusUnits * Math.sqrt(radiusKm / SCENE_SCALE.earthRadiusKm));
+}
+
+/**
+ * Distância de desenho de uma lua ao centro do planeta.
+ * Compressão logarítmica em raios do planeta: d = R_cena · (1,6 + 1,5 · ln(r / R_planeta)).
+ * Preserva a ordem das órbitas e mantém as luas fora do planeta e dos anéis desenhados.
+ */
+export function moonDistanceToScene(distanceKm: number, planetRadiusKm: number, planetSceneRadius: number): number {
+  const x = Math.max(1.05, distanceKm / planetRadiusKm);
+  return planetSceneRadius * (SCENE_SCALE.moonDistanceBase + SCENE_SCALE.moonDistanceLog * Math.log(x));
 }

@@ -41,6 +41,8 @@ export interface BodyVisual {
   upgradeTextures(): Promise<void>;
   /** Atualiza a orientação (polo e meridiano) para a data indicada. */
   updateOrientation(jdTdb: number): void;
+  /** Rotação síncrona: longitude 0° na direção `towardPlanet`, polo norte segundo `north` (cena). */
+  orientSynchronous(towardPlanet: Vector3, north: Vector3): void;
   setHighlighted(on: boolean): void;
   dispose(): void;
 }
@@ -271,6 +273,13 @@ export function createBodyVisual(body: CelestialBody, radius: number, opts: Body
         const turns = (daysSinceJ2000(jdTdb) * 24) / rotationHours;
         orient.rotation.set(0, (turns % 1) * Math.PI * 2, 0);
       }
+    },
+    orientSynchronous(towardPlanet: Vector3, north: Vector3) {
+      tmpY.copy(north).normalize();
+      tmpX.copy(towardPlanet).addScaledVector(tmpY, -towardPlanet.dot(tmpY)).normalize();
+      tmpZ.crossVectors(tmpX, tmpY);
+      tmpM.makeBasis(tmpX, tmpY, tmpZ);
+      orient.quaternion.setFromRotationMatrix(tmpM);
     },
     setHighlighted(on: boolean) {
       if (material instanceof MeshPhongMaterial) {

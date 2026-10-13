@@ -3,8 +3,9 @@ import { JPL_TABLE_1 } from './elements';
 import { planetPositionAu, solveKepler, toSpherical } from './kepler';
 import { moonGeocentricKm, MOON_POSITION_MAX_ERROR_DEG } from './moon';
 import { bodyFrameEcliptic } from './orientation';
-import { heliocentricPositionAu } from './positions';
-import { bodyRadiusToScene, compressDistanceAu, heliocentricAuToScene } from './scale';
+import { AU_KM, heliocentricPositionAu, planetocentricOffsetKm, referenceRadiusKm } from './positions';
+import { bodyRadiusToScene, compressDistanceAu, heliocentricAuToScene, moonDistanceToScene, moonRadiusToScene } from './scale';
+import { satelliteOffsetKm, satelliteOrbitNormal, satellitePeriodDays, sampleSatelliteOrbitKm } from './satellites';
 import {
   J2000_JD,
   clampToValidity,
@@ -14,7 +15,9 @@ import {
   julianDayTdbToDate,
 } from './time';
 import { DEG, angleBetweenDeg, dot, length } from './vector';
-import { BODIES, getBody } from '../../data/catalog';
+import { BODIES, MOON_BODIES, getBody, moonsOf, numericFact } from '../../data/catalog';
+import { SATELLITE_ELEMENTS, type SatelliteKey } from '../../data/moonOrbits';
+import { MOON_CHECK_DATES, MOON_CHECK_VECTORS } from '../../data/moonValidation';
 import { HORIZONS_EPOCH_JD, HORIZONS_MOON_GEOCENTRIC_KM, HORIZONS_REFERENCE } from '../../data/validation';
 
 const AU_KM = 149_597_870.7;
@@ -188,5 +191,108 @@ describe('escala de visualização', () => {
       const outer = JPL_TABLE_1[order[i]!].base;
       expect(inner.a * (1 + inner.e)).toBeLessThan(outer.a * (1 - outer.e));
     }
+  });
+});
+
+describe('luas: órbitas ajustadas ao JPL Horizons', () => {
+  // Limites (graus) nas datas de verificação, que não entraram no ajuste. Valores medidos: ver "Dados e métodos".
+  const LIMIT_DEG: Partial<Record<SatelliteKey, number>> = { phobos: 6, mimas: 5.5, miranda: 3.5 };
+
+  it('cada lua fica perto da posição do Horizons em duas datas independentes', () => {
+    expect(MOON_CHECK_VECTORS).toHaveLength(20);
+    for (const ref of MOON_CHECK_VECTORS) {
+      const key = ref.id as SatelliteKey;
+      MOON_CHECK_DATES.forEach((d, i) => {
+        const model = satelliteOffsetKm(key, d.jd);
+        const truth = ref.vectorsKm[i]!;
+        expect(angleBetweenDeg(model, truth), `${key} em ${d.label}`).toBeLessThan(LIMIT_DEG[key] ?? 2.5);
+        expect(Math.abs(length(model) / length(truth) - 1), `${key}: distância em ${d.label}`).toBeLessThan(0.03);
+      });
+    }
+  });
+
+  it('os períodos coincidem com os publicados pelo JPL e pela NASA', () => {
+    const published: Array<[SatelliteKey, number]> = [
+      ['phobos', 0.31891],
+      ['deimos', 1.26244],
+      ['io', 1.769138],
+      ['europa', 3.551181],
+      ['ganymede', 7.154553],
+      ['callisto', 16.689018],
+      ['mimas', 0.942422],
+      ['enceladus', 1.370218],
+      ['tethys', 1.887802],
+      ['dione', 2.736916],
+      ['titan', 15.945],
+      ['triton', 5.876854],
+      ['charon', 6.38723],
+    ];
+    for (const [key, days] of published) {
+      expect(Math.abs(satellitePeriodDays(key) / days - 1), key).toBeLessThan(5e-4);
+    }
+  });
+
+  it('Tritão é retrógrado e as luas galileanas orbitam no plano do equador de Júpiter', () => {
+    expect(SATELLITE_ELEMENTS.triton.inclinationToEquator).toBeGreaterThan(150);
+    expect(SATELLITE_ELEMENTS.iapetus.inclinationToEquator).toBeCloseTo(15.8, 0);
+    const jupiterPole = bodyFrameEcliptic(getBody('jupiter').pole!, HORIZONS_EPOCH_JD).north;
+    for (const key of ['io', 'europa', 'ganymede', 'callisto'] as const) {
+      expect(angleBetweenDeg(satelliteOrbitNormal(key), jupiterPole), key).toBeLessThan(1);
+    }
+  });
+
+  it('as órbitas amostradas fecham e mantêm o semieixo maior', () => {
+    const pts = sampleSatelliteOrbitKm('titan', HORIZONS_EPOCH_JD, 120);
+    const a = SATELLITE_ELEMENTS.titan.a;
+    const e = SATELLITE_ELEMENTS.titan.e;
+    for (const p of pts) {
+      expect(length(p)).toBeGreaterThan(a * (1 - e) * 0.999);
+      expect(length(p)).toBeLessThan(a * (1 + e) * 1.001);
+    }
+    expect(length({ x: pts[0]!.x - pts.at(-1)!.x, y: pts[0]!.y - pts.at(-1)!.y, z: pts[0]!.z - pts.at(-1)!.z })).toBeLessThan(a * 0.06);
+  });
+
+  it('a posição heliocêntrica de uma lua é a do planeta mais o desvio planetocêntrico', () => {
+    const io = getBody('io');
+    const jd = HORIZONS_EPOCH_JD + 10.25;
+    const h = heliocentricPositionAu(io, jd);
+    const p = heliocentricPositionAu(getBody('jupiter'), jd);
+    const o = planetocentricOffsetKm(io, jd)!;
+    expect((h.x - p.x) * AU_KM).toBeCloseTo(o.x, 3);
+    expect((h.z - p.z) * AU_KM).toBeCloseTo(o.z, 3);
+    expect(planetocentricOffsetKm(getBody('mars'), jd)).toBeNull();
+  });
+});
+
+describe('escala das luas', () => {
+  it('as distâncias desenhadas mantêm a ordem real e ficam fora do planeta e dos anéis', () => {
+    for (const planet of ['mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'] as const) {
+      const body = getBody(planet);
+      const R = referenceRadiusKm(body);
+      const sceneR = bodyRadiusToScene(body.meanRadiusKm);
+      const rings = body.render.rings;
+      const ringOuter = rings ? (rings.outerKm / R) * sceneR : sceneR;
+      let prev = 0;
+      const moons = moonsOf(planet)
+        .filter((m) => m.orbit.kind === 'satellite')
+        .sort((x, y) => numericFact(x, 'distancePlanet')! - numericFact(y, 'distancePlanet')!);
+      expect(moons.length, planet).toBeGreaterThan(0);
+      for (const m of moons) {
+        const key = (m.orbit as { key: SatelliteKey }).key;
+        const el = SATELLITE_ELEMENTS[key];
+        const periapsis = moonDistanceToScene(el.a * (1 - el.e), R, sceneR);
+        expect(periapsis - moonRadiusToScene(m.meanRadiusKm), m.id).toBeGreaterThan(Math.max(sceneR, ringOuter));
+        const d = moonDistanceToScene(el.a, R, sceneR);
+        expect(d, m.id).toBeGreaterThan(prev);
+        prev = d;
+      }
+    }
+  });
+
+  it('as luas usam um tamanho mínimo menor do que os planetas e mantêm a ordem', () => {
+    expect(moonRadiusToScene(6.2)).toBeCloseTo(0.08, 6);
+    expect(moonRadiusToScene(2631.2)).toBeGreaterThan(moonRadiusToScene(2574.76));
+    expect(moonRadiusToScene(1737.4)).toBeCloseTo(bodyRadiusToScene(1737.4), 6);
+    expect(MOON_BODIES.every((m) => moonRadiusToScene(m.meanRadiusKm) < bodyRadiusToScene(getBody(m.parent!).meanRadiusKm))).toBe(true);
   });
 });

@@ -61,12 +61,12 @@ export function parseNasaResponse(json: unknown): NasaImage[] {
 
 /** Mantém apenas imagens cujo título refere o objeto, sem duplicados. */
 export function filterRelevant(images: NasaImage[], mustInclude: string[], max: number): NasaImage[] {
-  const terms = mustInclude.map((t) => t.toLowerCase());
+  const terms = mustInclude.map((t) => new RegExp(`(^|[^a-z])${t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`));
   const seen = new Set<string>();
   const out: NasaImage[] = [];
   for (const img of images) {
     const title = img.title.toLowerCase();
-    if (!terms.some((t) => title.includes(t))) continue;
+    if (!terms.some((t) => t.test(title))) continue;
     const key = title.replace(/\s+/g, ' ');
     if (seen.has(key)) continue;
     seen.add(key);

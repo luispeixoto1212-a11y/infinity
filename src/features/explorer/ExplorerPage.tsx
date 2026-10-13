@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BODIES, findBodyBySlug, getBody } from '../../data/catalog';
+import { BODIES, PRIMARY_BODIES, findBodyBySlug, getBody } from '../../data/catalog';
 import type { BodyId } from '../../data/types';
 import { dateToJulianDayTdb } from '../../core/astro/time';
 import { useI18n } from '../../i18n';
@@ -222,7 +222,7 @@ export default function ExplorerPage({ focus }: { focus?: string }) {
               </button>
             ) : null}
             <div className="fallback-list">
-              {BODIES.map((b) => (
+              {PRIMARY_BODIES.map((b) => (
                 <a key={b.id} className="btn btn--ghost" href={href({ name: 'body', slug: b.slug })}>
                   {b.name['pt-PT']}
                 </a>

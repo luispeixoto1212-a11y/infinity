@@ -2,16 +2,16 @@ import { sun } from './bodies/sun';
 import { earth, mars, mercury, moon, venus } from './bodies/inner';
 import { jupiter, neptune, saturn, uranus } from './bodies/outer';
 import { ceres, pluto } from './bodies/dwarfs';
+import { MOONS } from './bodies/moons';
 import { SOURCES } from './sources';
 import type { BodyId, CelestialBody, Fact, LocalizedText } from './types';
 
-/** Ordem de apresentação: do Sol para fora; a Lua a seguir à Terra. */
-export const BODIES: readonly CelestialBody[] = [
+/** Sol, planetas e planetas anões, do Sol para fora. */
+export const PRIMARY_BODIES: readonly CelestialBody[] = [
   sun,
   mercury,
   venus,
   earth,
-  moon,
   mars,
   ceres,
   jupiter,
@@ -20,6 +20,22 @@ export const BODIES: readonly CelestialBody[] = [
   neptune,
   pluto,
 ];
+
+/** Luas, agrupadas pelo planeta, do interior para o exterior. */
+export const MOON_BODIES: readonly CelestialBody[] = [moon, ...MOONS];
+
+/** Todos os objetos; os corpos principais vêm antes das luas (necessário para calcular posições). */
+export const BODIES: readonly CelestialBody[] = [...PRIMARY_BODIES, ...MOON_BODIES];
+
+/** Luas de um corpo, pela ordem da distância ao planeta. */
+export function moonsOf(parent: BodyId): CelestialBody[] {
+  return MOON_BODIES.filter((m) => m.parent === parent);
+}
+
+/** Objetos do mesmo grupo (para navegar entre fichas vizinhas). */
+export function siblingsOf(body: CelestialBody): readonly CelestialBody[] {
+  return body.type === 'moon' && body.parent ? moonsOf(body.parent) : PRIMARY_BODIES;
+}
 
 const byId = new Map<BodyId, CelestialBody>(BODIES.map((b) => [b.id, b]));
 const bySlug = new Map<string, CelestialBody>(BODIES.map((b) => [b.slug, b]));

@@ -10,6 +10,15 @@ Ficheiros em `public/textures/` (Sol, Mercúrio, Vénus, Terra, Lua, Marte, Júp
 
 Alterações feitas para esta aplicação: redimensionamento (2048 e 512 px), conversão das nuvens da Terra num mapa de transparência e conversão da textura dos anéis de Saturno num perfil radial.
 
+## Mapas das luas e de Plutão
+
+**NASA 3D Resources** — <https://github.com/nasa/NASA-3D-Resources> (pasta *Images and Textures*).
+Material da NASA sem direitos de autor, usado segundo as [diretrizes de media da NASA](https://www.nasa.gov/nasa-brand-center/images-and-media/); a NASA não endossa esta aplicação.
+
+Mapas de Io, Europa, Ganimedes, Calisto, Mimas, Encélado, Tétis, Dione, Reia, Titã, Jápeto, Fobos, Deimos, Miranda, Ariel, Umbriel, Titânia, Oberon, Tritão, Caronte e Plutão, baseados em imagens das sondas Voyager, Galileo, Cassini, Viking e New Horizons.
+
+Alterações feitas para esta aplicação: redimensionamento (até 1024 px e 512 px) e, em Io, nas luas de Úrano e em Tritão, as zonas que nenhuma sonda fotografou (a negro no original) foram preenchidas com um tom neutro uniforme. O hemisfério escuro de Jápeto é real e foi mantido.
+
 ## Catálogo de estrelas
 
 **Yale Bright Star Catalogue, 5.ª edição** (Hoffleit & Warren, 1991), na versão preparada pelo projeto **d3-celestial** de Olaf Frohn — <https://github.com/ofrohn/d3-celestial>.
@@ -18,7 +27,8 @@ Licença BSD-3-Clause; o texto completo está em `public/data/LICENSE-d3-celesti
 ## Dados científicos
 
 - NASA NSSDCA — Planetary Fact Sheets (D. R. Williams).
-- NASA/JPL Solar System Dynamics — Approximate Positions of the Planets, Small-Body Database, Planetary Satellite Discovery Circumstances, Planetary Satellite Physical Parameters, Horizons.
+- NASA/JPL Solar System Dynamics — Approximate Positions of the Planets, Small-Body Database, Planetary Satellite Discovery Circumstances, Planetary Satellite Physical Parameters, Planetary Satellite Mean Elements, Horizons (vetores dos planetas e das luas).
+- NASA Science — páginas de cada lua (descrições, temperaturas e missões).
 - NASA/JPL NAIF — PCK pck00011.tpc (modelo de orientação da IAU WGCCRE 2015, Archinal et al. 2018).
 - J. Meeus, *Astronomical Algorithms*, 2.ª ed. (elementos médios da Lua).
 

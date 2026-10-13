@@ -1,7 +1,8 @@
-import { formatNumber } from '../../core/format';
+import { formatNumber, formatScientific } from '../../core/format';
 import { getBody, numericFact } from '../../data/catalog';
 import type { CelestialBody, FactKey } from '../../data/types';
 import { useI18n } from '../../i18n';
+import { factLabel } from './formatFact';
 
 const ROWS: Array<{ key: FactKey; abs?: boolean }> = [
   { key: 'diameter' },
@@ -54,7 +55,7 @@ function formatRatio(r: number): string {
   if (r >= 100) return formatNumber(r, 0);
   if (r >= 10) return formatNumber(r, 1);
   if (r >= 0.01) return formatNumber(r, 2);
-  return r.toExponential(1).replace('.', ',');
+  return formatScientific(r, 2);
 }
 
 export function EarthComparison({ body }: { body: CelestialBody }) {
@@ -77,7 +78,7 @@ export function EarthComparison({ body }: { body: CelestialBody }) {
           const w = barWidths(r.ratio);
           return (
             <div key={r.key} className="compare-row">
-              <dt>{t.facts[r.key]}</dt>
+              <dt>{factLabel(t, r.key, body.type)}</dt>
               <dd>
                 <span className="compare-bars" aria-hidden="true">
                   <span className="bar bar--body" style={{ width: `${w.body * 100}%`, background: body.render.accent }} />

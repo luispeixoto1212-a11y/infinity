@@ -147,7 +147,7 @@ export const pluto: CelestialBody = {
     count: 5,
     asOf: '2026-10-13',
     sourceId: 'nasa-pluto',
-    notable: [{ name: pt('Caronte'), radiusKm: 606.0, radiusUncertaintyKm: 0.5 }],
+    notable: [{ name: pt('Caronte'), radiusKm: 606.0, radiusUncertaintyKm: 0.5, bodyId: 'charon' }],
   },
   features: [
     pt('Sputnik Planitia é uma vasta planície de gelo de azoto na metade ocidental da região em forma de coração, Tombaugh Regio.'),
@@ -166,14 +166,15 @@ export const pluto: CelestialBody = {
       summary: pt('Primeiras imagens detalhadas de Plutão e Caronte; prosseguiu para a cintura de Kuiper.'),
     },
   ],
-  sources: ['nasa-factsheet', 'nasa-pluto', 'jpl-sbdb', 'naif-pck'],
+  sources: ['nasa-factsheet', 'nasa-pluto', 'jpl-sbdb', 'naif-pck', 'nasa-3d-resources'],
   orbit: { kind: 'osculating', elements: PLUTO_ELEMENTS },
   pole: { ra: [132.993, 0], dec: [-6.163, 0], pm: [302.695, 56.3625225] },
   render: {
+    texture: 'pluto',
     color: '#c8b49c',
     accent: '#dcc7ac',
     visualNote: pt(
-      'Representação ilustrativa: cor uniforme aproximada, sem mapa global com licença verificada nesta versão.',
+      'Mapa global da NASA a partir das imagens da New Horizons (2015). Parte do hemisfério sul estava no escuro durante o sobrevoo e tem pouco detalhe.',
     ),
   },
   imageQuery: { q: 'Pluto New Horizons', mustInclude: ['pluto'] },

@@ -428,11 +428,45 @@
   list-style: none;
 }
 
-.quick-nav li.is-child button {
-  padding-left: 1.6rem;
+.quick-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
-.quick-nav li button {
+.quick-nav-sub {
+  margin: 0 0 var(--space-1);
+  padding: 0;
+  list-style: none;
+}
+
+.quick-nav-moons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 0.2rem 0.35rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--dust-dim);
+  font-size: var(--fs-xs);
+}
+
+.quick-nav-moons svg {
+  transition: transform 0.15s var(--ease);
+}
+
+.quick-nav-moons.is-open svg {
+  transform: rotate(90deg);
+}
+
+.quick-nav-moons:hover {
+  color: var(--star);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.quick-nav-item {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -446,11 +480,16 @@
   text-align: left;
 }
 
-.quick-nav li button:hover {
+.quick-nav-item.is-child {
+  padding-left: 1.6rem;
+  font-size: var(--fs-xs);
+}
+
+.quick-nav-item:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.quick-nav li button.is-selected {
+.quick-nav-item.is-selected {
   background: var(--ion-soft);
   color: #fff;
 }
@@ -1073,6 +1112,14 @@ dialog::backdrop {
   font-weight: 600;
 }
 
+.system-name--small {
+  font-size: var(--fs-md);
+}
+
+.moons-section {
+  margin-top: var(--space-7);
+}
+
 .system-name:hover span {
   color: var(--ion-strong);
 }
@@ -1529,9 +1576,21 @@ dialog::backdrop {
 }
 
 .mission-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
   color: var(--accent);
   font-size: var(--fs-xs);
   margin-bottom: var(--space-2);
+}
+
+.mission-kind {
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--dust) 45%, transparent);
+  border-radius: 999px;
+  color: var(--dust);
+  line-height: 1.6;
 }
 
 .mission-flag {
@@ -1919,13 +1978,24 @@ dialog::backdrop {
     display: inline-grid;
   }
 
-  .quick-nav ul {
+  .quick-nav > ul {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    align-items: start;
   }
 
-  .quick-nav li.is-child button {
-    padding-left: var(--space-2);
+  /* Um grupo aberto ocupa a largura toda, com as luas em duas colunas */
+  .quick-nav > ul > li.is-expanded {
+    grid-column: 1 / -1;
+  }
+
+  .quick-nav > ul > li.is-expanded .quick-nav-row {
+    max-width: 50%;
+  }
+
+  .quick-nav-sub {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .nav-toggle-objects {
