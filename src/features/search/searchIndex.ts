@@ -1,12 +1,13 @@
 import { BODIES, tr } from '../../data/catalog';
 import type { BodyType, CelestialBody } from '../../data/types';
 import type { Route } from '../../app/router';
+import type { IconName } from '../../components/Icon';
 
 export interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  category: BodyType | 'page';
+  category: BodyType | 'page' | 'exoplanet';
   /** Termos indexados (nome, nomes alternativos, palavras-chave). */
   terms: string[];
   route: Route;
@@ -14,6 +15,8 @@ export interface SearchEntry {
   bodyId?: string;
   accent?: string;
   thumbnail?: string;
+  /** Ícone quando não há miniatura de um corpo do Sistema Solar. */
+  icon?: IconName;
 }
 
 export interface SearchResult {
@@ -27,7 +30,7 @@ export function normalize(text: string): string {
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9\s'-]/g, ' ')
+    .replace(/[^a-z0-9\s']/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -112,10 +115,18 @@ const PAGE_ENTRIES: SearchEntry[] = [
     ],
     route: { name: 'data' },
   },
+  {
+    id: 'page:exoplanets',
+    title: 'Exoplanetas',
+    subtitle: 'Catálogo do NASA Exoplanet Archive, gráficos e sistemas',
+    category: 'page',
+    terms: ['exoplanetas', 'exoplanets', 'planetas extrassolares', 'outras estrelas', 'nasa exoplanet archive'],
+    route: { name: 'exoplanets' },
+  },
 ];
 
-export function buildIndex(bodies: readonly CelestialBody[] = BODIES): SearchEntry[] {
-  return [...bodies.map(bodyEntry), ...PAGE_ENTRIES];
+export function buildIndex(bodies: readonly CelestialBody[] = BODIES, extra: readonly SearchEntry[] = []): SearchEntry[] {
+  return [...bodies.map(bodyEntry), ...PAGE_ENTRIES, ...extra];
 }
 
 function scoreTerm(query: string, term: string): number {
@@ -138,7 +149,7 @@ function scoreTerm(query: string, term: string): number {
 }
 
 /** Em caso de empate, estrelas e planetas aparecem antes das luas. */
-const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page'];
+const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'exoplanet'];
 
 export function search(index: readonly SearchEntry[], rawQuery: string, limit = 8): SearchResult[] {
   const query = normalize(rawQuery);

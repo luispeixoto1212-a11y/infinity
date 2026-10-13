@@ -70,6 +70,7 @@ export function DataPage() {
           <li><a href="#posicoes" onClick={(e) => jump(e, 'posicoes')}>Posições dos planetas</a></li>
           <li><a href="#validacao" onClick={(e) => jump(e, 'validacao')}>Validação com o JPL Horizons</a></li>
           <li><a href="#luas" onClick={(e) => jump(e, 'luas')}>Órbitas das luas</a></li>
+          <li><a href="#exoplanetas" onClick={(e) => jump(e, 'exoplanetas')}>Exoplanetas</a></li>
           <li><a href="#escala" onClick={(e) => jump(e, 'escala')}>Escala da vista 3D</a></li>
           <li><a href="#orientacao" onClick={(e) => jump(e, 'orientacao')}>Orientação, rotação e tempo</a></li>
           <li><a href="#dados" onClick={(e) => jump(e, 'dados')}>Dados físicos e tipos de valor</a></li>
@@ -187,6 +188,35 @@ export function DataPage() {
           Diferença angular vista do centro do planeta, calculada agora com o mesmo código da vista 3D. As luas com rotação
           síncrona mostram sempre a mesma face ao planeta. Os mapas das luas e de Plutão são da coleção
           NASA 3D Resources; as zonas que nenhuma sonda fotografou aparecem com um tom neutro uniforme.
+        </p>
+      </section>
+
+      <section id="exoplanetas" className="prose-section">
+        <h2>Exoplanetas</h2>
+        <p>
+          Os exoplanetas vêm da tabela Planetary Systems Composite Parameters (PSCompPars) do NASA Exoplanet Archive, que
+          junta para cada planeta confirmado os valores mais completos publicados. A aplicação usa a cópia que o projeto
+          Open Exoplanet Catalogue descarrega todas as noites do arquivo (versão de 13 de outubro de 2026, com 6445
+          planetas) e converte-a sem alterar os valores, apenas arredondando a cinco algarismos significativos.
+        </p>
+        <p>
+          O arquivo completa alguns raios e massas com valores calculados a partir da outra grandeza (relação
+          massa–raio), mas a cópia não guarda essa indicação. Por isso, a aplicação só trata como medido um valor com
+          incerteza publicada; os restantes aparecem com ≈ e a etiqueta «Estimativa». O raio de planetas fotografados
+          diretamente é sempre tratado como estimativa, porque resulta de modelos. Nos planetas descobertos por
+          velocidade radial que não transitam, a massa é em regra a massa mínima (M·sin i).
+        </p>
+        <p>
+          Algumas grandezas são calculadas pela aplicação e marcadas como tal: a luminosidade da estrela, L = R² × (T /
+          5772 K)⁴; a energia recebida pelo planeta, S = L / a² (a Terra recebe 1); o semieixo maior pela terceira lei
+          de Kepler, a³ = M × P², quando o arquivo não o indica; e a classe de tamanho, com os intervalos da missão
+          Kepler (menos de 1,25 raios terrestres; 1,25 a 2; 2 a 6; 6 a 15; mais de 15).
+        </p>
+        <p>
+          Na vista das órbitas, as distâncias e as excentricidades estão à escala, mas a orientação das órbitas não é
+          conhecida para a maioria dos sistemas e é ilustrativa. A faixa verde marca as distâncias a que o planeta
+          receberia tanta energia como Vénus (cerca de 1,91 vezes a da Terra) ou como Marte (cerca de 0,43): é uma
+          referência de comparação, não um modelo de zona habitável.
         </p>
       </section>
 

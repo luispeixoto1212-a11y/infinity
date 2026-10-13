@@ -7,6 +7,7 @@ import { useI18n } from '../../i18n';
 import { closeSearch, useUi } from '../../state/ui';
 import { useHistory } from '../../state/userData';
 import { buildIndex, search, type SearchEntry } from './searchIndex';
+import { loadExoplanetSearchEntries } from './exoplanetIndex';
 
 export function SearchDialog() {
   const { t } = useI18n();
@@ -17,7 +18,22 @@ export function SearchDialog() {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const listId = useId();
-  const index = useMemo(() => buildIndex(), []);
+  const [extra, setExtra] = useState<SearchEntry[]>([]);
+  const index = useMemo(() => buildIndex(undefined, extra), [extra]);
+
+  // O índice dos exoplanetas (milhares de nomes) só é pedido quando a pesquisa é aberta.
+  useEffect(() => {
+    if (!searchOpen || extra.length > 0) return;
+    let alive = true;
+    loadExoplanetSearchEntries()
+      .then((entries) => alive && setExtra(entries))
+      .catch(() => {
+        /* Sem rede: a pesquisa continua a funcionar com os objetos do Sistema Solar. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [searchOpen, extra.length]);
 
   const results: SearchEntry[] = useMemo(() => {
     if (query.trim()) return search(index, query).map((r) => r.entry);
@@ -131,7 +147,13 @@ export function SearchDialog() {
                 onMouseEnter={() => setActive(i)}
               >
                 <button type="button" className="search-result-main" onClick={() => openEntry(entry, 'page')} tabIndex={-1}>
-                  {body ? <BodyThumb body={body} size={36} /> : <span className="search-page-icon"><Icon name="layers" /></span>}
+                  {body ? (
+                    <BodyThumb body={body} size={36} />
+                  ) : (
+                    <span className="search-page-icon">
+                      <Icon name={entry.icon ?? 'layers'} />
+                    </span>
+                  )}
                   <span className="search-result-text">
                     <span className="search-result-title">
                       {entry.title}

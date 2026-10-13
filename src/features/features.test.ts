@@ -135,6 +135,8 @@ describe('router', () => {
     { name: 'body', slug: 'marte' },
     { name: 'favorites' },
     { name: 'data' },
+    { name: 'exoplanets' },
+    { name: 'exoplanet', slug: 'trappist-1-e' },
   ];
 
   it.each(routes)('ida e volta de %o', (r) => {
@@ -142,7 +144,9 @@ describe('router', () => {
   });
 
   it('rotas desconhecidas dão "não encontrada"', () => {
-    expect(parseHash('#/galaxias').name).toBe('not-found');
+    expect(parseHash('#/galaxias-perdidas').name).toBe('not-found');
+    expect(parseHash('#/exoplaneta').name).toBe('not-found');
+    expect(parseHash('#/exoplanetas/x').name).toBe('not-found');
     expect(parseHash('#/objeto').name).toBe('not-found');
     expect(parseHash('#/objeto/marte/extra').name).toBe('not-found');
     expect(parseHash('').name).toBe('explore');

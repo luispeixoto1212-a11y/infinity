@@ -1,6 +1,6 @@
 # Universe Infinity
 
-Atlas científico interativo para explorar o Universo em 3D. Esta versão cobre a **Fase 1 (fundação)** e a **Fase 2 (Sistema Solar)**: uma vista 3D com as posições reais dos planetas e de 21 luas na data atual, fichas científicas com fontes para 32 objetos e uma página que explica os métodos e valida os cálculos contra o JPL Horizons.
+Atlas científico interativo para explorar o Universo em 3D. Esta versão cobre a **Fase 1 (fundação)**, a **Fase 2 (Sistema Solar)** e os **exoplanetas**: uma vista 3D com as posições reais dos planetas e de 21 luas na data atual, fichas científicas com fontes para 32 objetos do Sistema Solar, o catálogo completo de exoplanetas do NASA Exoplanet Archive e uma página que explica os métodos e valida os cálculos contra o JPL Horizons.
 
 Interface em português de Portugal.
 
@@ -47,8 +47,17 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - Fichas para as 20 luas principais além da nossa: diâmetro, massa e gravidade calculados a partir dos parâmetros do JPL, densidade, distância ao planeta, período orbital, inclinação face ao equador do planeta, temperatura (quando a NASA a indica), atmosfera de Titã, estrutura interna e missões.
 - Fotografias obtidas em tempo real da NASA, com título, data e crédito da própria fonte.
 
+**Exoplanetas** (`#/exoplanetas`)
+- Os 6445 planetas confirmados do NASA Exoplanet Archive (tabela PSCompPars, versão de 13/10/2026), com contagem de sistemas e o planeta mais próximo.
+- Número de planetas por método de descoberta, com a explicação de cada método.
+- Gráfico de descobertas por ano (colunas empilhadas por método, com valores ao passar o cursor e vista em tabela).
+- Diagrama período orbital × raio (escalas logarítmicas) com os planetas do Sistema Solar como referência; clicar num ponto abre a ficha.
+- Catálogo completo com pesquisa (nome, estrela ou designação alternativa), filtro por método, ordenação e páginas.
+- Ficha de cada exoplaneta (`#/exoplaneta/<nome>`): massa, raio, período, semieixo maior, excentricidade, energia recebida, temperatura de equilíbrio e distância, cada valor marcado como medido, estimado ou calculado; animação das órbitas do sistema à escala, com a faixa entre o fluxo de Vénus e o de Marte e comparação opcional com o Sistema Solar interior; comparação de tamanho com a Terra e Júpiter; dados da estrela; planetas do sistema; descoberta e fontes.
+- 11 exoplanetas em destaque com textos baseados em páginas da NASA (Proxima Centauri b, TRAPPIST-1 e, 51 Pegasi b, K2-18 b, WASP-39 b, 55 Cancri e, entre outros).
+
 **Ferramentas**
-- Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço".
+- Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço". Inclui os 6445 exoplanetas (índice leve carregado só quando a pesquisa abre).
 - Favoritos e histórico guardados no navegador, sem conta.
 - Lista do Sistema Solar, tabela das luas principais e comparação de tamanhos reais à mesma escala.
 - Página "Dados e métodos" com a validação das posições dos planetas e das luas contra o JPL Horizons, calculada no próprio navegador.
@@ -59,6 +68,7 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - **Posições**: Tabela 1 de E. M. Standish (JPL), válida de 1800 a 2050; a simulação para nesses limites. Plutão e Ceres usam elementos osculadores do JPL Small-Body Database; a Lua usa os elementos médios de Meeus (erro até ~1,5°).
 - **Luas**: órbitas ajustadas a vetores do JPL Horizons (época 2026-10-13; movimento médio ajustado a 2025-09-08 e 2027-10-13, contando as voltas com o período sideral publicado). Verificação independente em 2026-03-27 e 2028-10-13 (datas fora do ajuste): 14 das 20 luas ficam abaixo de 1° nas duas datas; as restantes são Fobos (5,4°), Mimas (4,9°), Miranda (3,1°), Europa (2,3°), Tétis (2,1°) e Encélado (1,6°). As posições das luas são indicativas para datas distantes.
 - **Validação**: para 2026-10-13, as diferenças face ao Horizons (DE441) vão de 1″ (Úrano) a 266″ (Saturno), dentro dos erros indicados pelo JPL, exceto Neptuno (32″ contra 10″ indicados) e a distância de Mercúrio (~1200 km contra 1000 km). Isto está documentado na aplicação e nos testes.
+- **Exoplanetas**: valores do NASA Exoplanet Archive sem alterações (só arredondados a 5 algarismos significativos). Como a cópia usada não indica quais raios e massas o arquivo calculou pela relação massa–raio, só são tratados como medidos os valores com incerteza publicada; o raio de planetas fotografados diretamente é sempre estimativa. A energia recebida (S = L / a²) e a luminosidade da estrela (L = R² (T / 5772 K)⁴) são calculadas e marcadas como tal.
 - **Escala**: a vista 3D mostra direções reais, mas distâncias comprimidas e tamanhos ampliados. A escala está identificada no ecrã e explicada em "Dados e métodos".
 - **Dados**: fichas da NASA NSSDCA e parâmetros do JPL, com data de atualização e de consulta. Valores calculados pela aplicação estão marcados como tal. A densidade de Caronte é calculada a partir do GM e do raio, porque o valor da tabela do JPL (1,853 g/cm³) não é coerente com esses dois números (dariam cerca de 1,70 g/cm³).
 - **Representações ilustrativas**: Ceres aparece com cor uniforme (sem textura com licença verificada); a superfície de Vénus vem de radar com cores ilustrativas; nos mapas das luas, as zonas que nenhuma sonda fotografou têm um tom neutro uniforme; Fobos e Deimos, muito irregulares, são desenhados como esferas. Tudo isto está assinalado.
@@ -84,11 +94,24 @@ src/
     favorites/    Favoritos e histórico
     about/        Dados e métodos
   i18n/           Textos da interface (pt-PT; preparado para en e es)
+  features/exoplanets/  Catálogo, gráficos, vista das órbitas e fichas dos exoplanetas
   services/       Cliente da NASA Image and Video Library
 public/
   textures/       Texturas (512 px e 2048 px)
   data/stars.json Catálogo de estrelas processado
+  data/exoplanets.json, data/exoplanet-index.json  Exoplanetas (NASA Exoplanet Archive)
+scripts/
+  build_exoplanets.py  Regenera os dados dos exoplanetas a partir da cópia diária do arquivo
 ```
+
+### Atualizar os exoplanetas
+
+```bash
+git clone --depth 1 https://github.com/OpenExoplanetCatalogue/oec_gzip /tmp/oec_gzip
+python3 scripts/build_exoplanets.py /tmp/oec_gzip
+```
+
+O script lê `systems-exoplanetarchive.xml.gz` (cópia noturna da tabela PSCompPars do NASA Exoplanet Archive) e reescreve os dois ficheiros em `public/data/`. Os testes verificam a contagem total: ao atualizar, ajuste o número esperado em `src/features/exoplanets/exoplanets.test.ts`.
 
 ### Acrescentar uma língua
 
@@ -96,8 +119,8 @@ Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts`, registá-lo em `src/i1
 
 ## Testes
 
-- `npm test` corre 91 testes unitários: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, pesquisa, formatação pt-PT, router, cliente da NASA e armazenamento local.
-- A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (45 verificações): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, rotas inválidas e ausência de erros na consola.
+- `npm test` corre 112 testes unitários: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
+- A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (65 verificações): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, página e fichas de exoplanetas (gráficos, catálogo, filtros, animação das órbitas), rotas inválidas, ausência de deslocamento horizontal no telemóvel e ausência de erros na consola.
 
 ## Publicar no GitHub Pages
 
@@ -109,7 +132,7 @@ O workflow `ci.yml` verifica tipos, testes e build em cada push.
 
 ## Próximos passos
 
-1. **Fase 3**: atlas de galáxias, nebulosas, estrelas e exoplanetas (NASA Exoplanet Archive), com galerias.
+1. **Fase 3 (resto)**: atlas de galáxias, nebulosas, enxames, estrelas e buracos negros, com galerias.
 2. **Sistema Solar (complementos)**: asteroides e cometas notáveis, sombras e eclipses, formas irregulares de Fobos e Deimos.
 3. **Fase 4**: planetário com constelações (o catálogo de estrelas já está incluído), linha temporal do Universo, área de missões.
 4. **Fase 5**: inglês e espanhol, mais testes de interface, otimização das texturas (KTX2).

@@ -30,6 +30,15 @@
   --kind-average: #d6c27f;
   --kind-estimate: #f0a58a;
 
+  /* Gráficos: cores categóricas em ordem fixa, validadas (CVD e contraste) para o fundo escuro */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --chart-surface: #0c1328;
+  --chart-grid: rgba(150, 175, 230, 0.12);
+  --chart-axis: rgba(150, 175, 230, 0.32);
+
   /* Tipografia */
   --font-display: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

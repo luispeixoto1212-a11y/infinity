@@ -11,6 +11,8 @@ export type Route =
   | { name: 'body'; slug: string }
   | { name: 'favorites' }
   | { name: 'data' }
+  | { name: 'exoplanets' }
+  | { name: 'exoplanet'; slug: string }
   | { name: 'not-found'; path: string };
 
 export function parseHash(hash: string): Route {
@@ -30,6 +32,10 @@ export function parseHash(hash: string): Route {
       return arg ? { name: 'not-found', path } : { name: 'favorites' };
     case 'dados':
       return arg ? { name: 'not-found', path } : { name: 'data' };
+    case 'exoplanetas':
+      return arg ? { name: 'not-found', path } : { name: 'exoplanets' };
+    case 'exoplaneta':
+      return arg ? { name: 'exoplanet', slug: arg } : { name: 'not-found', path };
     default:
       return { name: 'not-found', path };
   }
@@ -47,6 +53,10 @@ export function routeToHash(route: Route): string {
       return '#/favoritos';
     case 'data':
       return '#/dados';
+    case 'exoplanets':
+      return '#/exoplanetas';
+    case 'exoplanet':
+      return `#/exoplaneta/${route.slug}`;
     case 'not-found':
       return `#${route.path}`;
   }

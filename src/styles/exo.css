@@ -1,0 +1,698 @@
+/* ============================================================ Exoplanetas e gráficos */
+
+.page-loading--inline {
+  min-height: 30vh;
+}
+
+.notice-box {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border: 1px solid rgba(255, 143, 122, 0.35);
+  border-radius: var(--radius);
+  background: rgba(255, 143, 122, 0.06);
+}
+
+.section-lede {
+  max-width: 70ch;
+  margin-bottom: var(--space-5);
+  color: var(--dust);
+  line-height: 1.6;
+}
+
+/* Números de destaque */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-7);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.5);
+}
+
+.stat dt {
+  color: var(--dust);
+  font-size: var(--fs-sm);
+}
+
+.stat dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat dd a {
+  color: var(--star);
+  text-decoration-color: var(--line-strong);
+  font-size: var(--fs-xl);
+}
+
+.stat-sub {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--dust);
+}
+
+/* Métodos de descoberta */
+.method-bars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.method-bars-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.method-bars-name {
+  font-weight: 500;
+}
+
+.method-bars-value {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.method-bars-value span {
+  color: var(--dust);
+  font-size: var(--fs-xs);
+}
+
+.method-bars-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--chart-grid);
+}
+
+.method-bars-track span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--series-1);
+}
+
+.method-bars-help {
+  margin-top: var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+  line-height: 1.5;
+}
+
+/* Gráficos */
+.chart {
+  position: relative;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--chart-surface);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--dust);
+}
+
+.chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chart-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.chart-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chart-dot--big {
+  width: 10px;
+  height: 10px;
+}
+
+.chart-plot {
+  position: relative;
+  width: 100%;
+}
+
+.chart-plot canvas,
+.chart-plot svg {
+  display: block;
+}
+
+.chart-grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart-baseline {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart-tick {
+  fill: var(--dust-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-label {
+  fill: var(--star);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-hit {
+  fill: transparent;
+  cursor: default;
+  outline: none;
+}
+
+.chart-col.is-hover path,
+.chart-col.is-hover rect:not(.chart-hit) {
+  filter: brightness(1.25);
+}
+
+.chart-hit:focus-visible {
+  stroke: var(--ion);
+  stroke-width: 1;
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 2;
+  width: 170px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.chart-tooltip--point {
+  width: auto;
+  max-width: 190px;
+}
+
+.chart-tooltip-title {
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--star);
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--dust);
+  line-height: 1.7;
+}
+
+.chart-tooltip-row strong {
+  min-width: 38px;
+  color: var(--star);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip-row.is-total {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2px;
+}
+
+.chart-key {
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.chart-table {
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.chart-table summary {
+  cursor: pointer;
+  color: var(--ion-strong);
+}
+
+.chart-table .table-scroll {
+  max-height: 320px;
+  margin-top: var(--space-3);
+  overflow-y: auto;
+}
+
+/* Exoplanetas em destaque */
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.featured-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.5);
+  color: var(--star);
+  text-decoration: none;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.featured-card:hover {
+  border-color: var(--ion);
+  background: rgba(122, 162, 255, 0.06);
+}
+
+.featured-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.featured-meta {
+  font-size: var(--fs-xs);
+  color: var(--dust);
+}
+
+.featured-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: #cfd6ea;
+}
+
+.featured-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+.tag {
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--dust);
+}
+
+/* Catálogo */
+.catalog-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--fs-xs);
+  color: var(--dust);
+}
+
+.field input,
+.field select {
+  min-width: 220px;
+  min-height: 40px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 11, 25, 0.8);
+  color: var(--star);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid var(--ion);
+  outline-offset: 1px;
+}
+
+.catalog-count {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--dust);
+  font-variant-numeric: tabular-nums;
+}
+
+.exo-table th a {
+  color: var(--star);
+  text-decoration-color: var(--line-strong);
+}
+
+.exo-table th a:hover {
+  color: var(--ion-strong);
+}
+
+.exo-table td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.exo-host {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--dust-dim);
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sort-btn:hover {
+  color: var(--star);
+}
+
+.sort-mark {
+  display: inline-block;
+  min-width: 0.7em;
+  color: var(--ion-strong);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--dust);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Ficha de exoplaneta */
+.exo-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-6);
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-4);
+}
+
+.exo-hero .body-kicker {
+  color: var(--ion-strong);
+}
+
+.exo-hero .body-name {
+  font-size: clamp(2.6rem, 5.5vw, 4.5rem);
+  overflow-wrap: anywhere;
+}
+
+.exo-alt {
+  margin-top: var(--space-2);
+  color: var(--dust);
+}
+
+.exo-hero .body-tagline {
+  max-width: 44ch;
+  font-size: var(--fs-md);
+}
+
+.exo-summary {
+  max-width: 60ch;
+  margin-top: var(--space-4);
+  line-height: 1.65;
+  color: #d5dbec;
+}
+
+.orbit-view {
+  margin: 0;
+}
+
+.orbit-canvas {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at 50% 50%, rgba(122, 162, 255, 0.06), transparent 70%), var(--abyss);
+  overflow: hidden;
+}
+
+.orbit-canvas canvas {
+  display: block;
+}
+
+.orbit-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.orbit-speed {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--dust);
+  cursor: pointer;
+}
+
+.check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ion);
+}
+
+.size-compare {
+  margin: 0;
+}
+
+.size-compare svg {
+  display: block;
+}
+
+.size-label {
+  fill: var(--star);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.size-sub {
+  fill: var(--dust);
+  font-size: 10px;
+}
+
+.system-list {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.system-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+}
+
+.system-list li.is-current {
+  background: var(--ion-soft);
+  font-weight: 600;
+}
+
+.system-list a {
+  color: var(--star);
+}
+
+.system-list-meta {
+  color: var(--dust);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.mini-facts > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.mini-facts dt {
+  color: var(--dust);
+}
+
+.mini-facts dd {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .method-bars {
+    grid-template-columns: 1fr;
+  }
+
+  .exo-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .field input,
+  .field select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .field {
+    width: 100%;
+  }
+
+  .catalog-count {
+    margin-left: 0;
+  }
+
+  .stat {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .stat dd {
+    font-size: var(--fs-xl);
+  }
+
+  .orbit-speed {
+    margin-left: 0;
+  }
+}
+
+.earth-sym {
+  font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Apple Symbols', sans-serif;
+  font-size: 0.78em;
+  line-height: 1;
+}
+
+/* Tabelas de dados em ecrãs estreitos: cada linha passa a um cartão compacto */
+@media (max-width: 560px) {
+  .facts-table thead {
+    display: none;
+  }
+
+  .facts-table,
+  .facts-table tbody {
+    display: block;
+  }
+
+  .facts-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .facts-table th[scope='row'],
+  .facts-table td {
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .facts-table th[scope='row'] {
+    grid-column: 1 / -1;
+  }
+
+  .facts-table td.num {
+    text-align: left;
+  }
+
+  .facts-table .fact-meta {
+    align-self: start;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .facts-table .fact-source {
+    display: block;
+    margin: 4px 0 0;
+  }
+}

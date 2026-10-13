@@ -14,6 +14,8 @@ import { openSearch, isTypingTarget, uiStore } from '../state/ui';
 // As secções com 3D (Three.js) são carregadas só quando necessárias.
 const ExplorerPage = lazy(() => import('../features/explorer/ExplorerPage'));
 const BodyPage = lazy(() => import('../features/body/BodyPage'));
+const ExoplanetsPage = lazy(() => import('../features/exoplanets/ExoplanetsPage'));
+const ExoplanetPage = lazy(() => import('../features/exoplanets/ExoplanetPage'));
 
 function PageFallback() {
   return (
@@ -36,6 +38,10 @@ function renderRoute(route: Route) {
       return <FavoritesPage />;
     case 'data':
       return <DataPage />;
+    case 'exoplanets':
+      return <ExoplanetsPage />;
+    case 'exoplanet':
+      return <ExoplanetPage slug={route.slug} />;
     default:
       return <NotFoundPage />;
   }
@@ -45,6 +51,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   'solar-system': 'Sistema Solar',
   favorites: 'Favoritos',
   data: 'Dados e métodos',
+  exoplanets: 'Exoplanetas',
   'not-found': 'Página não encontrada',
 };
 

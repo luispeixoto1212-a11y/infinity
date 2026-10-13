@@ -34,6 +34,15 @@ Licença BSD-3-Clause; o texto completo está em `public/data/LICENSE-d3-celesti
 
 A lista completa, com datas de consulta, está na página "Dados e métodos" da aplicação e em `src/data/sources.ts`.
 
+## Exoplanetas
+
+**NASA Exoplanet Archive** — tabela Planetary Systems Composite Parameters (PSCompPars), <https://exoplanetarchive.ipac.caltech.edu/>.
+*This research has made use of the NASA Exoplanet Archive, which is operated by the California Institute of Technology, under contract with the National Aeronautics and Space Administration under the Exoplanet Exploration Program.*
+
+A cópia usada (13/10/2026) é a distribuída diariamente pelo **Open Exoplanet Catalogue** em <https://github.com/OpenExoplanetCatalogue/oec_gzip> (licença MIT, © 2014 Open Exoplanet Catalogue). Conversão para JSON por `scripts/build_exoplanets.py`, sem alteração de valores.
+
+Os textos dos exoplanetas em destaque resumem páginas da NASA Science e do JPL, citadas em cada ficha.
+
 ## Fotografias
 
 As fotografias das fichas são pedidas em tempo real à NASA Image and Video Library. Os títulos, datas e créditos vêm da própria API; cada imagem liga à página original, onde estão as condições de utilização.

@@ -72,3 +72,11 @@ export function formatDate(date: Date): string {
 export function kelvinToCelsius(k: number): number {
   return k - 273.15;
 }
+
+/** Número com um máximo de algarismos significativos (sem notação científica). */
+export function formatSignificant(value: number, significant = 3): string {
+  if (value === 0) return '0';
+  const abs = Math.abs(value);
+  if (abs >= 10 ** significant) return formatNumber(value, 0);
+  return new Intl.NumberFormat(LOCALE, { maximumSignificantDigits: significant }).format(value);
+}
