@@ -30,7 +30,8 @@ Licença BSD-3-Clause; o texto completo está em `public/data/LICENSE-d3-celesti
 - NASA/JPL Solar System Dynamics — Approximate Positions of the Planets, Small-Body Database, Planetary Satellite Discovery Circumstances, Planetary Satellite Physical Parameters, Planetary Satellite Mean Elements, Horizons (vetores dos planetas e das luas).
 - NASA Science — páginas de cada lua (descrições, temperaturas e missões).
 - NASA/JPL NAIF — PCK pck00011.tpc (modelo de orientação da IAU WGCCRE 2015, Archinal et al. 2018).
-- J. Meeus, *Astronomical Algorithms*, 2.ª ed. (elementos médios da Lua).
+- J. Meeus, *Astronomical Algorithms*, 2.ª ed. (1998): teoria da Lua ELP-2000/82 truncada (cap. 47), tempo sideral (cap. 12), precessão (cap. 21), refração (cap. 16), magnitudes dos planetas (cap. 41) e fases (cap. 48).
+- J. H. Lieske et al. (1977), modelo de precessão IAU 1976; T. Sæmundsson (1986), fórmula da refração.
 
 A lista completa, com datas de consulta, está na página "Dados e métodos" da aplicação e em `src/data/sources.ts`.
 
@@ -41,7 +42,7 @@ A lista completa, com datas de consulta, está na página "Dados e métodos" da 
 - **Cantat-Gaudin et al. 2020**, A&A 640, A1 (via VizieR, CDS) — distâncias de 13 enxames abertos a partir da Gaia DR2. *This research has made use of the VizieR catalogue access tool, CDS, Strasbourg, France.*
 - **AT-HYG v3.2** (D. Nash / astronexus) — <https://github.com/astronexus/HYG-Database>, licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Estrelas, distâncias (Gaia DR3, Hipparcos, Gliese) e diagrama H–R. Os dados derivados em `public/data/star-catalog.json` e `public/data/hr-diagram.json` são distribuídos com a mesma licença.
 - **Hipparcos, nova redução** (van Leeuwen 2007; VizieR I/311) — paralaxes usadas apenas para verificar as distâncias nos testes.
-- **d3-celestial** (O. Frohn), BSD-3-Clause — linhas e posições das etiquetas das constelações e contorno da Via Láctea (`public/data/sky-map.json`, `public/data/milky-way.png`).
+- **d3-celestial** (O. Frohn), BSD-3-Clause — linhas e posições das etiquetas das constelações e contorno da Via Láctea (`public/data/sky-map.json`, `public/data/milky-way.png`) e limites das constelações (`public/data/constellation-bounds.json`), estes de A. C. Davenhall e S. K. Leggett (1989), *Catalogue of Constellation Boundary Data*, VizieR VI/49, que reproduz os limites oficiais da IAU (E. Delporte, 1930).
 - Buracos negros: NASA Science, Boston University, NASA Scientific Visualization Studio, Scientific American, ESA e Max Planck Institute for Gravitational Physics, citados em cada caso na página.
 
 ## Exoplanetas

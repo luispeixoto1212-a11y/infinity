@@ -1,0 +1,509 @@
+/* ============================================================ Planetário */
+.page--wide {
+  width: min(1440px, 100%);
+}
+
+.sky-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 80ch;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgba(240, 165, 138, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(240, 165, 138, 0.07);
+  color: #f3cdbf;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.sky-disclaimer svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.planetarium-stage-wrap {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #03050c;
+  overflow: hidden;
+}
+
+.planetarium-views {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.planetarium-stage-wrap.is-compare .planetarium-views {
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.planetarium-view {
+  position: relative;
+  min-width: 0;
+}
+
+.planetarium-stage {
+  position: relative;
+  height: min(72vh, 760px);
+  min-height: 380px;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+
+.planetarium-stage:active {
+  cursor: grabbing;
+}
+
+.planetarium-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ion);
+}
+
+.planetarium-stage-wrap.is-fullscreen {
+  border-radius: 0;
+  height: 100%;
+  grid-template-rows: 1fr auto;
+}
+
+.planetarium-stage-wrap.is-fullscreen .planetarium-stage {
+  height: calc(100vh - 64px);
+}
+
+.planetarium-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.planetarium-hud {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  max-width: calc(100% - 2 * var(--space-3));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  font-size: var(--fs-xs);
+  color: var(--dust);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.planetarium-hud strong {
+  color: var(--star);
+  font-size: var(--fs-sm);
+}
+
+.twilight {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(122, 162, 255, 0.14);
+  color: var(--ion-strong);
+}
+
+.twilight--day {
+  background: rgba(255, 200, 116, 0.16);
+  color: var(--sol);
+}
+
+.twilight--civil,
+.twilight--nautical {
+  background: rgba(169, 139, 255, 0.16);
+  color: #cbb8ff;
+}
+
+.planetarium-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbar-select select {
+  min-height: 32px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 11, 25, 0.8);
+  color: var(--star);
+  font: inherit;
+  font-size: var(--fs-xs);
+}
+
+.planetarium-toolbar .icon-btn {
+  width: 34px;
+  height: 34px;
+  font-size: var(--fs-md);
+  border-color: var(--line);
+}
+
+.planetarium-toolbar .segmented button {
+  padding: 0.3rem 0.7rem;
+  font-size: var(--fs-xs);
+}
+
+/* Ficha do objeto selecionado */
+.sky-info {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
+  width: min(330px, calc(100% - 2 * var(--space-3)));
+  max-height: calc(100% - 90px);
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--shadow);
+}
+
+.sky-info-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sky-info-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  line-height: 1.15;
+}
+
+.sky-info-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--dust);
+}
+
+.sky-info-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0 0;
+}
+
+.sky-info-rows > div {
+  min-width: 0;
+}
+
+.sky-info-rows dt {
+  font-size: 0.6875rem;
+  color: var(--dust-dim);
+}
+
+.sky-info-rows dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.sky-info-wide {
+  grid-column: 1 / -1;
+}
+
+.sky-info-note {
+  margin: var(--space-3) 0 0;
+  font-size: 0.6875rem;
+  color: var(--dust-dim);
+}
+
+.sky-info-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* Painéis de controlo */
+.planetarium-panels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.planetarium-panel {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.45);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+
+.planetarium-panel .field input:not([type='range']),
+.planetarium-panel .field select {
+  min-width: 0;
+  width: 100%;
+}
+
+.planetarium-panel input[type='range'] {
+  width: 100%;
+  accent-color: var(--ion);
+}
+
+.field-label {
+  color: var(--dust);
+}
+
+.field-error {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--danger);
+}
+
+.place-picker {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.place-picker .field {
+  width: 100%;
+}
+
+.place-coords {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.place-custom summary {
+  cursor: pointer;
+  font-size: var(--fs-xs);
+  color: var(--ion-strong);
+}
+
+.place-custom-form {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  justify-items: start;
+}
+
+.compare-toggle {
+  justify-self: start;
+}
+
+.compare-place {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.checks {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.view-mode {
+  margin-top: var(--space-2);
+}
+
+/* Esta noite */
+.tonight {
+  margin-top: var(--space-7);
+}
+
+.section-title {
+  margin: 0 0 var(--space-4);
+}
+
+.tonight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.tonight-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.45);
+}
+
+.tonight-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  margin: 0;
+}
+
+.tonight-facts dt {
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+}
+
+.tonight-facts dd {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.tonight-sub {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-md);
+}
+
+.tonight-sub--small {
+  margin-top: var(--space-3);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--dust);
+}
+
+.tonight-moon {
+  margin: 0;
+}
+
+.tonight-phases {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.tonight-phases li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tonight-phases li span:first-child {
+  color: var(--dust);
+}
+
+.tonight-body {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ion-strong);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tonight-body:hover {
+  text-decoration: underline;
+}
+
+.tonight-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.tonight-table {
+  min-width: 720px;
+}
+
+.tonight-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.tonight-best {
+  color: var(--dust-dim);
+}
+
+.tonight-none {
+  color: var(--dust-dim);
+}
+
+.planetarium-methods {
+  margin-top: var(--space-7);
+}
+
+.method-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding-left: 1.1rem;
+  font-size: var(--fs-xs);
+  color: var(--dust);
+  max-width: 90ch;
+}
+
+@media (max-width: 1100px) {
+  .planetarium-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .planetarium-stage {
+    height: 62vh;
+    min-height: 320px;
+  }
+
+  .planetarium-stage-wrap.is-compare .planetarium-views {
+    grid-template-columns: 1fr;
+  }
+
+  .planetarium-stage-wrap.is-compare .planetarium-stage {
+    height: 46vh;
+  }
+
+  .planetarium-panels,
+  .tonight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sky-info {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin: 0 var(--space-3);
+  }
+
+  .planetarium-hud {
+    top: var(--space-2);
+    left: var(--space-2);
+  }
+}

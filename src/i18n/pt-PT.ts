@@ -1,5 +1,8 @@
 /** Textos da interface em português de Portugal (língua de referência). */
+import { planetariumPt } from './pt-PT-planetarium';
+
 export const ptPT = {
+  planetarium: planetariumPt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -8,6 +11,8 @@ export const ptPT = {
     data: 'Dados e métodos',
     exoplanets: 'Exoplanetas',
     deepSpace: 'Espaço profundo',
+    planetarium: 'Planetário',
+    more: 'Mais',
     menu: 'Menu',
     skipToContent: 'Saltar para o conteúdo',
   },
@@ -128,6 +133,7 @@ export const ptPT = {
     modelHint: 'Arraste para rodar',
     illustrative: 'Representação ilustrativa',
     viewInSpace: 'Ver no espaço',
+    viewInSky: 'Ver no céu (planetário)',
     notFound: 'Este objeto não existe no catálogo.',
     timeSensitive: 'Informação que pode mudar; consultada em',
     retrograde: 'retrógrada',

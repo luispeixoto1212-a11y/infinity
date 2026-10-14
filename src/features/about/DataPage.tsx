@@ -13,6 +13,7 @@ import { ARCHIVE_CHECK, ARCHIVE_CHECK_DATE } from '../exoplanets/archiveCheck';
 import { HIPPARCOS_CHECK } from '../stars/hipparcosCheck';
 import { planetocentricOffsetKm } from '../../core/astro/positions';
 import { useI18n } from '../../i18n';
+import { SkyValidationSection } from './SkyValidationSection';
 
 const AU_KM = 149_597_870.7;
 
@@ -72,6 +73,7 @@ export function DataPage() {
           <li><a href="#posicoes" onClick={(e) => jump(e, 'posicoes')}>Posições dos planetas</a></li>
           <li><a href="#validacao" onClick={(e) => jump(e, 'validacao')}>Validação com o JPL Horizons</a></li>
           <li><a href="#luas" onClick={(e) => jump(e, 'luas')}>Órbitas das luas</a></li>
+          <li><a href="#planetario" onClick={(e) => jump(e, 'planetario')}>Planetário: o céu de um lugar</a></li>
           <li><a href="#exoplanetas" onClick={(e) => jump(e, 'exoplanetas')}>Exoplanetas</a></li>
           <li><a href="#espaco-profundo" onClick={(e) => jump(e, 'espaco-profundo')}>Espaço profundo, estrelas e buracos negros</a></li>
           <li><a href="#escala" onClick={(e) => jump(e, 'escala')}>Escala da vista 3D</a></li>
@@ -98,8 +100,8 @@ export function DataPage() {
         </p>
         <p>
           Plutão e Ceres usam elementos osculadores do JPL Small-Body Database, propagados como um problema de dois
-          corpos. A Lua usa os seus elementos médios (Meeus, cap. 47), sem as perturbações periódicas: o erro em
-          longitude pode chegar a cerca de 1,5°.
+          corpos. A Lua usa a teoria ELP-2000/82 truncada de J. Meeus (cap. 47, 120 termos periódicos): face ao
+          Horizons, a diferença fica entre 9″ e 22″ em cinco datas de 2000 a 2030 (ver a secção Planetário).
         </p>
       </section>
 
@@ -193,6 +195,8 @@ export function DataPage() {
           NASA 3D Resources; as zonas que nenhuma sonda fotografou aparecem com um tom neutro uniforme.
         </p>
       </section>
+
+      <SkyValidationSection />
 
       <section id="exoplanetas" className="prose-section">
         <h2>Exoplanetas</h2>
@@ -364,7 +368,11 @@ export function DataPage() {
           <li>Não há sombras projetadas (por exemplo, a sombra dos anéis em Saturno) nem eclipses.</li>
           <li>Na vista 3D, as luas, as suas órbitas e as etiquetas só aparecem quando a câmara se aproxima do planeta.</li>
           <li>Fobos e Deimos são muito irregulares, mas aparecem como esferas.</li>
-          <li>As posições não incluem a aberração da luz nem o tempo de viagem da luz: são posições geométricas.</li>
+          <li>
+            Na vista 3D, as posições são geométricas (sem aberração nem tempo de viagem da luz). O planetário inclui o tempo
+            de luz e a paralaxe, mas não a nutação nem a aberração anual (até 20″).
+          </li>
+          <li>As estrelas do planetário estão nas posições J2000, sem movimento próprio: para 1800 ou 2050, a Estrela de Barnard pode estar deslocada até 0,5°; as restantes, muito menos.</li>
           <li>A interface está em português de Portugal; a estrutura está preparada para inglês e espanhol.</li>
         </ul>
       </section>

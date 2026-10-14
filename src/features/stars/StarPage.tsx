@@ -144,6 +144,14 @@ function StarView({ s }: { s: Star }) {
             {ly !== undefined ? `${s.constellation ? ' · ' : ''}${formatStarDistance(s)}` : ''}
           </p>
           {ly !== undefined ? <p className="exo-summary">{t.space.lightAgo(ly < 100 ? formatNumber(ly, 1) : formatNumber(Math.round(ly), 0))}</p> : null}
+          {s.hip && s.mag !== undefined && s.mag <= 6 ? (
+            <p className="body-actions">
+              <a className="btn btn--ghost btn--small" href={href({ name: 'planetarium', target: s.slug })}>
+                <Icon name="sky" size={15} />
+                {t.body.viewInSky}
+              </a>
+            </p>
+          ) : null}
         </div>
         <div className="exo-hero-orbit">
           <div className="star-orb" style={{ ['--star-color' as string]: colorFromBv(s.colorIndex) }} aria-hidden="true" />

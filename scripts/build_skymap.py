@@ -1,8 +1,10 @@
-"""Gera public/data/sky-map.json (linhas e etiquetas das constelações) e public/data/milky-way.png
+"""Gera public/data/sky-map.json (linhas e etiquetas das constelações), public/data/constellation-bounds.json
+(limites oficiais das constelações da IAU) e public/data/milky-way.png
 (mapa equiretangular da Via Láctea, 720 × 360, níveis de brilho 1 a 5 do d3-celestial).
 
 Fonte: d3-celestial (O. Frohn, BSD-3-Clause), ficheiros data/constellations.json,
-data/constellations.lines.json e data/mw.json.
+data/constellations.lines.json, data/constellations.bounds.json e data/mw.json.
+Os limites vêm de Davenhall & Leggett (1989), VizieR VI/49, convertidos pelo d3-celestial para J2000.
 Uso: python3 scripts/build_skymap.py <pasta d3-celestial/data>
 As coordenadas são ascensão reta (0–360°) e declinação em graus (J2000), arredondadas a 0,01° (linhas)
 ou 0,1° (Via Láctea, com um em cada dois vértices).
@@ -29,6 +31,16 @@ for f in json.load(open(os.path.join(SRC, 'constellations.json')))['features']:
 json.dump({'source': 'd3-celestial (O. Frohn), BSD-3-Clause', 'lines': lines, 'labels': labels},
           open(OUT, 'w'), separators=(',', ':'))
 print(OUT, os.path.getsize(OUT), 'bytes;', sum(len(s) for v in lines.values() for s in v), 'vértices de linhas')
+
+bounds = {}
+for f in json.load(open(os.path.join(SRC, 'constellations.bounds.json')))['features']:
+    abbr = f['id'][:3]  # a Serpente tem duas partes (Ser1, Ser2)
+    rings = [[[round(x % 360, 4), round(y, 4)] for x, y in ring] for ring in f['geometry']['coordinates']]
+    bounds.setdefault(abbr, []).extend(rings)
+BOUNDS = os.path.join(ROOT, 'public', 'data', 'constellation-bounds.json')
+json.dump({'source': 'Davenhall & Leggett (1989), VizieR VI/49, via d3-celestial (O. Frohn), BSD-3-Clause; J2000',
+           'bounds': bounds}, open(BOUNDS, 'w'), separators=(',', ':'))
+print(BOUNDS, os.path.getsize(BOUNDS), 'bytes;', len(bounds), 'constelações')
 
 # Via Láctea: cada nível é um conjunto de polígonos esféricos. Os anéis que dão a volta completa ao céu
 # (bordas da faixa) são fechados pelo polo norte; os anéis de cada polígono combinam-se por OU exclusivo.

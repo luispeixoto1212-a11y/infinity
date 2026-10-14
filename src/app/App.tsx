@@ -21,6 +21,7 @@ const DeepSkyObjectPage = lazy(() => import('../features/deepsky/DeepSkyObjectPa
 const BlackHolesPage = lazy(() => import('../features/deepsky/BlackHolesPage'));
 const StarsPage = lazy(() => import('../features/stars/StarsPage'));
 const StarPage = lazy(() => import('../features/stars/StarPage'));
+const PlanetariumPage = lazy(() => import('../features/planetarium/PlanetariumPage'));
 
 function PageFallback() {
   return (
@@ -57,6 +58,8 @@ function renderRoute(route: Route) {
       return <StarPage slug={route.slug} />;
     case 'black-holes':
       return <BlackHolesPage />;
+    case 'planetarium':
+      return <PlanetariumPage target={route.target} />;
     default:
       return <NotFoundPage />;
   }
@@ -70,6 +73,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   'deep-sky': 'Espaço profundo',
   stars: 'Estrelas',
   'black-holes': 'Buracos negros',
+  planetarium: 'Planetário',
   'not-found': 'Página não encontrada',
 };
 

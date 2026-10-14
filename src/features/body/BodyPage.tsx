@@ -14,6 +14,9 @@ import { FactsTable } from './FactsTable';
 import { GlobeViewer } from './GlobeViewer';
 import { NasaGallery } from './NasaGallery';
 
+/** Corpos que o planetário mostra no céu. */
+const SKY_BODIES: string[] = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune'];
+
 function isoToText(iso: string) {
   const [y, m, d] = iso.split('-').map(Number);
   return formatDate(new Date(Date.UTC(y!, (m ?? 1) - 1, d ?? 1)));
@@ -99,6 +102,12 @@ export default function BodyPage({ slug }: { slug: string }) {
               <Icon name="orbit" size={16} />
               {t.body.viewInSpace}
             </a>
+            {SKY_BODIES.includes(body.id) ? (
+              <a className="btn btn--ghost" href={href({ name: 'planetarium', target: body.slug })}>
+                <Icon name="sky" size={16} />
+                {t.body.viewInSky}
+              </a>
+            ) : null}
             <FavoriteButton id={body.id} withText />
           </div>
           {body.render.visualNote ? (

@@ -446,7 +446,7 @@ export const moon: CelestialBody = {
     color: '#bdbab3',
     accent: '#d9d6cf',
     visualNote: pt(
-      'Distância à Terra muito ampliada na cena. A posição usa os elementos médios da órbita lunar (erro de até cerca de 1,5°).',
+      'Distância à Terra muito ampliada na cena. A direção da Lua vem da teoria ELP-2000/82 truncada (Meeus), com erro de cerca de 20″.',
     ),
   },
   imageQuery: { q: 'Moon Lunar Reconnaissance Orbiter', mustInclude: ['moon', 'lunar'] },

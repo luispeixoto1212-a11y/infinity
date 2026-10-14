@@ -328,10 +328,18 @@ const list = [
   },
   {
     id: 'meeus',
-    title: 'Astronomical Algorithms, 2.ª ed., cap. 47 (elementos médios da Lua)',
+    title: 'Astronomical Algorithms, 2.ª ed.: Lua (cap. 47, ELP-2000/82 truncada), tempo sideral (12), precessão (21), refração (16), magnitudes (41) e fases (48)',
     publisher: 'J. Meeus, Willmann-Bell (1998)',
     url: 'https://search.worldcat.org/search?q=Astronomical+Algorithms+Meeus',
     accessed: ACCESSED,
+  },
+  {
+    id: 'iau-boundaries',
+    title: 'Catalogue of Constellation Boundary Data (VizieR VI/49), limites oficiais da IAU (Delporte, 1930)',
+    publisher: 'A. C. Davenhall e S. K. Leggett (1989); convertido para J2000 por d3-celestial (O. Frohn)',
+    url: 'https://cdsarc.cds.unistra.fr/viz-bin/cat/VI/49',
+    accessed: '2026-10-14',
+    license: 'BSD-3-Clause (d3-celestial)',
   },
   {
     id: 'jpl-horizons',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { useI18n } from '../i18n';
 import { openSearch } from '../state/ui';
@@ -13,17 +13,43 @@ interface NavItem {
 export function TopBar({ route }: { route: Route }) {
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLLIElement>(null);
 
-  useEffect(() => setMenuOpen(false), [route]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setMoreOpen(false);
+  }, [route]);
+
+  // Fecha o menu "Mais" ao clicar fora ou com Esc
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [moreOpen]);
 
   const items: NavItem[] = [
     { route: { name: 'explore' }, label: t.nav.explore, match: ['explore'] },
     { route: { name: 'solar-system' }, label: t.nav.solarSystem, match: ['solar-system', 'body'] },
     { route: { name: 'deep-sky' }, label: t.nav.deepSpace, match: ['deep-sky', 'deep-sky-object', 'stars', 'star', 'black-holes'] },
     { route: { name: 'exoplanets' }, label: t.nav.exoplanets, match: ['exoplanets', 'exoplanet'] },
+    { route: { name: 'planetarium' }, label: t.nav.planetarium, match: ['planetarium'] },
+  ];
+  const more: NavItem[] = [
     { route: { name: 'favorites' }, label: t.nav.favorites, match: ['favorites'] },
     { route: { name: 'data' }, label: t.nav.data, match: ['data'] },
   ];
+  const moreActive = more.some((it) => it.match.includes(route.name));
 
   return (
     <header className="topbar">
@@ -50,6 +76,30 @@ export function TopBar({ route }: { route: Route }) {
               </li>
             );
           })}
+          <li ref={moreRef} className={moreOpen ? 'nav-more is-open' : 'nav-more'}>
+            <button
+              type="button"
+              className={moreActive ? 'nav-more-btn is-active' : 'nav-more-btn'}
+              aria-expanded={moreOpen}
+              aria-controls="nav-more-list"
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              {t.nav.more}
+              <Icon name="chevron" size={14} />
+            </button>
+            <ul id="nav-more-list" className="nav-more-list">
+              {more.map((it) => {
+                const active = it.match.includes(route.name);
+                return (
+                  <li key={it.label}>
+                    <a href={href(it.route)} aria-current={active ? 'page' : undefined} className={active ? 'is-active' : undefined}>
+                      {it.label}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
         </ul>
       </nav>
 

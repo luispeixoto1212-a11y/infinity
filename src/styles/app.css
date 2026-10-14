@@ -105,6 +105,7 @@
 
 .nav a {
   display: block;
+  white-space: nowrap;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--dust);
@@ -122,6 +123,69 @@
   color: var(--star);
   box-shadow: inset 0 -2px 0 var(--ion);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.nav-more {
+  position: relative;
+}
+
+.nav-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--dust);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nav-more-btn svg {
+  transform: rotate(90deg);
+  transition: transform 0.15s var(--ease);
+}
+
+.nav-more.is-open .nav-more-btn svg {
+  transform: rotate(-90deg);
+}
+
+.nav-more-btn:hover,
+.nav-more-btn.is-active {
+  color: var(--star);
+}
+
+.nav-more-btn.is-active {
+  box-shadow: inset 0 -2px 0 var(--ion);
+}
+
+.nav .nav-more-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+  min-width: 220px;
+  padding: var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--shadow);
+}
+
+.nav-more.is-open .nav-more-list {
+  display: flex;
+}
+
+.nav .nav-more-list a.is-active {
+  box-shadow: inset 2px 0 0 var(--ion);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .topbar-actions {
@@ -154,7 +218,7 @@
   text-align: left;
 }
 
-.nav-toggle {
+.topbar .nav-toggle {
   display: none;
 }
 
@@ -1824,6 +1888,11 @@ dialog::backdrop {
   scroll-margin-top: calc(var(--topbar-h) + 1rem);
 }
 
+.prose-section h3 {
+  margin: var(--space-5) 0 var(--space-3);
+  font-size: var(--fs-md);
+}
+
 .prose-section h2 {
   margin-bottom: var(--space-4);
   font-family: var(--font-display);
@@ -1906,17 +1975,9 @@ dialog::backdrop {
   }
 }
 
-@media (max-width: 760px) {
-  :root {
-    --topbar-h: 56px;
-  }
-
-  .topbar {
-    padding: 0 var(--space-3);
-    gap: var(--space-3);
-  }
-
-  .nav-toggle {
+/* Navegação recolhida no menu a partir de 960 px */
+@media (max-width: 960px) {
+  .topbar .nav-toggle {
     display: inline-grid;
   }
 
@@ -1949,6 +2010,34 @@ dialog::backdrop {
   .nav a.is-active {
     box-shadow: inset 2px 0 0 var(--ion);
     border-radius: 0;
+  }
+
+  /* No menu móvel, as entradas de "Mais" aparecem diretamente na lista */
+  .nav-more-btn {
+    display: none;
+  }
+
+  .nav .nav-more-list {
+    position: static;
+    display: flex;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --topbar-h: 56px;
+  }
+
+  .topbar {
+    padding: 0 var(--space-3);
+    gap: var(--space-3);
   }
 
   .page {

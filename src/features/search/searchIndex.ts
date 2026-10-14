@@ -88,6 +88,14 @@ const PAGE_ENTRIES: SearchEntry[] = [
     route: { name: 'solar-system' },
   },
   {
+    id: 'page:planetarium',
+    title: 'Planetário',
+    subtitle: 'O céu visto de um lugar, a uma data e hora',
+    category: 'page',
+    terms: ['planetário', 'planetarium', 'céu', 'sky', 'céu noturno', 'constelações', 'o que ver esta noite', 'planetas visíveis', 'nascer do sol', 'fase da lua'],
+    route: { name: 'planetarium' },
+  },
+  {
     id: 'page:favorites',
     title: 'Favoritos',
     subtitle: 'Objetos guardados e histórico',

@@ -25,6 +25,9 @@ const PATHS = {
   keyboard: <><rect x="3" y="6.5" width="18" height="11" rx="2" /><path d="M7 10.5h.01M10.5 10.5h.01M14 10.5h.01M17 10.5h.01M8 14h8" /></>,
   layers: <><path d="m12 4 8.5 4.5L12 13 3.5 8.5z" /><path d="m3.5 12.5 8.5 4.5 8.5-4.5" /></>,
   chevron: <path d="m9.5 6 6 6-6 6" />,
+  pin: <><path d="M12 20.5s6-5.6 6-10.5a6 6 0 0 0-12 0c0 4.9 6 10.5 6 10.5z" /><circle cx="12" cy="10" r="2.2" /></>,
+  compare: <><rect x="3.5" y="5" width="7.5" height="14" rx="1.5" /><rect x="13" y="5" width="7.5" height="14" rx="1.5" /></>,
+  sky: <><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0z" /><path d="M8 12.5h.01M12 10h.01M15.5 13h.01" /></>,
 } as const;
 
 export type IconName = keyof typeof PATHS;

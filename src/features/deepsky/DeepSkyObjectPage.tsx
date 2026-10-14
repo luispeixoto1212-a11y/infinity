@@ -163,6 +163,12 @@ function ObjectView({ o, all }: { o: DeepSkyObject; all: DeepSkyObject[] }) {
           ) : null}
           {o.m === 102 ? <p className="info-note">{t.space.m102}</p> : null}
           {!o.hasNasaPage ? <p className="section-note">{o.distanceLy ? t.space.noNasaPageGaia : t.space.noNasaPage}</p> : null}
+          <p className="body-actions">
+            <a className="btn btn--ghost btn--small" href={href({ name: 'planetarium', target: o.id })}>
+              <Icon name="sky" size={15} />
+              {t.body.viewInSky}
+            </a>
+          </p>
         </div>
         <div className="exo-hero-orbit">
           <SkySize o={o} />
