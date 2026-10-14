@@ -82,7 +82,7 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - Estado atual verificado a 14/10/2026, com a fonte e a data de cada verificação; quando não foi possível confirmar (Juno), a ficha diz isso.
 
 **Linha temporal do Universo** (`#/linha-temporal`)
-- 52 acontecimentos, da era de Planck à Artemis II: Universo primordial, primeiras estrelas e galáxias (incluindo as mais distantes confirmadas pelo James Webb), Via Láctea, Sistema Solar e Terra, etapas da vida, história da astronomia (com Pedro Nunes) e exploração espacial.
+- 54 acontecimentos, da era de Planck à Artemis II: Universo primordial, primeiras estrelas e galáxias (incluindo as mais distantes confirmadas pelo James Webb), Via Láctea, Sistema Solar e Terra, etapas da vida, história da astronomia (com Pedro Nunes) e exploração espacial.
 - Três escalas com zoom e deslocamento (rato, toque e teclado): primeiros instantes (logarítmica desde o Big Bang), história completa (logarítmica antes do presente) e proporções reais (linear).
 - Cada acontecimento indica se a data é medida, estimada, prevista por um modelo ou um registo histórico, com fonte, tempo desde o Big Bang, tempo antes do presente e posição no calendário cósmico.
 - Explicação da diferença entre idade do Universo, tempo de viagem da luz e distância, com uma calculadora cosmológica (ΛCDM do Planck 2018): para um desvio para o vermelho dá a idade do Universo na emissão, o tempo de viagem da luz e as distâncias hoje, na emissão e de luminosidade.
