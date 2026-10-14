@@ -75,6 +75,12 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - "Esta noite": pôr e nascer do Sol, noite astronómica, fase da Lua e próximas fases, e para a Lua e cada planeta a posição atual, a magnitude, a constelação e a janela de visibilidade da noite.
 - Botões "Ver no céu" nas fichas dos planetas, da Lua, do Sol, das estrelas e dos objetos Messier.
 
+**Missões espaciais** (`#/missoes`)
+- 36 missões, de Sputnik 1 (1957) ao Dragonfly (lançamento previsto para 2028): Apollo 11, Artemis II e III, Voyager 1 e 2, Viking, Galileo, Cassini–Huygens, Spirit e Opportunity, Curiosity, Perseverance e Ingenuity, Juno, New Horizons, BepiColombo, JUICE, Europa Clipper, Rosetta, Dawn, Hayabusa2, OSIRIS-REx/APEX, DART, Hera, Lucy, Psyche, Tianwen-2, Chandrayaan-3, Chang'e 6, Hubble, James Webb, Kepler, Gaia, Roman e Parker Solar Probe, entre outras.
+- Linha do tempo interativa (1957–2036), com o planeado a tracejado, filtros por tipo e estado e pesquisa.
+- Ficha de cada missão: objetivos, agências, foguetão, destino, cronologia (com os acontecimentos previstos assinalados), instrumentos, descobertas, ligações às fichas dos planetas e luas, fontes oficiais e fotografias da NASA.
+- Estado atual verificado a 14/10/2026, com a fonte e a data de cada verificação; quando não foi possível confirmar (Juno), a ficha diz isso.
+
 **Ferramentas**
 - Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço". Inclui os objetos Messier, as estrelas com nome e os 6445 exoplanetas (índices leves carregados só quando a pesquisa abre).
 - Favoritos e histórico guardados no navegador, sem conta.
@@ -121,6 +127,7 @@ src/
   features/deepsky/     Objetos Messier, mapa do céu, buracos negros
   features/stars/       Catálogo de estrelas, diagrama H–R e fichas
   features/planetarium/ Planetário: lugares e fusos, estado do céu, desenho em Canvas 2D, painéis
+  features/missions/    Missões espaciais: dados verificados, linha do tempo, fichas
   services/       Cliente da NASA Image and Video Library
 public/
   textures/       Texturas (512 px e 2048 px)
@@ -152,7 +159,7 @@ Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts`, registá-lo em `src/i1
 
 ## Testes
 
-- `npm test` corre 204 testes unitários. Os do planetário comparam com o JPL Horizons o tempo sideral, a Lua em cinco datas, o Sol e os planetas em duas datas (posição, distância, fase e magnitude), o azimute e a altura em Lisboa e em Sydney e as horas de nascer, passagem e ocaso, e verificam os exemplos de Meeus para a precessão e o tempo sideral, a constelação das 509 estrelas com nome, os fusos horários (incluindo a mudança de hora), a projeção, as noites brancas e a noite polar. Os restantes cobrem: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
+- `npm test` corre 213 testes unitários (incluindo a coerência das 36 missões: datas, cronologias, acontecimentos previstos no futuro, fontes de estado e ligações). Os do planetário comparam com o JPL Horizons o tempo sideral, a Lua em cinco datas, o Sol e os planetas em duas datas (posição, distância, fase e magnitude), o azimute e a altura em Lisboa e em Sydney e as horas de nascer, passagem e ocaso, e verificam os exemplos de Meeus para a precessão e o tempo sideral, a constelação das 509 estrelas com nome, os fusos horários (incluindo a mudança de hora), a projeção, as noites brancas e a noite polar. Os restantes cobrem: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
 - A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (89 verificações nas fases anteriores e 21 percursos no planetário e na navegação: alvos vindos das fichas, comparação de lugares, animação do tempo, limites de datas, teclado, menu "Mais" e menu móvel): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, página e fichas de exoplanetas (gráficos, catálogo, filtros, animação das órbitas), espaço profundo (mapa do céu, filtros, aproximação, clique num objeto, distâncias da NASA e da Gaia, vista em tabela), estrelas (diagrama H–R, pesquisa, ficha), buracos negros, rotas inválidas, ausência de deslocamento horizontal no telemóvel e ausência de erros na consola.
 
 ## Publicar no GitHub Pages
@@ -165,7 +172,7 @@ O workflow `ci.yml` verifica tipos, testes e build em cada push.
 
 ## Próximos passos
 
-1. **Fase 4 (resto)**: área de missões espaciais e linha temporal do Universo.
+1. **Fase 4 (resto)**: linha temporal do Universo.
 2. **Fenómenos extremos**: explicações em três níveis (buracos negros, estrelas de neutrões, supernovas, quasares, ondas gravitacionais).
 3. **Sistema Solar (complementos)**: asteroides e cometas notáveis, sombras e eclipses, formas irregulares de Fobos e Deimos.
 4. **Espaço profundo (complementos)**: mais objetos além do catálogo Messier (Nuvens de Magalhães, Carina, Hélice, pulsares).

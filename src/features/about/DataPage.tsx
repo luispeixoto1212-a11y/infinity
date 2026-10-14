@@ -75,6 +75,7 @@ export function DataPage() {
           <li><a href="#luas" onClick={(e) => jump(e, 'luas')}>Órbitas das luas</a></li>
           <li><a href="#planetario" onClick={(e) => jump(e, 'planetario')}>Planetário: o céu de um lugar</a></li>
           <li><a href="#exoplanetas" onClick={(e) => jump(e, 'exoplanetas')}>Exoplanetas</a></li>
+          <li><a href="#missoes" onClick={(e) => jump(e, 'missoes')}>Missões espaciais</a></li>
           <li><a href="#espaco-profundo" onClick={(e) => jump(e, 'espaco-profundo')}>Espaço profundo, estrelas e buracos negros</a></li>
           <li><a href="#escala" onClick={(e) => jump(e, 'escala')}>Escala da vista 3D</a></li>
           <li><a href="#orientacao" onClick={(e) => jump(e, 'orientacao')}>Orientação, rotação e tempo</a></li>
@@ -264,6 +265,22 @@ export function DataPage() {
         <p>
           Nos buracos negros, a massa e a distância são as das fontes indicadas em cada caso; o raio do horizonte é
           calculado pela aplicação (raio de Schwarzschild, 2GM/c², cerca de 2,95 km por massa solar, sem rotação).
+        </p>
+      </section>
+
+      <section id="missoes" className="prose-section">
+        <h2>Missões espaciais</h2>
+        <p>
+          As datas históricas seguem o catálogo NSSDCA da NASA e as páginas das agências (NASA, ESA, JAXA, ISRO, CNSA). Para
+          cada missão em curso ou planeada, o estado foi verificado a 14 de outubro de 2026 numa fonte indicada na própria
+          ficha, com a data dessa fonte: comunicados da NASA, da ESA ou do JPL sempre que existem e, na sua falta, notícias
+          especializadas ou a Wikipédia, assinaladas como tal. Os acontecimentos futuros aparecem como "previstos" e são
+          planos das agências, que podem mudar.
+        </p>
+        <p>
+          Quando as fontes não permitem confirmar o estado, a ficha diz isso mesmo: é o caso da Juno, cuja extensão aprovada
+          terminava em setembro de 2025 e para a qual não encontrámos um comunicado oficial posterior. As fotografias vêm em
+          tempo real da NASA Image and Video Library.
         </p>
       </section>
 

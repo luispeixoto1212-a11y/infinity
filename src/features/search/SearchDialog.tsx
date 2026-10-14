@@ -9,6 +9,7 @@ import { useHistory } from '../../state/userData';
 import { buildIndex, search, type SearchEntry } from './searchIndex';
 import { loadExoplanetSearchEntries } from './exoplanetIndex';
 import { loadSpaceSearchEntries } from './spaceIndex';
+import { loadMissionSearchEntries } from './missionIndex';
 
 export function SearchDialog() {
   const { t } = useI18n();
@@ -27,7 +28,7 @@ export function SearchDialog() {
     if (!searchOpen || extra.length > 0) return;
     let alive = true;
     // Objetos Messier e estrelas com nome (pequenos) e exoplanetas (milhares de nomes), pedidos em paralelo.
-    Promise.allSettled([loadSpaceSearchEntries(), loadExoplanetSearchEntries()]).then((results) => {
+    Promise.allSettled([loadSpaceSearchEntries(), loadExoplanetSearchEntries(), loadMissionSearchEntries()]).then((results) => {
       if (!alive) return;
       const entries = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
       /* Sem rede: a pesquisa continua a funcionar com os objetos do Sistema Solar. */

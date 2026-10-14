@@ -1,8 +1,10 @@
 /** Textos da interface em português de Portugal (língua de referência). */
 import { planetariumPt } from './pt-PT-planetarium';
+import { missionsPt } from './pt-PT-missions';
 
 export const ptPT = {
   planetarium: planetariumPt,
+  missions: missionsPt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -12,6 +14,7 @@ export const ptPT = {
     exoplanets: 'Exoplanetas',
     deepSpace: 'Espaço profundo',
     planetarium: 'Planetário',
+    missions: 'Missões espaciais',
     more: 'Mais',
     menu: 'Menu',
     skipToContent: 'Saltar para o conteúdo',
@@ -37,6 +40,7 @@ export const ptPT = {
     exoplanet: 'Exoplaneta',
     'deep-sky': 'Objeto Messier',
     'named-star': 'Estrela',
+    mission: 'Missão espacial',
   },
   explorer: {
     sceneLabel: 'Sistema Solar em 3D. Use as etiquetas ou a lista de objetos para navegar com o teclado.',

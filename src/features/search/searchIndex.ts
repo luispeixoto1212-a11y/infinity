@@ -7,7 +7,7 @@ export interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star';
+  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star' | 'mission';
   /** Termos indexados (nome, nomes alternativos, palavras-chave). */
   terms: string[];
   route: Route;
@@ -96,6 +96,14 @@ const PAGE_ENTRIES: SearchEntry[] = [
     route: { name: 'planetarium' },
   },
   {
+    id: 'page:missions',
+    title: 'Missões espaciais',
+    subtitle: 'Sondas, telescópios e voos tripulados, com estado atual e fontes',
+    category: 'page',
+    terms: ['missões', 'missions', 'sondas', 'naves', 'exploração espacial', 'NASA', 'ESA', 'telescópios espaciais'],
+    route: { name: 'missions' },
+  },
+  {
     id: 'page:favorites',
     title: 'Favoritos',
     subtitle: 'Objetos guardados e histórico',
@@ -181,7 +189,7 @@ function scoreTerm(query: string, term: string): number {
 }
 
 /** Em caso de empate, estrelas e planetas aparecem antes das luas. */
-const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'deep-sky', 'named-star', 'exoplanet'];
+const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'mission', 'deep-sky', 'named-star', 'exoplanet'];
 
 export function search(index: readonly SearchEntry[], rawQuery: string, limit = 8): SearchResult[] {
   const query = normalize(rawQuery);
