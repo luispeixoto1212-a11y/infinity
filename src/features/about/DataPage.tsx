@@ -14,6 +14,7 @@ import { HIPPARCOS_CHECK } from '../stars/hipparcosCheck';
 import { planetocentricOffsetKm } from '../../core/astro/positions';
 import { useI18n } from '../../i18n';
 import { SkyValidationSection } from './SkyValidationSection';
+import { SmallBodyValidationSection } from './SmallBodyValidationSection';
 
 const AU_KM = 149_597_870.7;
 
@@ -72,6 +73,7 @@ export function DataPage() {
         <ol>
           <li><a href="#posicoes" onClick={(e) => jump(e, 'posicoes')}>Posições dos planetas</a></li>
           <li><a href="#validacao" onClick={(e) => jump(e, 'validacao')}>Validação com o JPL Horizons</a></li>
+          <li><a href="#pequenos-corpos" onClick={(e) => jump(e, 'pequenos-corpos')}>Asteroides e cometas</a></li>
           <li><a href="#luas" onClick={(e) => jump(e, 'luas')}>Órbitas das luas</a></li>
           <li><a href="#planetario" onClick={(e) => jump(e, 'planetario')}>Planetário: o céu de um lugar</a></li>
           <li><a href="#exoplanetas" onClick={(e) => jump(e, 'exoplanetas')}>Exoplanetas</a></li>
@@ -146,6 +148,8 @@ export function DataPage() {
           tabela do JPL não indica erros.
         </p>
       </section>
+
+      <SmallBodyValidationSection />
 
       <section id="luas" className="prose-section">
         <h2>Órbitas das luas</h2>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findBodyBySlug } from '../../data/catalog';
+import { findSmallBody } from '../../data/smallBodies';
 import { parseHash, routeToHash } from '../../app/router';
 import { MISSIONS, MISSIONS_CHECKED, decimalYear, findMission, formatMissionDate } from './missionsData';
 
@@ -52,7 +53,7 @@ describe('missões espaciais: coerência dos dados', () => {
     for (const m of MISSIONS) {
       expect(m.sources.length, m.id).toBeGreaterThan(0);
       for (const s of [...m.sources, ...(m.statusSource ? [m.statusSource] : [])]) expect(s.url, m.id).toMatch(/^https:\/\//);
-      for (const slug of m.bodies) expect(findBodyBySlug(slug), `${m.id} → ${slug}`).toBeDefined();
+      for (const slug of m.bodies) expect(findBodyBySlug(slug) ?? findSmallBody(slug), `${m.id} → ${slug}`).toBeDefined();
     }
   });
 });

@@ -23,6 +23,7 @@ const PATHS = {
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   info: <><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5" /><path d="M12 7.6v.01" /></>,
   keyboard: <><rect x="3" y="6.5" width="18" height="11" rx="2" /><path d="M7 10.5h.01M10.5 10.5h.01M14 10.5h.01M17 10.5h.01M8 14h8" /></>,
+  comet: <><circle cx="16.5" cy="7.5" r="3" /><path d="M14 10 4.5 19.5M12.6 7.8 6 14.4M16.2 11.4 9.6 18" /></>,
   layers: <><path d="m12 4 8.5 4.5L12 13 3.5 8.5z" /><path d="m3.5 12.5 8.5 4.5 8.5-4.5" /></>,
   chevron: <path d="m9.5 6 6 6-6 6" />,
   pin: <><path d="M12 20.5s6-5.6 6-10.5a6 6 0 0 0-12 0c0 4.9 6 10.5 6 10.5z" /><circle cx="12" cy="10" r="2.2" /></>,

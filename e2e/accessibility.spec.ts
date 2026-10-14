@@ -5,7 +5,7 @@ import { test, expect, openRoute } from './fixtures';
  * Verificação automática de acessibilidade (axe-core, regras WCAG 2.1 A e AA).
  * Falha com problemas graves ou críticos.
  */
-const PAGES = ['#/sistema-solar', '#/objeto/terra', '#/planetario', '#/missoes', '#/missoes/hubble', '#/linha-temporal', '#/fenomenos-extremos', '#/espaco-profundo', '#/estrelas', '#/exoplanetas', '#/dados', '#/favoritos'];
+const PAGES = ['#/sistema-solar', '#/objeto/terra', '#/planetario', '#/missoes', '#/missoes/hubble', '#/linha-temporal', '#/fenomenos-extremos', '#/espaco-profundo', '#/estrelas', '#/exoplanetas', '#/dados', '#/favoritos', '#/asteroides-e-cometas', '#/asteroides-e-cometas/67p'];
 
 for (const hash of PAGES) {
   test(`acessibilidade de ${hash}`, async ({ page, consoleErrors }) => {

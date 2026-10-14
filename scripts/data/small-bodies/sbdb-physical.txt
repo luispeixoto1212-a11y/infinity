@@ -1,0 +1,195 @@
+# Parâmetros físicos e descoberta, JPL Small-Body Database API (https://ssd-api.jpl.nasa.gov/sbdb.api?sstr=<id>&phys-par=1&discovery=1),
+# consultados em 2026-10-14. Formato: nome = valor (incerteza) unidades — referência. Notas encurtadas.
+
+[vesta] 4 Vesta (A807 FA); Main-belt Asteroid; neo=false pha=false
+H = 3.25 — E2024D82
+diameter = 522.77 (0.1) km — Park, R.S. et al. 2025, Nat Astron, DOI 10.1038/s41550-025-02533-7
+extent = 569.24 x 554.48 x 452.66 (0.1) km — Park et al. 2025
+GM = 17.2882844 (0.0000030) km^3/s^2 — Park et al. 2025
+density = 3.460 (0.005) g/cm^3 — Park et al. 2025
+rot_per = 5.3421276322 (0.0000000004) h — Park et al. 2025
+albedo = 0.4228 (0.053) — IRAS-A-FPA-3-RDR-IMPS-V6.0
+spec_T = V; spec_B = V — EAR-A-5-DDR-TAXONOMY-V4.0
+discovery: 1807-Mar-29, Bremen, Olbers, H. W.
+
+[pallas] 2 Pallas (A802 FA); Main-belt Asteroid; neo=false pha=false
+H = 4.12 — MPO980521
+diameter = 513 (6) km — Marsset et al., Nature Astronomy 4, 569-576 (2020)
+extent = 568x532x448 (12) km — Marsset et al. (2020)
+GM = 13.63 (0.18) km^3/s^2 — Vernazza et al., A&A 654, A56 (2021)
+density = 2.89 (0.08) g/cm^3 — Marsset et al. (2020)
+rot_per = 7.8132214 (0.000002) h — Carry et al., Icarus 205, 460-472 (2010)
+albedo = 0.155 — Vernazza et al. (2021)
+spec_T = B; spec_B = B — EAR-A-5-DDR-TAXONOMY-V4.0
+discovery: 1802-Mar-28, Bremen, Olbers, H. W.
+
+[psyche] 16 Psyche (A852 FA); Main-belt Asteroid; neo=false pha=false
+H = 6.20 — E2024-XU9
+diameter = 222 (-1/+4) km — Shepard et al. (2021), PSJ 2, 125
+extent = 278 x 238 x 171 (6 x 5 x 3) km — Shepard et al. (2021)
+GM = 1.601 (0.017) km^3/s^2 — Farnocchia et al. (2024), AJ 168, 21
+density = 4.172 (0.145) g/cm^3 — Farnocchia et al. (2024)
+rot_per = 4.196 h — LCDB (Rev. 2023-October); Warner et al., 2009
+albedo = 0.1203 (0.004) — IRAS-A-FPA-3-RDR-IMPS-V6.0
+spec_T = M; spec_B = X — EAR-A-5-DDR-TAXONOMY-V4.0
+discovery: 1852-Mar-17, Naples, De Gasparis, A.
+
+[eros] 433 Eros (A898 PA); Amor; neo=true pha=false
+H = 10.40 — E2026L10
+diameter = 16.84 (0.06) km — Yeomans et al. (2000) Science 289, 2085-2088 (esfera com o volume medido, 2503 ± 25 km^3)
+extent = 34.4x11.2x11.2 km — Veverka et al. (2000) Science 289, 2088-2097
+GM = 4.463e-04 (0.001e-04) km^3/s^2 — Yeomans et al. (2000)
+density = 2.67 (0.03) g/cm^3 — Yeomans et al. (2000)
+rot_per = 5.27 h — LCDB (Rev. 2023-October); Warner et al., 2009
+albedo = 0.25 (0.06) — Veverka et al. (2000)
+spec_T = S; spec_B = S — EAR-A-5-DDR-TAXONOMY-V4.0
+discovery: 1898-Aug-13, Berlin, Witt, G.
+
+[itokawa] 25143 Itokawa (1998 SF36); Apollo; neo=true pha=true
+H = 19.26 — MPO691964
+diameter = 0.33 km — Science 312:1330-1334 (esferoide de volume equivalente, 1,84e7 m^3)
+extent = 0.535x0.294x0.209 (0.001) km — Science 312:1330-1334
+GM = 2.1e-9 (0.063e-9) km^3/s^2 — Science 312:1330-1334 (massa publicada 3,51e10 kg ± 3 %)
+density = 1.9 (0.13) g/cm^3 — Science 312:1330-1334 (porosidade 41 %)
+rot_per = 12.132 h — LCDB (Rev. 2023-October); Warner et al., 2009
+spec_B = S(IV) — Binzel et al. (2001)
+discovery: 1998-Sep-26, Socorro, LINEAR
+
+[ryugu] 162173 Ryugu (1999 JU3); Apollo; neo=true pha=true
+H = 19.55 — MPO745323
+diameter = 0.896 (0.004) km — Watanabe et al. (2019) Science 364, 267-272
+extent = 1.004x0.876 km — Watanabe et al. (2019)
+GM = 3.00e-8 (0.04e-8) km^3/s^2 — Watanabe et al. (2019)
+density = 1.19 (0.02) g/cm^3 — Watanabe et al. (2019)
+rot_per = 7.63262 (0.00002) h — Watanabe et al. (2019)
+albedo = 0.045 (0.002) — Sugita et al. (2019) Science 364, 6437
+spec_B = Cb — Sugita et al. (2019)
+discovery: 1999-May-10, Socorro, LINEAR
+
+[bennu] 101955 Bennu (1999 RQ36); Apollo; neo=true pha=true
+H = 20.21 (0.03) — Hergenrother et al., Nat. Commun. 10, 1291 (2019)
+diameter = 0.48444 (0.00030) km — Daly et al., Sci. Adv. 6, eabd3649 (2020)
+extent = 0.5047 x 0.4918 x 0.4567 (0.002) km — Daly et al. (2020)
+GM = 4.8904e-9 (0.0009e-9) km^3/s^2 — Chesley et al., JGR Planets 125, e06363 (2020)
+density = 1.194 (0.003) g/cm^3 — Daly et al. (2020)
+rot_per = 4.296061 (0.000002) h — Hergenrother et al. (2019)
+albedo = 0.044 (0.002) — Hergenrother et al. (2019)
+spec_B = B — Clark et al., Icarus 216, 462-475 (2011)
+discovery: 1999-Sep-11, Socorro, LINEAR
+
+[apophis] 99942 Apophis (2004 MN4); Aten; neo=true pha=true
+H = 19.09 (0.19) — Pravec et al., Icarus 233, 48-60 (2014)
+diameter = 0.34 (0.04) km — Brozovic et al., Icarus 300, 115-128 (2018) (modelo 3D a partir de radar, 2012-2013)
+rot_per = 30.56 (0.01) h — Pravec et al. (2014)
+albedo = 0.35 (0.10) — Brozovic et al. (2018)
+spec_B = Sq — Binzel et al. Icarus 200 (2009) 480-485
+discovery: 2004-Jun-19, Kitt Peak, Tholen, D. J.
+
+[didymos] 65803 Didymos (1996 GT); Apollo; neo=true pha=true
+H = 18.11 — MPO901905
+diameter = 0.78 (0.03) km — Naidu et al. (2020) Icarus 348, 113777
+extent = 0.797 x 0.783 x 0.761 km — Naidu et al. (2020)
+density = 2.17 (0.35) g/cm^3 — Naidu et al. (2020)
+rot_per = 2.2593 h — LCDB (Rev. 2023-October); Warner et al., 2009
+spec_B = S — Cheng et al. (2018)
+discovery: 1996-Apr-11, Kitt Peak, Spacewatch
+
+[phaethon] 3200 Phaethon (1983 TB); Apollo; neo=true pha=true
+H = 14.38 — MPO964322
+diameter = 6.25 (0.15) km — Taylor et al., Planetary and Space Science, 10.1016/j.pss.2019.01.009 (radar de Arecibo, 2017)
+rot_per = 3.604 h — LCDB (Rev. 2023-October); Warner et al., 2009
+albedo = 0.1066 (0.011) — IRAS-A-FPA-3-RDR-IMPS-V6.0
+spec_T = F; spec_B = B — EAR-A-5-DDR-TAXONOMY-V4.0
+discovery: 1983-Oct-11, IRAS
+
+[patroclus] 617 Patroclus (A906 UL); Jupiter Trojan; neo=false pha=false
+H = 8.22 — E2026E92
+diameter = 140.362 (0.868) km — NEOWISE (Grav et al. 2012, ApJ 759, 49)
+rot_per = 102.8 h — LCDB (Rev. 2023-October); Warner et al., 2009
+albedo = 0.047 (0.003) — NEOWISE (Grav et al. 2012)
+spec_T = P — EAR-A-5-DDR-TAXONOMY-V4.0
+discovery: 1906-Oct-17, Heidelberg, Kopff, A.
+
+[arrokoth] 486958 Arrokoth (2014 MU69); TransNeptunian Object; neo=false pha=false
+H = 11.06 — MPO700677
+rot_per = 15.918 h — LCDB (cobertura incompleta: o período pode estar errado em cerca de 30 %)
+discovery: 2014-Jun-26, HST, Hubble Space Telescope
+
+[eris] 136199 Eris (2003 UB313); TransNeptunian Object; neo=false pha=false
+H = -1.26 — MPO966273
+rot_per = 25.9 h — LCDB (cobertura incompleta: o período pode estar errado em cerca de 30 %)
+discovery: 2003-Oct-21, Palomar, Brown, M. E., Trujillo, C. A., Rabinowitz, D.
+
+[haumea] 136108 Haumea (2003 EL61); TransNeptunian Object; neo=false pha=false
+H = 0.14 — E2025R45
+rot_per = 3.9154 h — LCDB (Rev. 2023-October); Warner et al., 2009
+discovery: 2003-Mar-07, Sierra Nevada, Aceituno, F. J., Santos-Sanz, P., Ortiz, J. L.
+
+[makemake] 136472 Makemake (2005 FY9); TransNeptunian Object; neo=false pha=false
+H = -0.25 — MPO938351
+rot_per = 22.8266 h — LCDB (cobertura incompleta: o período pode estar errado em cerca de 30 %)
+discovery: 2005-Mar-31, Palomar, Brown, M. E., Trujillo, C. A., Rabinowitz, D.
+
+[sedna] 90377 Sedna (2003 VB12); TransNeptunian Object; neo=false pha=false
+H = 1.50 — MPO981708
+rot_per = 10.273 h — LCDB (cobertura incompleta: o período pode estar errado em cerca de 30 %)
+discovery: 2003-Nov-14, Palomar, Brown, M. E., Trujillo, C. A., Rabinowitz, D.
+
+[halley] 1P/Halley; Halley-type Comet; neo=true pha=false
+M1 = 5.5; K1 = 8.0; M2 = 13.6; K2 = 5.0 — ICQ 2005 Handbook
+diameter = 11.0 km — Lamy, Toth, Fernandez, Weaver (2004) Comets II, pp. 223-264
+extent = 14.9x8.2 km — Keller et al. (1987) A&A 187, 807-823
+albedo = 0.04 (0.01) — Earth, Moon, and Planets 89, 117-134 (2002)
+discovery: 1758-Dec-25, Palitzsch, Johann Georg
+
+[67p] 67P/Churyumov-Gerasimenko; Jupiter-family Comet; neo=true pha=false
+M1 = 12.9 (0.8); K1 = 7.5 — K284/1
+diameter = 3.4 (0.1) km — Sierks et al., Science 347, aaa1044 (2015)
+GM = 662.2e-9 (0.2e-9) km^3/s^2 — Pätzold et al., Nature 530, 63 (2016)
+density = 0.533 (0.006) g/cm^3 — Pätzold et al. (2016)
+rot_per = 12.76129 (0.00005) h — Mottola et al., A&A 569, L2 (2014) (antes do periélio de 2015; depois: 12,4043 ± 0,0007 h)
+discovery: 1969-Oct-22, Alma-Ata Observatory, Churyumov, Klim Ivanovic
+
+[tempel1] 9P/Tempel 1; Jupiter-family Comet; neo=false pha=false
+M1 = 12.9 (0.7); K1 = 9 — K284/2
+diameter = 6.0 (0.2) km — A'Hearn et al. (2005) Science 310, 258-264
+extent = 7.6x4.9 km — A'Hearn et al. (2005) (modelo de forma preliminar)
+rot_per = 40.7 h — A'Hearn et al. (2005)
+albedo = 0.05 (0.02) — Earth, Moon, and Planets 89, 117-134 (2002)
+discovery: 1867-Apr-03, Marseilles, Tempel, William
+
+[wild2] 81P/Wild 2; Jupiter-family Comet; neo=false pha=false
+M1 = 9.8 (0.8); K1 = 12.5 — K222/37
+diameter = 4.0 km — Lamy et al. (2004) Comets II, pp. 223-264
+discovery: 1978-Jan-06, Astronomical Institute of Berne, Wild, Paul
+
+[encke] 2P/Encke; Encke-type Comet; neo=true pha=false
+M1 = 15.7 (0.8); K1 = 4.5 — K273/20
+diameter = 4.8 km — Lamy et al. (2004) Comets II, pp. 223-264
+rot_per = 11.083 h — LCDB (cobertura incompleta: o período pode estar errado em cerca de 30 %)
+albedo = 0.046 (0.023) — Earth, Moon, and Planets 89, 117-134 (2002)
+discovery: 1786-Jan-17, Mechain, Pierre F. A.
+
+[swift-tuttle] 109P/Swift-Tuttle; Halley-type Comet; neo=true pha=false
+M1 = 4.5; K1 = 15.0 — ICQ 1994 Handbook
+diameter = 26 km — Lamy et al. (2004) Comets II, pp. 223-264
+discovery: 1862-Jul-16, Marathon, New York, Swift, Lewis
+
+[hale-bopp] C/1995 O1 (Hale-Bopp); Comet; neo=false pha=false
+M1 = 4.8 (1.0); K1 = 4 — JPL 226
+diameter = 60 (20) km — Fernández (2002) Earth, Moon and Planets 89, 3-25
+albedo = 0.04 (0.03) — Earth, Moon, and Planets 89, 117-134 (2002)
+discovery: (sem dados na SBDB)
+
+[oumuamua] 'Oumuamua (A/2017 U1); Hyperbolic Asteroid; neo=false pha=false
+H = 22.08 (0.45) — JPL 2
+rot_per = 7.937 h — LCDB (cobertura incompleta: o período pode estar errado em cerca de 30 %)
+discovery: (sem dados na SBDB)
+
+[borisov] C/2019 Q4 (Borisov); Hyperbolic Comet; neo=false pha=false
+M1 = 13.8 (0.8); K1 = 4.5 — JPL 54
+discovery: (sem dados na SBDB)
+
+[atlas3i] C/2025 N1 (ATLAS); Hyperbolic Comet; neo=false pha=false
+M1 = 12.5 (0.9); K1 = 4.5 — JPL 54
+discovery: (sem dados na SBDB)

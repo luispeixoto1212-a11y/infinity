@@ -27,7 +27,8 @@ Licença BSD-3-Clause; o texto completo está em `public/data/LICENSE-d3-celesti
 ## Dados científicos
 
 - NASA NSSDCA — Planetary Fact Sheets (D. R. Williams).
-- NASA/JPL Solar System Dynamics — Approximate Positions of the Planets, Small-Body Database, Planetary Satellite Discovery Circumstances, Planetary Satellite Physical Parameters, Planetary Satellite Mean Elements, Horizons (vetores dos planetas e das luas).
+- NASA/JPL Solar System Dynamics — Approximate Positions of the Planets, Small-Body Database (dados físicos e de descoberta dos asteroides e cometas, com a referência original de cada valor), Planetary Satellite Discovery Circumstances, Planetary Satellite Physical Parameters, Planetary Satellite Mean Elements, Horizons (vetores dos planetas e das luas; elementos osculadores e posições de validação dos asteroides e cometas).
+- Asteroides e cometas: páginas da NASA Science (Éris, Haumea, Makemake, ʻOumuamua, 2I/Borisov, 3I/ATLAS, Hale–Bopp, missões), ESA (Giotto, Makemake), JAXA (Hayabusa) e os artigos citados em cada ficha (Sicardy et al. 2011; Ortiz et al. 2012 e 2017; Pál et al. 2012; Spencer et al. 2020).
 - NASA Science — páginas de cada lua (descrições, temperaturas e missões).
 - NASA/JPL NAIF — PCK pck00011.tpc (modelo de orientação da IAU WGCCRE 2015, Archinal et al. 2018).
 - J. Meeus, *Astronomical Algorithms*, 2.ª ed. (1998): teoria da Lua ELP-2000/82 truncada (cap. 47), tempo sideral (cap. 12), precessão (cap. 21), refração (cap. 16), magnitudes dos planetas (cap. 41) e fases (cap. 48).

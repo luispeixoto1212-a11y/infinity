@@ -14,6 +14,8 @@ import { ViewToolbar } from './ViewToolbar';
 import { QuickNav } from './QuickNav';
 import { InfoPanel } from './InfoPanel';
 import { Icon } from '../../components/Icon';
+import { loadSmallBodyOrbits } from '../../core/astro/smallBody';
+import { SMALL_BODIES } from '../../data/smallBodies';
 
 const NUMBER_KEYS: BodyId[] = ['sun', 'mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune'];
 
@@ -110,6 +112,29 @@ export default function ExplorerPage({ focus }: { focus?: string }) {
   useEffect(() => engineRef.current?.setShowOrbits(prefs.showOrbits), [prefs.showOrbits]);
   useEffect(() => engineRef.current?.setShowLabels(prefs.showLabels), [prefs.showLabels]);
 
+  // Camada de asteroides e cometas (dados carregados só quando é ativada)
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (status !== 'ready' || !engine) return;
+    if (!prefs.showSmallBodies) {
+      engine.setSmallBodies(null);
+      return;
+    }
+    let cancelled = false;
+    loadSmallBodyOrbits()
+      .then((data) => {
+        if (cancelled || engineRef.current !== engine) return;
+        const items = SMALL_BODIES.flatMap((body) => (data.orbits[body.id] ? [{ body, epochs: data.orbits[body.id]! }] : []));
+        engine.setSmallBodies(items, (slug) => navigate({ name: 'small-body', slug }));
+      })
+      .catch(() => {
+        if (!cancelled) addNotice(t.smallBodies.loadError);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, prefs.showSmallBodies, prefs.quality, addNotice, t]);
+
   // Rota /explorar/:slug → selecionar e voar até ao objeto
   useEffect(() => {
     if (status !== 'ready' || !focus) return;
@@ -178,6 +203,7 @@ export default function ExplorerPage({ focus }: { focus?: string }) {
       } else if (k === '[') setSpeedIndex((i) => clampSpeedIndex(i - 1));
       else if (k === ']') setSpeedIndex((i) => clampSpeedIndex(i + 1));
       else if (k === 'o' || k === 'O') setPreference('showOrbits', !live.current.prefs.showOrbits);
+      else if (k === 'a' || k === 'A') setPreference('showSmallBodies', !live.current.prefs.showSmallBodies);
       else if (k === 'l' || k === 'L') setPreference('showLabels', !live.current.prefs.showLabels);
       else if (k === 'r' || k === 'R') recenter();
       else if (k === 'f' || k === 'F') toggleFullscreen();

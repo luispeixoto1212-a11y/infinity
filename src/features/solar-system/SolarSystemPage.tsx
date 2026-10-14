@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { href } from '../../app/router';
 import { BodyThumb } from '../../components/BodyThumb';
+import { Icon } from '../../components/Icon';
 import { formatNumber } from '../../core/format';
 import { MOON_BODIES, PRIMARY_BODIES, findBodyById, getBody, getFact, numericFact, tr } from '../../data/catalog';
 import type { CelestialBody } from '../../data/types';
@@ -215,6 +216,14 @@ export function SolarSystemPage() {
           <SizeView />
         )}
       </div>
+      <section className="body-section sb-promo" aria-labelledby="ss-small">
+        <h2 id="ss-small">{t.smallBodies.title}</h2>
+        <p>{t.smallBodies.lede}</p>
+        <a className="btn" href={href({ name: 'small-bodies' })}>
+          <Icon name="comet" size={16} />
+          {t.smallBodies.title}
+        </a>
+      </section>
     </div>
   );
 }

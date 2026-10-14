@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { href } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import { findBodyBySlug, tr } from '../../data/catalog';
+import { findSmallBody } from '../../data/smallBodies';
 import { useI18n } from '../../i18n';
 import { NasaGallery } from '../body/NasaGallery';
 import { CATEGORY_COLORS } from './MissionTimeline';
@@ -15,7 +16,12 @@ function MissionView({ m }: { m: Mission }) {
     document.title = `${m.name} — ${tm.title} — Universe Infinity`;
   }, [m.name, tm.title]);
   const future = decimalYear(m.launch) > decimalYear(MISSIONS_CHECKED);
-  const bodies = m.bodies.map((slug) => findBodyBySlug(slug)).filter((b): b is NonNullable<typeof b> => !!b);
+  const bodies = m.bodies.flatMap((slug) => {
+    const b = findBodyBySlug(slug);
+    if (b) return [{ key: b.id, name: tr(b.name), href: href({ name: 'body', slug: b.slug }) }];
+    const sb = findSmallBody(slug);
+    return sb ? [{ key: `sb-${sb.id}`, name: sb.name, href: href({ name: 'small-body', slug: sb.slug }) }] : [];
+  });
   const gallery = useMemo(() => m.imageQuery, [m.imageQuery]);
 
   return (
@@ -153,9 +159,9 @@ function MissionView({ m }: { m: Mission }) {
               <h2 id="ms-related">{tm.related}</h2>
               <ul className="chips">
                 {bodies.map((b) => (
-                  <li key={b.id}>
-                    <a className="chip" href={href({ name: 'body', slug: b.slug })}>
-                      {tr(b.name)}
+                  <li key={b.key}>
+                    <a className="chip" href={b.href}>
+                      {b.name}
                     </a>
                   </li>
                 ))}

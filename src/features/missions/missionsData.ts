@@ -602,7 +602,7 @@ export const MISSIONS: Mission[] = [
     launch: '2006-01-19',
     vehicle: 'Atlas V 551',
     destination: 'Plutão e Cintura de Kuiper',
-    bodies: ['plutao', 'caronte', 'jupiter'],
+    bodies: ['plutao', 'caronte', 'jupiter', 'arrokoth'],
     summary: 'A primeira sonda a visitar Plutão e o objeto mais distante alguma vez explorado de perto, Arrokoth.',
     objectives: ['Cartografar Plutão e Caronte.', 'Explorar um objeto da Cintura de Kuiper.', 'Medir o ambiente de poeiras e partículas no Sistema Solar exterior.'],
     instruments: [
@@ -774,7 +774,7 @@ export const MISSIONS: Mission[] = [
     end: '2016-09-30',
     vehicle: 'Ariane 5',
     destination: 'Cometa 67P/Churyumov–Gerasimenko',
-    bodies: [],
+    bodies: ['67p'],
     summary: 'A primeira sonda a orbitar um cometa e a acompanhá-lo na passagem pelo periélio; o módulo Philae fez a primeira aterragem num núcleo cometário.',
     objectives: ['Estudar a composição e a atividade de um núcleo cometário ao longo da sua órbita.', 'Pousar um módulo na superfície.'],
     instruments: [
@@ -807,7 +807,7 @@ export const MISSIONS: Mission[] = [
     end: '2018-11-01',
     vehicle: 'Delta II',
     destination: 'Vesta e Ceres',
-    bodies: ['ceres'],
+    bodies: ['ceres', 'vesta'],
     summary: 'A primeira sonda a orbitar dois corpos diferentes além da Terra, graças à propulsão iónica: o asteroide Vesta e o planeta anão Ceres.',
     objectives: ['Comparar dois dos maiores corpos da cintura de asteroides, um rochoso e seco e outro rico em gelo.'],
     instruments: [
@@ -841,7 +841,7 @@ export const MISSIONS: Mission[] = [
     end: '2020-12-05',
     vehicle: 'H-IIA',
     destination: 'Asteroide 162173 Ryugu',
-    bodies: [],
+    bodies: ['ryugu'],
     summary: 'Recolheu amostras da superfície e do subsolo do asteroide Ryugu, depois de criar uma pequena cratera artificial, e enviou-as para a Terra.',
     objectives: ['Trazer à Terra material de um asteroide rico em carbono.'],
     instruments: [
@@ -870,7 +870,7 @@ export const MISSIONS: Mission[] = [
     plannedUntil: '2029-10',
     vehicle: 'Atlas V 411',
     destination: 'Asteroide Bennu; depois, Apófis',
-    bodies: [],
+    bodies: ['bennu', 'apophis'],
     summary: 'A primeira missão da NASA a trazer amostras de um asteroide. Recolheu 121,6 g do asteroide Bennu.',
     objectives: ['Recolher e trazer à Terra amostras de um asteroide primitivo.', 'Estudar Apófis depois da sua passagem rasante pela Terra (OSIRIS-APEX).'],
     instruments: [
@@ -904,7 +904,7 @@ export const MISSIONS: Mission[] = [
     end: '2022-09-26',
     vehicle: 'Falcon 9',
     destination: 'Sistema binário Didymos–Dimorphos',
-    bodies: [],
+    bodies: ['didymos'],
     summary: 'O primeiro teste de defesa planetária: uma sonda colidiu de propósito com a pequena lua de um asteroide para mudar a sua órbita.',
     objectives: ['Demonstrar que um impacto cinético consegue desviar um asteroide.'],
     instruments: [
@@ -936,7 +936,7 @@ export const MISSIONS: Mission[] = [
     plannedUntil: '2027',
     vehicle: 'Falcon 9',
     destination: 'Asteroides Didymos e Dimorphos',
-    bodies: [],
+    bodies: ['didymos'],
     summary: 'Investigação europeia do local do impacto da DART: vai medir a massa de Dimorphos, a cratera e o efeito exato do desvio. Leva dois CubeSats, Milani e Juventas.',
     objectives: ['Medir com precisão o resultado do impacto da DART.', 'Transformar a experiência num método de defesa planetária reprodutível.'],
     instruments: [
@@ -964,7 +964,7 @@ export const MISSIONS: Mission[] = [
     plannedUntil: '2033-03',
     vehicle: 'Atlas V 401',
     destination: 'Asteroides troianos de Júpiter',
-    bodies: ['jupiter'],
+    bodies: ['jupiter', 'patroclo'],
     summary: 'A primeira missão aos troianos, asteroides que partilham a órbita de Júpiter e que podem ser restos dos blocos que formaram os planetas exteriores. Vai visitar oito troianos e três asteroides da cintura principal.',
     objectives: ['Estudar a diversidade dos asteroides troianos.'],
     instruments: [
@@ -996,7 +996,7 @@ export const MISSIONS: Mission[] = [
     plannedUntil: '2031',
     vehicle: 'Falcon Heavy',
     destination: 'Asteroide 16 Psyche',
-    bodies: ['marte'],
+    bodies: ['marte', 'psique'],
     summary: 'Vai estudar um asteroide rico em metal, que pode ser parte do núcleo de um protoplaneta. Leva a experiência DSOC de comunicações por laser no espaço profundo.',
     objectives: ['Saber se Psyche é o núcleo exposto de um planetesimal.', 'Testar comunicações óticas no espaço profundo.'],
     instruments: [

@@ -47,12 +47,14 @@ export type QualityPreference = 'auto' | 'high' | 'low';
 export interface Preferences {
   showOrbits: boolean;
   showLabels: boolean;
+  /** Camada de asteroides e cometas na vista 3D. */
+  showSmallBodies: boolean;
   quality: QualityPreference;
   hintDismissed: boolean;
 }
 
 const PREF_KEY = 'preferences';
-const DEFAULT_PREFS: Preferences = { showOrbits: true, showLabels: true, quality: 'auto', hintDismissed: false };
+const DEFAULT_PREFS: Preferences = { showOrbits: true, showLabels: true, showSmallBodies: false, quality: 'auto', hintDismissed: false };
 
 function isPrefs(v: unknown): v is Partial<Preferences> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -62,6 +64,7 @@ function sanitize(p: Partial<Preferences>): Preferences {
   return {
     showOrbits: typeof p.showOrbits === 'boolean' ? p.showOrbits : DEFAULT_PREFS.showOrbits,
     showLabels: typeof p.showLabels === 'boolean' ? p.showLabels : DEFAULT_PREFS.showLabels,
+    showSmallBodies: typeof p.showSmallBodies === 'boolean' ? p.showSmallBodies : DEFAULT_PREFS.showSmallBodies,
     quality: p.quality === 'high' || p.quality === 'low' || p.quality === 'auto' ? p.quality : DEFAULT_PREFS.quality,
     hintDismissed: typeof p.hintDismissed === 'boolean' ? p.hintDismissed : DEFAULT_PREFS.hintDismissed,
   };

@@ -23,6 +23,8 @@ export type Route =
   | { name: 'timeline' }
   | { name: 'extreme'; topic?: string }
   | { name: 'mission'; id: string }
+  | { name: 'small-bodies' }
+  | { name: 'small-body'; slug: string }
   | { name: 'not-found'; path: string };
 
 export function parseHash(hash: string): Route {
@@ -58,6 +60,8 @@ export function parseHash(hash: string): Route {
       return arg ? { name: 'not-found', path } : { name: 'timeline' };
     case 'missoes':
       return arg ? { name: 'mission', id: arg } : { name: 'missions' };
+    case 'asteroides-e-cometas':
+      return arg ? { name: 'small-body', slug: arg } : { name: 'small-bodies' };
     case 'planetario':
       return arg ? { name: 'planetarium', target: arg } : { name: 'planetarium' };
     default:
@@ -101,6 +105,10 @@ export function routeToHash(route: Route): string {
       return route.topic ? `#/fenomenos-extremos/${route.topic}` : '#/fenomenos-extremos';
     case 'mission':
       return `#/missoes/${route.id}`;
+    case 'small-bodies':
+      return '#/asteroides-e-cometas';
+    case 'small-body':
+      return `#/asteroides-e-cometas/${route.slug}`;
     case 'not-found':
       return `#${route.path}`;
   }

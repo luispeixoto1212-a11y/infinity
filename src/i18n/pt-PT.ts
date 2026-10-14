@@ -3,12 +3,14 @@ import { planetariumPt } from './pt-PT-planetarium';
 import { missionsPt } from './pt-PT-missions';
 import { timelinePt } from './pt-PT-timeline';
 import { extremePt } from './pt-PT-extreme';
+import { smallBodiesPt } from './pt-PT-small-bodies';
 
 export const ptPT = {
   planetarium: planetariumPt,
   missions: missionsPt,
   timeline: timelinePt,
   extreme: extremePt,
+  smallBodies: smallBodiesPt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -47,6 +49,7 @@ export const ptPT = {
     'named-star': 'Estrela',
     mission: 'Missão espacial',
     concept: 'Conceito',
+    'small-body': 'Asteroide ou cometa',
   },
   explorer: {
     sceneLabel: 'Sistema Solar em 3D. Use as etiquetas ou a lista de objetos para navegar com o teclado.',
@@ -600,6 +603,7 @@ export const ptPT = {
       ['[ e ]', 'Diminuir ou aumentar a velocidade'],
       ['O', 'Mostrar ou ocultar órbitas'],
       ['L', 'Mostrar ou ocultar etiquetas'],
+      ['A', 'Mostrar ou ocultar asteroides e cometas'],
       ['R', 'Recentrar no Sol'],
       ['F', 'Ecrã inteiro'],
       ['1 a 9', 'Ir para o Sol e os planetas, por ordem'],

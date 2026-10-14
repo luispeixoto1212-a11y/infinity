@@ -43,3 +43,20 @@ test('dados e métodos: validação calculada no navegador', async ({ page, cons
   await expect(page.locator('#planetario table').first()).toBeVisible();
   await expect(page.locator('#validacao table')).toBeVisible();
 });
+
+test('asteroides e cometas: lista, mapa das órbitas, ficha e camada 3D', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await openRoute(page, '#/asteroides-e-cometas');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Asteroides e cometas');
+  await expect(page.locator('.orbit-map svg')).toBeVisible();
+  await expect(page.locator('.sb-card')).toHaveCount(26);
+  await page.locator('.sb-card a', { hasText: 'Bennu' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bennu');
+  await expect(page.locator('.facts-table').first()).toContainText('Distância ao Sol (hoje)');
+  await expect(page.locator('a[href="#/missoes/osiris-rex"]').first()).toBeVisible();
+  await expect(page.getByText('Precisão da posição')).toBeVisible();
+  await openRoute(page, '#/asteroides-e-cometas/3i-atlas');
+  await expect(page.locator('.facts-table').first()).toContainText('Órbita aberta');
+  await page.getByRole('link', { name: 'Ver na vista 3D' }).click();
+  await expect(page.locator('.space-label--small').first()).toBeAttached({ timeout: 20_000 });
+});

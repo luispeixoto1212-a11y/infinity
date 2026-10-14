@@ -26,6 +26,8 @@ const MissionsPage = lazy(() => import('../features/missions/MissionsPage'));
 const TimelinePage = lazy(() => import('../features/timeline/TimelinePage'));
 const ExtremePage = lazy(() => import('../features/extreme/ExtremePage'));
 const MissionPage = lazy(() => import('../features/missions/MissionPage'));
+const SmallBodiesPage = lazy(() => import('../features/small-bodies/SmallBodiesPage'));
+const SmallBodyPage = lazy(() => import('../features/small-bodies/SmallBodyPage'));
 
 function PageFallback() {
   return (
@@ -72,6 +74,10 @@ function renderRoute(route: Route) {
       return <ExtremePage topic={route.topic} />;
     case 'mission':
       return <MissionPage id={route.id} />;
+    case 'small-bodies':
+      return <SmallBodiesPage />;
+    case 'small-body':
+      return <SmallBodyPage slug={route.slug} />;
     default:
       return <NotFoundPage />;
   }
@@ -89,6 +95,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   missions: 'Missões espaciais',
   timeline: 'Linha temporal do Universo',
   extreme: 'Fenómenos extremos',
+  'small-bodies': 'Asteroides e cometas',
   'not-found': 'Página não encontrada',
 };
 

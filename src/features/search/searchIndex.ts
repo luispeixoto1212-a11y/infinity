@@ -7,7 +7,7 @@ export interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star' | 'mission' | 'concept';
+  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star' | 'mission' | 'concept' | 'small-body';
   /** Termos indexados (nome, nomes alternativos, palavras-chave). */
   terms: string[];
   route: Route;
@@ -104,6 +104,14 @@ const PAGE_ENTRIES: SearchEntry[] = [
     route: { name: 'timeline' },
   },
   {
+    id: 'page:small-bodies',
+    title: 'Asteroides e cometas',
+    subtitle: 'Pequenos corpos visitados por sondas, próximos da Terra e interestelares, com órbitas do JPL',
+    category: 'page',
+    terms: ['asteroides', 'asteroids', 'cometas', 'comets', 'pequenos corpos', 'cintura de asteroides', 'cintura de Kuiper', 'NEO', 'interestelar', 'chuvas de meteoros'],
+    route: { name: 'small-bodies' },
+  },
+  {
     id: 'page:missions',
     title: 'Missões espaciais',
     subtitle: 'Sondas, telescópios e voos tripulados, com estado atual e fontes',
@@ -197,7 +205,7 @@ function scoreTerm(query: string, term: string): number {
 }
 
 /** Em caso de empate, estrelas e planetas aparecem antes das luas. */
-const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'concept', 'mission', 'deep-sky', 'named-star', 'exoplanet'];
+const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'small-body', 'page', 'concept', 'mission', 'deep-sky', 'named-star', 'exoplanet'];
 
 export function search(index: readonly SearchEntry[], rawQuery: string, limit = 8): SearchResult[] {
   const query = normalize(rawQuery);

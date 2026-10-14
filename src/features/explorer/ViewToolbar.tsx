@@ -75,6 +75,16 @@ export function ViewToolbar(p: Props) {
       >
         <Icon name="label" />
       </button>
+      <button
+        type="button"
+        className={`icon-btn${prefs.showSmallBodies ? ' is-on' : ''}`}
+        aria-pressed={prefs.showSmallBodies}
+        onClick={() => setPreference('showSmallBodies', !prefs.showSmallBodies)}
+        aria-label={t.smallBodies.layer}
+        title={`${t.smallBodies.layer} (A)`}
+      >
+        <Icon name="comet" />
+      </button>
       <div className="popover-wrap">
         <button
           type="button"

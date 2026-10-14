@@ -35,6 +35,7 @@ import type { BodyId, CelestialBody } from '../../../data/types';
 import { createBodyVisual, type BodyVisual } from './bodies';
 import { createOrbitLine, heliocentricOrbitPoints, type OrbitLine } from './orbits';
 import type { QualitySettings } from './quality';
+import { SmallBodyLayer, type SmallBodyLayerItem } from './smallBodies';
 import { createStarfield, fetchStarCatalog, STAR_SPHERE_RADIUS } from './stars';
 import { disposeTextureCache, runLimited } from './textures';
 
@@ -117,6 +118,7 @@ export class SolarSystemEngine {
   private readonly moonOrbits = new Map<BodyId, MoonOrbit>();
   private readonly nearParent = new Map<BodyId, boolean>();
   private showOrbits = true;
+  private smallLayer: SmallBodyLayer | null = null;
   private readonly abort = new AbortController();
   private readonly resizeObserver: ResizeObserver;
   private raf = 0;
@@ -399,6 +401,7 @@ export class SolarSystemEngine {
         if (pts) orbit.update(pts, this.jd);
       }
     }
+    this.smallLayer?.update(this.jd);
   }
 
   /** Atualiza, para cada lua, se a câmara está suficientemente perto do planeta. */
@@ -450,7 +453,19 @@ export class SolarSystemEngine {
   setShowOrbits(show: boolean) {
     this.showOrbits = show;
     for (const o of this.orbits.values()) o.line.visible = show;
+    this.smallLayer?.setShowOrbits(show);
     this.updateNearParent();
+  }
+
+  /** Mostra (ou retira, com null) a camada de asteroides e cometas. */
+  setSmallBodies(items: readonly SmallBodyLayerItem[] | null, onOpen: (slug: string) => void = () => {}) {
+    this.smallLayer?.dispose();
+    this.smallLayer = null;
+    if (!items || this.disposed) return;
+    this.smallLayer = new SmallBodyLayer(items, this.opts.labelLayer, onOpen, this.renderer.getPixelRatio());
+    this.smallLayer.setShowOrbits(this.showOrbits);
+    this.smallLayer.update(this.jd);
+    this.scene.add(this.smallLayer.group);
   }
 
   setShowLabels(show: boolean) {
@@ -540,6 +555,8 @@ export class SolarSystemEngine {
     c.removeEventListener('webglcontextlost', this.onContextLost);
     this.controls.removeEventListener('start', this.onControlsStart);
     this.controls.dispose();
+    this.smallLayer?.dispose();
+    this.smallLayer = null;
     for (const v of this.visuals.values()) v.dispose();
     for (const o of this.orbits.values()) o.dispose();
     for (const o of this.moonOrbits.values()) {
@@ -710,6 +727,29 @@ export class SolarSystemEngine {
         for (const p of placed) {
           if (Math.abs(p.y - y) < 18 && Math.abs(p.x - scr.x) < (p.w + label.width) / 2) {
             show = label.id === this.selected;
+            break;
+          }
+        }
+      }
+      if (show) {
+        placed.push({ x: scr.x, y, w: label.width });
+        label.el.style.transform = `translate3d(${scr.x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translateX(-50%)`;
+        label.el.classList.remove('is-hidden');
+        label.el.tabIndex = 0;
+      } else {
+        label.el.classList.add('is-hidden');
+        label.el.tabIndex = -1;
+      }
+    }
+    // Asteroides e cometas: só onde não se sobrepõem às etiquetas dos planetas e das luas
+    for (const label of this.smallLayer?.labels() ?? []) {
+      this.projectToScreen(label.pos, scr);
+      const y = scr.y + 10;
+      let show = scr.visible;
+      if (show) {
+        for (const p of placed) {
+          if (Math.abs(p.y - y) < 16 && Math.abs(p.x - scr.x) < (p.w + label.width) / 2) {
+            show = false;
             break;
           }
         }
