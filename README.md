@@ -1,6 +1,6 @@
 # Universe Infinity
 
-Atlas científico interativo para explorar o Universo em 3D. Esta versão cobre a **Fase 1 (fundação)**, a **Fase 2 (Sistema Solar)** e os **exoplanetas**: uma vista 3D com as posições reais dos planetas e de 21 luas na data atual, fichas científicas com fontes para 32 objetos do Sistema Solar, o catálogo completo de exoplanetas do NASA Exoplanet Archive e uma página que explica os métodos e valida os cálculos contra o JPL Horizons.
+Atlas científico interativo para explorar o Universo em 3D. Esta versão cobre a **Fase 1 (fundação)**, a **Fase 2 (Sistema Solar)** e a **Fase 3 (espaço profundo e exoplanetas)**: uma vista 3D com as posições reais dos planetas e de 21 luas na data atual, fichas científicas com fontes para 32 objetos do Sistema Solar, os 110 objetos Messier com um mapa do céu interativo, 509 estrelas com o diagrama H–R, buracos negros notáveis, o catálogo completo de exoplanetas do NASA Exoplanet Archive e uma página que explica os métodos e valida os cálculos.
 
 Interface em português de Portugal.
 
@@ -56,8 +56,16 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - Ficha de cada exoplaneta (`#/exoplaneta/<nome>`): massa, raio, período, semieixo maior, excentricidade, energia recebida, temperatura de equilíbrio e distância, cada valor marcado como medido, estimado ou calculado; animação das órbitas do sistema à escala, com a faixa entre o fluxo de Vénus e o de Marte e comparação opcional com o Sistema Solar interior; comparação de tamanho com a Terra e Júpiter; dados da estrela; planetas do sistema; descoberta e fontes.
 - 11 exoplanetas em destaque com textos baseados em páginas da NASA (Proxima Centauri b, TRAPPIST-1 e, 51 Pegasi b, K2-18 b, WASP-39 b, 55 Cancri e, entre outros).
 
+**Espaço profundo** (`#/espaco-profundo`, `#/estrelas`, `#/buracos-negros`)
+- Os 110 objetos Messier: posições, tipos, tamanhos aparentes e magnitudes do OpenNGC; distâncias e descrições das páginas do NASA Hubble Messier Catalog (89 objetos) e, para 13 enxames abertos, distâncias da Gaia (Cantat-Gaudin et al. 2020).
+- Mapa do céu interativo (projeção de Hammer–Aitoff): constelações com nomes portugueses, eclíptica, estrelas até à magnitude 4,5, Via Láctea e os objetos Messier coloridos por tipo; aproximar, deslocar, filtrar por tipo e abrir a ficha com um clique.
+- Catálogo em cartões ou tabela, com filtros e ordenação; ficha de cada objeto com dados e fontes por linha, tamanho no céu comparado com a Lua cheia, tamanho real aproximado (calculado), localização no mapa do céu e fotografias da NASA.
+- Estrelas (AT-HYG v3.2): as 460 com nome próprio aprovado pela IAU e todas as conhecidas a menos de 20 anos-luz; as mais brilhantes e as mais próximas, pesquisa por nome, designação ou número de catálogo, e diagrama de Hertzsprung–Russell com 21 402 estrelas a menos de 100 parsecs.
+- Ficha de cada estrela: distância (Gaia DR3 ou Hipparcos), magnitudes, tipo espectral explicado, cor, temperatura e luminosidade estimadas, posição no diagrama H–R.
+- Buracos negros: Sagitário A*, M87*, Cygnus X-1, Gaia BH1, Gaia BH3 e GW150914, com massa, distância e fontes, e a escala dos horizontes (raio de Schwarzschild calculado).
+
 **Ferramentas**
-- Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço". Inclui os 6445 exoplanetas (índice leve carregado só quando a pesquisa abre).
+- Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço". Inclui os objetos Messier, as estrelas com nome e os 6445 exoplanetas (índices leves carregados só quando a pesquisa abre).
 - Favoritos e histórico guardados no navegador, sem conta.
 - Lista do Sistema Solar, tabela das luas principais e comparação de tamanhos reais à mesma escala.
 - Página "Dados e métodos" com a validação das posições dos planetas e das luas contra o JPL Horizons, calculada no próprio navegador.
@@ -69,6 +77,7 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - **Luas**: órbitas ajustadas a vetores do JPL Horizons (época 2026-10-13; movimento médio ajustado a 2025-09-08 e 2027-10-13, contando as voltas com o período sideral publicado). Verificação independente em 2026-03-27 e 2028-10-13 (datas fora do ajuste): 14 das 20 luas ficam abaixo de 1° nas duas datas; as restantes são Fobos (5,4°), Mimas (4,9°), Miranda (3,1°), Europa (2,3°), Tétis (2,1°) e Encélado (1,6°). As posições das luas são indicativas para datas distantes.
 - **Validação**: para 2026-10-13, as diferenças face ao Horizons (DE441) vão de 1″ (Úrano) a 266″ (Saturno), dentro dos erros indicados pelo JPL, exceto Neptuno (32″ contra 10″ indicados) e a distância de Mercúrio (~1200 km contra 1000 km). Isto está documentado na aplicação e nos testes.
 - **Exoplanetas**: valores do NASA Exoplanet Archive sem alterações (só arredondados a 5 algarismos significativos). Como a cópia usada não indica quais raios e massas o arquivo calculou pela relação massa–raio, só são tratados como medidos os valores com incerteza publicada; o raio de planetas fotografados diretamente é sempre estimativa. A energia recebida (S = L / a²) e a luminosidade da estrela (L = R² (T / 5772 K)⁴) são calculadas e marcadas como tal.
+- **Espaço profundo e estrelas**: as páginas da NASA dos objetos Messier foram transcritas duas vezes, de forma independente, e coincidem nos 89 objetos; as distâncias das estrelas foram comparadas com paralaxes do Hipparcos consultadas diretamente (21 estrelas) e 16 exoplanetas com consultas diretas à API do NASA Exoplanet Archive. O tamanho real dos objetos, a temperatura e a luminosidade das estrelas e o raio dos horizontes dos buracos negros são calculados e marcados como tal; a Via Láctea do mapa do céu é ilustrativa.
 - **Escala**: a vista 3D mostra direções reais, mas distâncias comprimidas e tamanhos ampliados. A escala está identificada no ecrã e explicada em "Dados e métodos".
 - **Dados**: fichas da NASA NSSDCA e parâmetros do JPL, com data de atualização e de consulta. Valores calculados pela aplicação estão marcados como tal. A densidade de Caronte é calculada a partir do GM e do raio, porque o valor da tabela do JPL (1,853 g/cm³) não é coerente com esses dois números (dariam cerca de 1,70 g/cm³).
 - **Representações ilustrativas**: Ceres aparece com cor uniforme (sem textura com licença verificada); a superfície de Vénus vem de radar com cores ilustrativas; nos mapas das luas, as zonas que nenhuma sonda fotografou têm um tom neutro uniforme; Fobos e Deimos, muito irregulares, são desenhados como esferas. Tudo isto está assinalado.
@@ -95,13 +104,21 @@ src/
     about/        Dados e métodos
   i18n/           Textos da interface (pt-PT; preparado para en e es)
   features/exoplanets/  Catálogo, gráficos, vista das órbitas e fichas dos exoplanetas
+  features/deepsky/     Objetos Messier, mapa do céu, buracos negros
+  features/stars/       Catálogo de estrelas, diagrama H–R e fichas
   services/       Cliente da NASA Image and Video Library
 public/
   textures/       Texturas (512 px e 2048 px)
   data/stars.json Catálogo de estrelas processado
   data/exoplanets.json, data/exoplanet-index.json  Exoplanetas (NASA Exoplanet Archive)
+  data/deepsky.json                Objetos Messier (OpenNGC + NASA + Gaia)
+  data/star-catalog.json, data/hr-diagram.json   Estrelas (AT-HYG)
+  data/sky-map.json, data/milky-way.png          Constelações e Via Láctea (d3-celestial)
 scripts/
   build_exoplanets.py  Regenera os dados dos exoplanetas a partir da cópia diária do arquivo
+  build_deepsky.py     Regenera os objetos Messier (OpenNGC + transcrições em scripts/data/)
+  build_stars.py       Regenera as estrelas a partir do AT-HYG
+  build_skymap.py      Regenera as constelações e a Via Láctea a partir do d3-celestial
 ```
 
 ### Atualizar os exoplanetas
@@ -119,8 +136,8 @@ Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts`, registá-lo em `src/i1
 
 ## Testes
 
-- `npm test` corre 112 testes unitários: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
-- A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (65 verificações): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, página e fichas de exoplanetas (gráficos, catálogo, filtros, animação das órbitas), rotas inválidas, ausência de deslocamento horizontal no telemóvel e ausência de erros na consola.
+- `npm test` corre 137 testes unitários: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
+- A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (89 verificações): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, página e fichas de exoplanetas (gráficos, catálogo, filtros, animação das órbitas), espaço profundo (mapa do céu, filtros, aproximação, clique num objeto, distâncias da NASA e da Gaia, vista em tabela), estrelas (diagrama H–R, pesquisa, ficha), buracos negros, rotas inválidas, ausência de deslocamento horizontal no telemóvel e ausência de erros na consola.
 
 ## Publicar no GitHub Pages
 
@@ -132,8 +149,8 @@ O workflow `ci.yml` verifica tipos, testes e build em cada push.
 
 ## Próximos passos
 
-1. **Fase 3 (resto)**: atlas de galáxias, nebulosas, enxames, estrelas e buracos negros, com galerias.
-2. **Sistema Solar (complementos)**: asteroides e cometas notáveis, sombras e eclipses, formas irregulares de Fobos e Deimos.
+1. **Sistema Solar (complementos)**: asteroides e cometas notáveis, sombras e eclipses, formas irregulares de Fobos e Deimos.
+2. **Espaço profundo (complementos)**: mais objetos além do catálogo Messier (catálogo Caldwell, Nuvens de Magalhães).
 3. **Fase 4**: planetário com constelações (o catálogo de estrelas já está incluído), linha temporal do Universo, área de missões.
 4. **Fase 5**: inglês e espanhol, mais testes de interface, otimização das texturas (KTX2).
 

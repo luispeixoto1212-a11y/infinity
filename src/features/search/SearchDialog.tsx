@@ -8,6 +8,7 @@ import { closeSearch, useUi } from '../../state/ui';
 import { useHistory } from '../../state/userData';
 import { buildIndex, search, type SearchEntry } from './searchIndex';
 import { loadExoplanetSearchEntries } from './exoplanetIndex';
+import { loadSpaceSearchEntries } from './spaceIndex';
 
 export function SearchDialog() {
   const { t } = useI18n();
@@ -21,15 +22,17 @@ export function SearchDialog() {
   const [extra, setExtra] = useState<SearchEntry[]>([]);
   const index = useMemo(() => buildIndex(undefined, extra), [extra]);
 
-  // O índice dos exoplanetas (milhares de nomes) só é pedido quando a pesquisa é aberta.
+  // Os índices do espaço profundo e dos exoplanetas só são pedidos quando a pesquisa é aberta.
   useEffect(() => {
     if (!searchOpen || extra.length > 0) return;
     let alive = true;
-    loadExoplanetSearchEntries()
-      .then((entries) => alive && setExtra(entries))
-      .catch(() => {
-        /* Sem rede: a pesquisa continua a funcionar com os objetos do Sistema Solar. */
-      });
+    // Objetos Messier e estrelas com nome (pequenos) e exoplanetas (milhares de nomes), pedidos em paralelo.
+    Promise.allSettled([loadSpaceSearchEntries(), loadExoplanetSearchEntries()]).then((results) => {
+      if (!alive) return;
+      const entries = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+      /* Sem rede: a pesquisa continua a funcionar com os objetos do Sistema Solar. */
+      if (entries.length > 0) setExtra(entries);
+    });
     return () => {
       alive = false;
     };

@@ -61,7 +61,8 @@ export function parseNasaResponse(json: unknown): NasaImage[] {
 
 /** Mantém apenas imagens cujo título refere o objeto, sem duplicados. */
 export function filterRelevant(images: NasaImage[], mustInclude: string[], max: number): NasaImage[] {
-  const terms = mustInclude.map((t) => new RegExp(`(^|[^a-z])${t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`));
+  // Palavras inteiras: letras e algarismos contam como parte da palavra ("m31" não corresponde a "m310")
+  const terms = mustInclude.map((t) => new RegExp(`(^|[^a-z0-9])${t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`));
   const seen = new Set<string>();
   const out: NasaImage[] = [];
   for (const img of images) {

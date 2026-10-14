@@ -9,6 +9,8 @@ import { BODIES, findBodyById, tr } from '../../data/catalog';
 import { ALL_SOURCES } from '../../data/sources';
 import { HORIZONS_EPOCH_JD, HORIZONS_REFERENCE } from '../../data/validation';
 import { MOON_CHECK_DATES, MOON_CHECK_VECTORS } from '../../data/moonValidation';
+import { ARCHIVE_CHECK, ARCHIVE_CHECK_DATE } from '../exoplanets/archiveCheck';
+import { HIPPARCOS_CHECK } from '../stars/hipparcosCheck';
 import { planetocentricOffsetKm } from '../../core/astro/positions';
 import { useI18n } from '../../i18n';
 
@@ -71,6 +73,7 @@ export function DataPage() {
           <li><a href="#validacao" onClick={(e) => jump(e, 'validacao')}>Validação com o JPL Horizons</a></li>
           <li><a href="#luas" onClick={(e) => jump(e, 'luas')}>Órbitas das luas</a></li>
           <li><a href="#exoplanetas" onClick={(e) => jump(e, 'exoplanetas')}>Exoplanetas</a></li>
+          <li><a href="#espaco-profundo" onClick={(e) => jump(e, 'espaco-profundo')}>Espaço profundo, estrelas e buracos negros</a></li>
           <li><a href="#escala" onClick={(e) => jump(e, 'escala')}>Escala da vista 3D</a></li>
           <li><a href="#orientacao" onClick={(e) => jump(e, 'orientacao')}>Orientação, rotação e tempo</a></li>
           <li><a href="#dados" onClick={(e) => jump(e, 'dados')}>Dados físicos e tipos de valor</a></li>
@@ -217,6 +220,46 @@ export function DataPage() {
           conhecida para a maioria dos sistemas e é ilustrativa. A faixa verde marca as distâncias a que o planeta
           receberia tanta energia como Vénus (cerca de 1,91 vezes a da Terra) ou como Marte (cerca de 0,43): é uma
           referência de comparação, não um modelo de zona habitável.
+        </p>
+        <p>
+          Verificação: para {ARCHIVE_CHECK.length} planetas de 14 sistemas (TRAPPIST-1, Proxima Centauri, 55 Cancri, Kepler-90
+          e outros), a aplicação foi comparada com consultas feitas diretamente à API TAP do arquivo a{' '}
+          {ARCHIVE_CHECK_DATE}. Período, semieixo maior, raio, massa e ano de descoberta coincidem (diferenças abaixo de
+          1%); os testes automáticos repetem esta comparação.
+        </p>
+      </section>
+
+      <section id="espaco-profundo" className="prose-section">
+        <h2>Espaço profundo, estrelas e buracos negros</h2>
+        <p>
+          Os 110 objetos Messier têm as posições, os tipos, as dimensões aparentes e as magnitudes do OpenNGC. As
+          distâncias e as descrições vêm das páginas do NASA Hubble Messier Catalog (89 objetos). As páginas foram
+          transcritas duas vezes, de forma independente, a 13 e a 14 de outubro de 2026, e as duas transcrições coincidem
+          nos 89 objetos (distância, magnitude, constelação e tipo). Para 13 enxames abertos sem página da NASA, a
+          distância é a calculada a partir das paralaxes da Gaia por Cantat-Gaudin et al. (2020). Oito objetos ficam
+          sem distância, por nenhuma destas fontes a indicar.
+        </p>
+        <p>
+          O tamanho real aproximado é calculado pela aplicação: distância × tamanho aparente (em radianos). Depende de
+          até onde se mede o brilho difuso do objeto e serve só como ordem de grandeza.
+        </p>
+        <p>
+          O mapa do céu usa a projeção de Hammer–Aitoff, que conserva as áreas, em coordenadas equatoriais J2000. As
+          linhas das constelações e o contorno da Via Láctea são do d3-celestial; a Via Láctea é desenhada a partir de
+          uma grelha de 0,5° com os cinco níveis de brilho desse contorno, por isso é ilustrativa.
+        </p>
+        <p>
+          As estrelas vêm do AT-HYG v3.2: as que têm nome próprio aprovado pela IAU e todas as conhecidas a menos de
+          20 anos-luz. As distâncias usam a Gaia DR3 quando existe e, para as estrelas mais brilhantes, o Hipparcos. Para{' '}
+          {HIPPARCOS_CHECK.length} estrelas brilhantes e próximas, as distâncias foram comparadas com as paralaxes do
+          Hipparcos (nova redução de 2007) consultadas diretamente no VizieR: coincidem a menos de 1% quando a fonte é o
+          Hipparcos e dentro do erro do Hipparcos quando é a Gaia. A temperatura é estimada a partir do índice de cor
+          B−V (Ballesteros 2012) e a luminosidade a partir da magnitude absoluta, só no visível; ambas estão assinaladas
+          como calculadas.
+        </p>
+        <p>
+          Nos buracos negros, a massa e a distância são as das fontes indicadas em cada caso; o raio do horizonte é
+          calculado pela aplicação (raio de Schwarzschild, 2GM/c², cerca de 2,95 km por massa solar, sem rotação).
         </p>
       </section>
 

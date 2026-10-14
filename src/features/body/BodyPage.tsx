@@ -196,7 +196,7 @@ export default function BodyPage({ slug }: { slug: string }) {
             </section>
           ) : null}
 
-          <NasaGallery body={body} />
+          <NasaGallery query={body.imageQuery} />
         </div>
 
         <aside className="body-aside">

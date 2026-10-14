@@ -1,0 +1,17 @@
+# Distâncias de enxames abertos a partir das paralaxes da Gaia DR2: Cantat-Gaudin et al. 2020, A&A 640, A1
+# (VizieR J/A+A/640/A1/table1, coluna DistPc, distância em parsecs). Consultado via TAPVizieR em 2026-10-14.
+# Usado só para os objetos Messier sem página no NASA Hubble Messier Catalog.
+# M | designação no catálogo | distância (pc)
+M6 | NGC_6405 | 459
+M18 | NGC_6613 | 1477
+M21 | NGC_6531 | 1165
+M23 | NGC_6494 | 742
+M34 | NGC_1039 | 534
+M36 | NGC_1960 | 1162
+M37 | NGC_2099 | 1432
+M38 | NGC_1912 | 1104
+M39 | NGC_7092 | 311
+M41 | NGC_2287 | 688
+M47 | NGC_2422 | 504
+M50 | NGC_2323 | 983
+M93 | NGC_2447 | 1018

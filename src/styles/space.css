@@ -1,0 +1,599 @@
+/* ============================================================ Espaço profundo, estrelas e buracos negros */
+
+.space-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-6);
+  padding: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(12, 19, 40, 0.55);
+}
+
+.space-tabs a {
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  color: var(--dust);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.space-tabs a:hover {
+  color: var(--star);
+}
+
+.space-tabs a.is-active {
+  background: var(--ion-soft);
+  color: var(--star);
+  box-shadow: inset 0 0 0 1px rgba(122, 162, 255, 0.45);
+}
+
+.space-tabs a:focus-visible {
+  outline: 2px solid var(--ion);
+  outline-offset: 2px;
+}
+
+/* Filtros em "chips" */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dust);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.chip:hover {
+  color: var(--star);
+  border-color: rgba(122, 162, 255, 0.5);
+}
+
+.chip.is-active {
+  background: var(--ion-soft);
+  border-color: rgba(122, 162, 255, 0.6);
+  color: var(--star);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ion);
+  outline-offset: 2px;
+}
+
+.chip-count {
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip.is-active .chip-count {
+  color: var(--dust);
+}
+
+/* Cartões dos objetos Messier */
+.dso-featured,
+.dso-grid {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dso-featured {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+
+.dso-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.dso-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.5);
+  color: var(--star);
+  text-decoration: none;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.dso-card:hover {
+  border-color: rgba(122, 162, 255, 0.45);
+  background: rgba(20, 30, 62, 0.6);
+}
+
+.dso-card:focus-visible {
+  outline: 2px solid var(--ion);
+  outline-offset: 2px;
+}
+
+.dso-card svg {
+  flex: none;
+}
+
+.dso-card-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dso-card-id {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ion-strong);
+}
+
+.dso-card-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.dso-card-meta {
+  font-size: var(--fs-xs);
+  color: var(--dust);
+}
+
+/* Ficha de um objeto */
+.sky-size {
+  margin: 0;
+}
+
+.sky-size svg {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.sky-size--empty {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+}
+
+.quote-source {
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+  white-space: nowrap;
+}
+
+.dso-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* Estrelas */
+.star-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.star-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--star);
+  text-decoration-color: var(--line-strong);
+}
+
+.star-link .star-dot {
+  transform: translateY(1px);
+}
+
+.star-des {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--dust);
+}
+
+.star-table td,
+.star-table th {
+  vertical-align: top;
+}
+
+.star-orb {
+  --star-color: #ffffff;
+  width: min(240px, 60vw);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, var(--star-color) 28%, color-mix(in srgb, var(--star-color) 35%, transparent) 52%, transparent 70%);
+  filter: saturate(1.1);
+}
+
+.star-orb-note {
+  text-align: center;
+}
+
+/* Buracos negros */
+.bh-types {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.bh-types > div {
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.45);
+}
+
+.bh-types dt {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.bh-types dd {
+  margin: 0;
+  color: #d5dbec;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.bh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.bh-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 92% 12%, rgba(255, 200, 116, 0.08), transparent 40%),
+    rgba(12, 19, 40, 0.55);
+}
+
+.bh-kind {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sol);
+}
+
+.bh-card--stellar .bh-kind {
+  color: var(--ion-strong);
+}
+
+.bh-card--merger .bh-kind {
+  color: var(--nebula);
+}
+
+.bh-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.bh-summary {
+  margin: 0;
+  color: #d5dbec;
+  line-height: 1.6;
+}
+
+.bh-card .mini-facts > div {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+
+.bh-facts {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--dust);
+  font-size: var(--fs-sm);
+}
+
+.bh-scale {
+  min-width: 640px;
+  margin: 0;
+}
+
+.bh-scale svg {
+  display: block;
+  width: 100%;
+}
+
+.bh-axis {
+  stroke: var(--chart-axis);
+  stroke-width: 1.5;
+}
+
+.bh-tick {
+  stroke: var(--chart-axis);
+}
+
+.bh-tick-label,
+.bh-ref-label {
+  fill: var(--dust);
+  font-size: 11px;
+}
+
+.bh-ref-tick {
+  stroke: var(--sol);
+}
+
+.bh-ref-label {
+  fill: var(--sol);
+}
+
+.bh-dot {
+  fill: #0c1328;
+  stroke: var(--star);
+  stroke-width: 2;
+}
+
+.bh-leader {
+  stroke: var(--line-strong);
+}
+
+.bh-label {
+  fill: var(--star);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .bh-types {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .space-tabs {
+    width: 100%;
+    border-radius: var(--radius);
+  }
+
+  .space-tabs a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .dso-featured,
+  .dso-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bh-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bh-card .mini-facts > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* Mapa do céu */
+.skymap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.skymap-stage {
+  position: relative;
+  width: 100%;
+  min-height: 160px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #050815;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.skymap--compact .skymap-stage {
+  touch-action: pan-y;
+}
+
+.skymap-stage:active {
+  cursor: grabbing;
+}
+
+.skymap-stage:focus-visible {
+  outline: 2px solid var(--ion);
+  outline-offset: 2px;
+}
+
+.skymap-canvas,
+.skymap-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.skymap-canvas {
+  image-rendering: auto;
+}
+
+.skymap-grat {
+  fill: none;
+  stroke: rgba(150, 175, 230, 0.12);
+  stroke-width: 1;
+}
+
+.skymap-equator {
+  fill: none;
+  stroke: rgba(150, 175, 230, 0.28);
+  stroke-width: 1;
+}
+
+.skymap-ecliptic {
+  fill: none;
+  stroke: rgba(255, 200, 116, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.skymap-lines {
+  fill: none;
+  stroke: rgba(122, 162, 255, 0.4);
+  stroke-width: 1;
+}
+
+.skymap-outline {
+  fill: none;
+  stroke: rgba(150, 175, 230, 0.35);
+  stroke-width: 1.2;
+}
+
+.skymap-con-label {
+  fill: rgba(169, 139, 255, 0.75);
+  font-family: var(--font-ui);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.skymap-obj {
+  cursor: pointer;
+}
+
+.skymap-dot {
+  stroke: #050815;
+  stroke-width: 1;
+}
+
+.skymap-obj:hover .skymap-dot,
+.skymap-obj:focus .skymap-dot {
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.skymap-obj:focus {
+  outline: none;
+}
+
+.skymap-obj-label {
+  fill: var(--star);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #050815;
+}
+
+.skymap-hi-ring {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.skymap-tip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  max-width: 260px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 11, 25, 0.94);
+  color: var(--star);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+  transform: translate(12px, -50%);
+}
+
+.skymap-tip span {
+  color: var(--dust);
+}
+
+.skymap-error {
+  position: absolute;
+  inset: auto var(--space-4) var(--space-4);
+  color: var(--dust);
+}
+
+.skymap-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.skymap-controls {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.skymap-controls .icon-btn {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.skymap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-xs);
+  color: var(--dust);
+}
+
+.skymap-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.skymap-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.skymap-swatch--ecliptic {
+  width: 16px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed rgba(255, 200, 116, 0.8);
+}

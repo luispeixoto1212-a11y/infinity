@@ -13,6 +13,11 @@ export type Route =
   | { name: 'data' }
   | { name: 'exoplanets' }
   | { name: 'exoplanet'; slug: string }
+  | { name: 'deep-sky' }
+  | { name: 'deep-sky-object'; id: string }
+  | { name: 'stars' }
+  | { name: 'star'; slug: string }
+  | { name: 'black-holes' }
   | { name: 'not-found'; path: string };
 
 export function parseHash(hash: string): Route {
@@ -36,6 +41,12 @@ export function parseHash(hash: string): Route {
       return arg ? { name: 'not-found', path } : { name: 'exoplanets' };
     case 'exoplaneta':
       return arg ? { name: 'exoplanet', slug: arg } : { name: 'not-found', path };
+    case 'espaco-profundo':
+      return arg ? { name: 'deep-sky-object', id: arg } : { name: 'deep-sky' };
+    case 'estrelas':
+      return arg ? { name: 'star', slug: arg } : { name: 'stars' };
+    case 'buracos-negros':
+      return arg ? { name: 'not-found', path } : { name: 'black-holes' };
     default:
       return { name: 'not-found', path };
   }
@@ -57,6 +68,16 @@ export function routeToHash(route: Route): string {
       return '#/exoplanetas';
     case 'exoplanet':
       return `#/exoplaneta/${route.slug}`;
+    case 'deep-sky':
+      return '#/espaco-profundo';
+    case 'deep-sky-object':
+      return `#/espaco-profundo/${route.id}`;
+    case 'stars':
+      return '#/estrelas';
+    case 'star':
+      return `#/estrelas/${route.slug}`;
+    case 'black-holes':
+      return '#/buracos-negros';
     case 'not-found':
       return `#${route.path}`;
   }

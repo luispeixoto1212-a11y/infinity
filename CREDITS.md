@@ -34,6 +34,16 @@ Licença BSD-3-Clause; o texto completo está em `public/data/LICENSE-d3-celesti
 
 A lista completa, com datas de consulta, está na página "Dados e métodos" da aplicação e em `src/data/sources.ts`.
 
+## Espaço profundo e estrelas
+
+- **OpenNGC** (M. Verga e colaboradores) — <https://github.com/mattiaverga/OpenNGC>, licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Posições, tipos, dimensões e magnitudes dos objetos Messier. Os dados derivados em `public/data/deepsky.json` são distribuídos com a mesma licença.
+- **NASA Hubble Messier Catalog** — <https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/>. Distâncias, nomes comuns e descrições (traduzidas e resumidas) de 89 objetos.
+- **Cantat-Gaudin et al. 2020**, A&A 640, A1 (via VizieR, CDS) — distâncias de 13 enxames abertos a partir da Gaia DR2. *This research has made use of the VizieR catalogue access tool, CDS, Strasbourg, France.*
+- **AT-HYG v3.2** (D. Nash / astronexus) — <https://github.com/astronexus/HYG-Database>, licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Estrelas, distâncias (Gaia DR3, Hipparcos, Gliese) e diagrama H–R. Os dados derivados em `public/data/star-catalog.json` e `public/data/hr-diagram.json` são distribuídos com a mesma licença.
+- **Hipparcos, nova redução** (van Leeuwen 2007; VizieR I/311) — paralaxes usadas apenas para verificar as distâncias nos testes.
+- **d3-celestial** (O. Frohn), BSD-3-Clause — linhas e posições das etiquetas das constelações e contorno da Via Láctea (`public/data/sky-map.json`, `public/data/milky-way.png`).
+- Buracos negros: NASA Science, Boston University, NASA Scientific Visualization Studio, Scientific American, ESA e Max Planck Institute for Gravitational Physics, citados em cada caso na página.
+
 ## Exoplanetas
 
 **NASA Exoplanet Archive** — tabela Planetary Systems Composite Parameters (PSCompPars), <https://exoplanetarchive.ipac.caltech.edu/>.

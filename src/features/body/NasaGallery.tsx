@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import type { CelestialBody } from '../../data/types';
 import { useI18n } from '../../i18n';
 import { searchNasaImages, type NasaImage } from '../../services/nasaImages';
 import { Icon } from '../../components/Icon';
@@ -12,11 +11,11 @@ function formatDate(iso?: string): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : new Intl.DateTimeFormat('pt-PT', { year: 'numeric', month: 'short', day: 'numeric' }).format(d);
 }
 
-export function NasaGallery({ body }: { body: CelestialBody }) {
+/** Galeria de fotografias pedidas em tempo real à NASA Image and Video Library. */
+export function NasaGallery({ query, note }: { query?: { q: string; mustInclude: string[] }; note?: string }) {
   const { t } = useI18n();
   const [state, setState] = useState<State>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
-  const query = body.imageQuery;
 
   useEffect(() => {
     if (!query) return;
@@ -35,7 +34,10 @@ export function NasaGallery({ body }: { body: CelestialBody }) {
   return (
     <section className="body-section" aria-labelledby="gallery-title">
       <h2 id="gallery-title">{t.body.gallery}</h2>
-      <p className="section-note">{t.body.galleryLive}</p>
+      <p className="section-note">
+        {t.body.galleryLive}
+        {note ? ` ${note}` : ''}
+      </p>
       {state.status === 'loading' ? (
         <p className="muted" role="status">
           <span className="spinner spinner--small" aria-hidden="true" /> {t.body.galleryLoading}

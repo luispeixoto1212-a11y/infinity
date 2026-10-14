@@ -7,7 +7,7 @@ export interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  category: BodyType | 'page' | 'exoplanet';
+  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star';
   /** Termos indexados (nome, nomes alternativos, palavras-chave). */
   terms: string[];
   route: Route;
@@ -116,6 +116,30 @@ const PAGE_ENTRIES: SearchEntry[] = [
     route: { name: 'data' },
   },
   {
+    id: 'page:deep-sky',
+    title: 'Espaço profundo',
+    subtitle: 'Os 110 objetos Messier: galáxias, nebulosas e enxames',
+    category: 'page',
+    terms: ['espaço profundo', 'deep sky', 'messier', 'galáxias', 'nebulosas', 'enxames', 'galaxies', 'nebulae'],
+    route: { name: 'deep-sky' },
+  },
+  {
+    id: 'page:stars',
+    title: 'Estrelas',
+    subtitle: 'Estrelas com nome, as mais próximas e o diagrama H–R',
+    category: 'page',
+    terms: ['estrelas', 'stars', 'diagrama hr', 'hertzsprung russell', 'estrelas próximas', 'estrelas brilhantes'],
+    route: { name: 'stars' },
+  },
+  {
+    id: 'page:black-holes',
+    title: 'Buracos negros',
+    subtitle: 'Sagitário A*, M87*, Cygnus X-1, Gaia BH1 e BH3, GW150914',
+    category: 'page',
+    terms: ['buracos negros', 'buraco negro', 'black holes', 'sagitario a', 'sgr a', 'm87*', 'cygnus x-1', 'gaia bh1', 'gaia bh3', 'gw150914', 'ondas gravitacionais'],
+    route: { name: 'black-holes' },
+  },
+  {
     id: 'page:exoplanets',
     title: 'Exoplanetas',
     subtitle: 'Catálogo do NASA Exoplanet Archive, gráficos e sistemas',
@@ -149,7 +173,7 @@ function scoreTerm(query: string, term: string): number {
 }
 
 /** Em caso de empate, estrelas e planetas aparecem antes das luas. */
-const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'exoplanet'];
+const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'deep-sky', 'named-star', 'exoplanet'];
 
 export function search(index: readonly SearchEntry[], rawQuery: string, limit = 8): SearchResult[] {
   const query = normalize(rawQuery);

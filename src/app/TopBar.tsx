@@ -19,6 +19,7 @@ export function TopBar({ route }: { route: Route }) {
   const items: NavItem[] = [
     { route: { name: 'explore' }, label: t.nav.explore, match: ['explore'] },
     { route: { name: 'solar-system' }, label: t.nav.solarSystem, match: ['solar-system', 'body'] },
+    { route: { name: 'deep-sky' }, label: t.nav.deepSpace, match: ['deep-sky', 'deep-sky-object', 'stars', 'star', 'black-holes'] },
     { route: { name: 'exoplanets' }, label: t.nav.exoplanets, match: ['exoplanets', 'exoplanet'] },
     { route: { name: 'favorites' }, label: t.nav.favorites, match: ['favorites'] },
     { route: { name: 'data' }, label: t.nav.data, match: ['data'] },

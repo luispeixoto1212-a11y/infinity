@@ -1,9 +1,9 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { href } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import { SourcesList } from '../../components/SourcesList';
 import { formatNumber, formatSignificant } from '../../core/format';
-import type { ValueKind } from '../../data/types';
+import { FactRows, type FactRow } from '../../components/FactRows';
 import { useI18n } from '../../i18n';
 import { earthSym, formatDistanceLy, formatPeriod } from './CatalogTable';
 import {
@@ -25,66 +25,12 @@ import { OrbitView } from './OrbitView';
 import { PeriodRadiusPlot } from './PeriodRadiusPlot';
 import { useExoplanets } from './useExoplanets';
 
-function KindBadge({ kind }: { kind: ValueKind }) {
-  const { t } = useI18n();
-  return (
-    <span className={`kind kind--${kind}`} title={t.valueKindsHelp[kind]}>
-      {t.valueKinds[kind]}
-    </span>
-  );
-}
-
-interface Row {
-  label: string;
-  value: ReactNode;
-  secondary?: string;
-  kind: ValueKind;
-  note?: string;
-}
-
-function FactRows({ rows }: { rows: Row[] }) {
-  const { t } = useI18n();
-  return (
-    <div className="table-scroll">
-      <table className="data-table facts-table">
-        <thead>
-          <tr>
-            <th scope="col">Grandeza</th>
-            <th scope="col" className="num">
-              Valor
-            </th>
-            <th scope="col">Tipo e fonte</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.label}>
-              <th scope="row">
-                {r.label}
-                {r.note ? <span className="fact-note">{r.note}</span> : null}
-              </th>
-              <td className="num">
-                <span className="fact-value">{typeof r.value === 'string' ? earthSym(r.value) : r.value}</span>
-                {r.secondary ? <span className="secondary">{r.secondary}</span> : null}
-              </td>
-              <td className="fact-meta">
-                <KindBadge kind={r.kind} />
-                <span className="fact-source">{r.kind === 'derived' ? 'Calculado nesta aplicação' : t.exo.sourceRow}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function plusMinus(err: number | undefined, factor: number): string {
   return err ? ` ± ${formatSignificant(err * factor, 2)}` : '';
 }
 
-function planetRows(p: Exoplanet, t: ReturnType<typeof useI18n>['t']): Row[] {
-  const rows: Row[] = [];
+function planetRows(p: Exoplanet, t: ReturnType<typeof useI18n>['t']): FactRow[] {
+  const rows: Omit<FactRow, 'source'>[] = [];
   const me = massEarth(p);
   if (me !== undefined) {
     rows.push({
@@ -146,12 +92,12 @@ function planetRows(p: Exoplanet, t: ReturnType<typeof useI18n>['t']): Row[] {
       note: t.exo.notes.distance,
     });
   }
-  return rows;
+  return withSource(rows, t);
 }
 
-function starRows(p: Exoplanet, t: ReturnType<typeof useI18n>['t']): Row[] {
+function starRows(p: Exoplanet, t: ReturnType<typeof useI18n>['t']): FactRow[] {
   const s = p.star;
-  const rows: Row[] = [];
+  const rows: Omit<FactRow, 'source'>[] = [];
   if (s.spectralType) rows.push({ label: t.exo.star.spectralType, value: s.spectralType, kind: 'measured' });
   if (s.teff) rows.push({ label: t.exo.star.teff, value: `${formatNumber(s.teff, 0)} K`, kind: 'measured' });
   if (s.radius) rows.push({ label: t.exo.star.radius, value: `${formatSignificant(s.radius, 3)} ${t.exo.star.solarRadii}`, kind: 'measured' });
@@ -159,7 +105,16 @@ function starRows(p: Exoplanet, t: ReturnType<typeof useI18n>['t']): Row[] {
   const L = stellarLuminosity(s);
   if (L) rows.push({ label: t.exo.star.luminosity, value: `${formatSignificant(L, 2)} ${t.exo.star.solarLum}`, kind: 'derived', note: t.exo.star.lumNote });
   if (s.vmag !== undefined) rows.push({ label: t.exo.star.vmag, value: formatNumber(s.vmag, 2), kind: 'measured', note: t.exo.star.vmagNote });
-  return rows;
+  return withSource(rows, t);
+}
+
+/** Valores calculados indicam a aplicação; os restantes, o NASA Exoplanet Archive (com o símbolo ⊕ ajustado). */
+function withSource(rows: Omit<FactRow, 'source'>[], t: ReturnType<typeof useI18n>['t']): FactRow[] {
+  return rows.map((r) => ({
+    ...r,
+    value: typeof r.value === 'string' ? earthSym(r.value) : r.value,
+    source: r.kind === 'derived' ? 'Calculado nesta aplicação' : t.exo.sourceRow,
+  }));
 }
 
 function SizeCompare({ planet }: { planet: Exoplanet }) {

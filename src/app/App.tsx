@@ -16,6 +16,11 @@ const ExplorerPage = lazy(() => import('../features/explorer/ExplorerPage'));
 const BodyPage = lazy(() => import('../features/body/BodyPage'));
 const ExoplanetsPage = lazy(() => import('../features/exoplanets/ExoplanetsPage'));
 const ExoplanetPage = lazy(() => import('../features/exoplanets/ExoplanetPage'));
+const DeepSkyPage = lazy(() => import('../features/deepsky/DeepSkyPage'));
+const DeepSkyObjectPage = lazy(() => import('../features/deepsky/DeepSkyObjectPage'));
+const BlackHolesPage = lazy(() => import('../features/deepsky/BlackHolesPage'));
+const StarsPage = lazy(() => import('../features/stars/StarsPage'));
+const StarPage = lazy(() => import('../features/stars/StarPage'));
 
 function PageFallback() {
   return (
@@ -42,6 +47,16 @@ function renderRoute(route: Route) {
       return <ExoplanetsPage />;
     case 'exoplanet':
       return <ExoplanetPage slug={route.slug} />;
+    case 'deep-sky':
+      return <DeepSkyPage />;
+    case 'deep-sky-object':
+      return <DeepSkyObjectPage id={route.id} />;
+    case 'stars':
+      return <StarsPage />;
+    case 'star':
+      return <StarPage slug={route.slug} />;
+    case 'black-holes':
+      return <BlackHolesPage />;
     default:
       return <NotFoundPage />;
   }
@@ -52,6 +67,9 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   favorites: 'Favoritos',
   data: 'Dados e métodos',
   exoplanets: 'Exoplanetas',
+  'deep-sky': 'Espaço profundo',
+  stars: 'Estrelas',
+  'black-holes': 'Buracos negros',
   'not-found': 'Página não encontrada',
 };
 
