@@ -150,7 +150,7 @@ function SizeView() {
 
   return (
     <figure className="size-figure">
-      <div className="size-scroll" tabIndex={0} aria-label="Comparação de tamanhos (deslizar na horizontal)">
+      <div className="size-scroll" tabIndex={0} role="region" aria-label="Comparação de tamanhos (deslizar na horizontal)">
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Diâmetros dos planetas, planetas anões e Lua à mesma escala, com o arco do Sol à esquerda.">
           <defs>
             <radialGradient id="sun-arc" cx="1" cy="0.5" r="1">

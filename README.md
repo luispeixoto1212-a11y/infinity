@@ -24,6 +24,8 @@ Outros comandos:
 | `npm run preview` | Serve a pasta `dist/` localmente |
 | `npm test` | Corre os testes automáticos (Vitest) |
 | `npm run typecheck` | Só a verificação de tipos |
+| `npm run test:e2e` | Testes de interface num navegador real (Playwright). Na primeira vez: `npx playwright install chromium` |
+| `npm run test:all` | Tipos, testes unitários e testes de interface |
 
 Não são precisas chaves de API. A galeria de fotografias usa a API pública da NASA Image and Video Library, que não pede chave; se estiveres sem ligação, a ficha continua a funcionar e mostra uma mensagem clara.
 
@@ -174,7 +176,7 @@ Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts`, registá-lo em `src/i1
 ## Testes
 
 - `npm test` corre 236 testes unitários (incluindo a coerência das 36 missões, a cosmologia — idade do Planck, solução analítica, distância ao último espalhamento — e a ordem cronológica da linha temporal). Os do planetário comparam com o JPL Horizons o tempo sideral, a Lua em cinco datas, o Sol e os planetas em duas datas (posição, distância, fase e magnitude), o azimute e a altura em Lisboa e em Sydney e as horas de nascer, passagem e ocaso, e verificam os exemplos de Meeus para a precessão e o tempo sideral, a constelação das 509 estrelas com nome, os fusos horários (incluindo a mudança de hora), a projeção, as noites brancas e a noite polar. Os restantes cobrem: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
-- A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (89 verificações nas fases anteriores e 21 percursos no planetário e na navegação: alvos vindos das fichas, comparação de lugares, animação do tempo, limites de datas, teclado, menu "Mais" e menu móvel): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, página e fichas de exoplanetas (gráficos, catálogo, filtros, animação das órbitas), espaço profundo (mapa do céu, filtros, aproximação, clique num objeto, distâncias da NASA e da Gaia, vista em tabela), estrelas (diagrama H–R, pesquisa, ficha), buracos negros, rotas inválidas, ausência de deslocamento horizontal no telemóvel e ausência de erros na consola.
+- `npm run test:e2e` corre 39 testes de interface no Chromium (pasta `e2e/`), sobre a versão de produção: arranque da vista 3D, menu "Mais", pesquisa global (planetas, missões e conceitos), rota inválida, ficha de Marte com favoritos e ligação ao planetário, planetário (painel "Esta noite", mudança de data, alvo vindo de uma ficha, comparação de lugares, animação, teclado), espaço profundo, estrelas, buracos negros, exoplanetas, missões (filtros e ficha), linha temporal (escalas e calculadora), fenómenos extremos e página de métodos. Inclui uma verificação automática de acessibilidade (axe-core, WCAG 2.1 A e AA) em 12 páginas, a ausência de deslocamento horizontal em telemóvel em 10 páginas e falha se houver erros na consola. As fontes externas são bloqueadas e a API da NASA é simulada, para os testes não dependerem da rede.
 
 ## Publicar no GitHub Pages
 
@@ -182,7 +184,7 @@ O workflow `.github/workflows/deploy-pages.yml` publica o site. Para o usar:
 1. No repositório, abre **Settings → Pages** e escolhe **GitHub Actions** como origem.
 2. Em **Actions**, corre o workflow "Publicar no GitHub Pages".
 
-O workflow `ci.yml` verifica tipos, testes e build em cada push.
+O workflow `ci.yml` verifica tipos, testes unitários e build em cada push e, a seguir, corre os testes de interface no Chromium.
 
 ## Próximos passos
 

@@ -34,7 +34,7 @@ export function MissionTimeline({ missions }: { missions: readonly Mission[] }) 
 
   return (
     <div className="mission-timeline-scroll">
-      <svg className="mission-timeline" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={tm.timelineAria}>
+      <svg className="mission-timeline" viewBox={`0 0 ${width} ${height}`} role="group" aria-label={tm.timelineAria}>
         {ticks.map((y) => (
           <g key={y}>
             <line x1={x(y)} x2={x(y)} y1={PAD_TOP - 6} y2={height - 6} className="mt-grid" />

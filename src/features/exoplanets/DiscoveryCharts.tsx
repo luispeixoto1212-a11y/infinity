@@ -144,6 +144,7 @@ export function YearChart({ planets, currentYear }: { planets: readonly Exoplane
                     height={innerH}
                     className="chart-hit"
                     tabIndex={0}
+                    role="img"
                     aria-label={`${b.year}: ${b.total}`}
                     onPointerEnter={() => setHover(i)}
                     onPointerLeave={() => setHover((h) => (h === i ? null : h))}
