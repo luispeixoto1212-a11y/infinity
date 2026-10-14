@@ -1,0 +1,395 @@
+/* ============================================================ Linha temporal do Universo */
+.tl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.tl-zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tl-zoom .icon-btn {
+  width: 34px;
+  height: 34px;
+  border-color: var(--line);
+  font-size: var(--fs-md);
+}
+
+.tl-mode-note {
+  margin-bottom: var(--space-3);
+}
+
+.tl-chart {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 11, 25, 0.75);
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  outline: none;
+}
+
+.tl-chart:active {
+  cursor: grabbing;
+}
+
+.tl-chart:focus-visible {
+  box-shadow: 0 0 0 2px var(--ion);
+}
+
+.tl-chart svg {
+  display: block;
+}
+
+.tl-lane {
+  fill: transparent;
+}
+
+.tl-lane--alt {
+  fill: rgba(255, 255, 255, 0.018);
+}
+
+.tl-lane-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+}
+
+.tl-grid {
+  stroke: var(--chart-grid);
+}
+
+.tl-tick {
+  font-size: 11px;
+  fill: var(--dust);
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-event {
+  cursor: pointer;
+  outline: none;
+}
+
+.tl-hit {
+  fill: transparent;
+}
+
+.tl-dot {
+  stroke: rgba(4, 6, 15, 0.8);
+  stroke-width: 1.5;
+}
+
+.tl-dot--soft {
+  opacity: 0.6;
+}
+
+.tl-ring {
+  fill: none;
+  stroke: var(--sol);
+  stroke-width: 2;
+}
+
+.tl-event:hover .tl-label,
+.tl-event:focus-visible .tl-label,
+.tl-event.is-selected .tl-label {
+  fill: var(--star);
+}
+
+.tl-event:focus-visible .tl-hit {
+  fill: rgba(122, 162, 255, 0.25);
+}
+
+.tl-label {
+  font-size: 11.5px;
+  fill: #b9c2dc;
+  font-family: var(--font-ui);
+  paint-order: stroke;
+  stroke: rgba(4, 6, 15, 0.85);
+  stroke-width: 3px;
+}
+
+.tl-detail {
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.55);
+  scroll-margin-top: calc(var(--topbar-h) + 16px);
+}
+
+.tl-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tl-kind {
+  padding: 1px 8px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.tl-kind--measured {
+  background: rgba(127, 214, 194, 0.15);
+  color: var(--kind-measured);
+}
+
+.tl-kind--estimate {
+  background: rgba(240, 165, 138, 0.15);
+  color: var(--kind-estimate);
+}
+
+.tl-kind--model {
+  background: rgba(169, 139, 255, 0.16);
+  color: #cbb8ff;
+}
+
+.tl-kind--historic {
+  background: rgba(214, 194, 127, 0.15);
+  color: var(--kind-average);
+}
+
+.tl-detail-title {
+  margin: var(--space-2) 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+}
+
+.tl-detail-when {
+  margin: 0 0 var(--space-3);
+  color: var(--sol);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-detail p {
+  max-width: 80ch;
+}
+
+.tl-detail-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  margin: var(--space-4) 0 0;
+}
+
+.tl-detail-facts dt {
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+}
+
+.tl-detail-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-detail .btn {
+  margin-top: var(--space-3);
+}
+
+.tl-list {
+  margin-top: var(--space-5);
+}
+
+.tl-list summary {
+  cursor: pointer;
+  color: var(--ion-strong);
+  font-weight: 500;
+}
+
+.tl-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.tl-list-grid h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tl-list-grid ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tl-list-item {
+  display: grid;
+  width: 100%;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--star);
+  text-align: left;
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.tl-list-item:hover,
+.tl-list-item[aria-current='true'] {
+  background: rgba(122, 162, 255, 0.1);
+}
+
+.tl-list-when {
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+}
+
+.tl-explain {
+  margin-top: var(--space-7);
+}
+
+.tl-explain-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: var(--space-6);
+}
+
+.tl-explain-text p {
+  margin: 0 0 var(--space-4);
+  color: #d5dbec;
+  line-height: 1.65;
+}
+
+.tl-explain > h2 {
+  margin: 0 0 var(--space-4);
+}
+
+.tl-explain-grid h3 {
+  margin: 0 0 var(--space-3);
+}
+
+.cosmo-calc {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 19, 40, 0.5);
+}
+
+.cosmo-inputs {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.cosmo-inputs .field input:not([type='range']) {
+  min-width: 0;
+  width: 10rem;
+}
+
+.cosmo-slider input {
+  width: 100%;
+  accent-color: var(--ion);
+}
+
+.cosmo-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.cosmo-results dt {
+  font-size: var(--fs-xs);
+  color: var(--dust-dim);
+}
+
+.cosmo-results dd {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.cosmo-bars {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.cosmo-bar-row {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  grid-template-areas: 'label track' '. value';
+  gap: 2px var(--space-3);
+  align-items: center;
+  font-size: var(--fs-xs);
+}
+
+.cosmo-bar-label {
+  grid-area: label;
+  color: var(--dust);
+}
+
+.cosmo-bar-track {
+  grid-area: track;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.cosmo-bar-value {
+  grid-area: value;
+  color: var(--dust-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.cosmo-bar {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+}
+
+.cosmo-bar--then {
+  background: var(--nebula);
+}
+
+.cosmo-bar--light {
+  background: var(--sol);
+}
+
+.cosmo-bar--now {
+  background: var(--ion);
+}
+
+@media (max-width: 900px) {
+  .tl-explain-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .cosmo-results {
+    grid-template-columns: 1fr;
+  }
+
+  .tl-detail {
+    padding: var(--space-4);
+  }
+}
+
+.tl-lane-label--top {
+  font-size: 10px;
+  opacity: 0.85;
+}

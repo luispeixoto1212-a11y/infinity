@@ -47,6 +47,7 @@ export function TopBar({ route }: { route: Route }) {
   ];
   const more: NavItem[] = [
     { route: { name: 'missions' }, label: t.nav.missions, match: ['missions', 'mission'] },
+    { route: { name: 'timeline' }, label: t.nav.timeline, match: ['timeline'] },
     { route: { name: 'favorites' }, label: t.nav.favorites, match: ['favorites'] },
     { route: { name: 'data' }, label: t.nav.data, match: ['data'] },
   ];

@@ -76,6 +76,7 @@ export function DataPage() {
           <li><a href="#planetario" onClick={(e) => jump(e, 'planetario')}>Planetário: o céu de um lugar</a></li>
           <li><a href="#exoplanetas" onClick={(e) => jump(e, 'exoplanetas')}>Exoplanetas</a></li>
           <li><a href="#missoes" onClick={(e) => jump(e, 'missoes')}>Missões espaciais</a></li>
+          <li><a href="#cosmologia" onClick={(e) => jump(e, 'cosmologia')}>Linha temporal e cosmologia</a></li>
           <li><a href="#espaco-profundo" onClick={(e) => jump(e, 'espaco-profundo')}>Espaço profundo, estrelas e buracos negros</a></li>
           <li><a href="#escala" onClick={(e) => jump(e, 'escala')}>Escala da vista 3D</a></li>
           <li><a href="#orientacao" onClick={(e) => jump(e, 'orientacao')}>Orientação, rotação e tempo</a></li>
@@ -281,6 +282,23 @@ export function DataPage() {
           Quando as fontes não permitem confirmar o estado, a ficha diz isso mesmo: é o caso da Juno, cuja extensão aprovada
           terminava em setembro de 2025 e para a qual não encontrámos um comunicado oficial posterior. As fotografias vêm em
           tempo real da NASA Image and Video Library.
+        </p>
+      </section>
+
+      <section id="cosmologia" className="prose-section">
+        <h2>Linha temporal e cosmologia</h2>
+        <p>
+          Os tempos do Universo primordial e das galáxias distantes são calculados com um modelo ΛCDM plano e os
+          parâmetros do Planck 2018 (H₀ = 67,66 km/s/Mpc, Ωm = 0,3111, radiação de fotões e neutrinos). A idade e as
+          distâncias resultam de integrais numéricas: a idade atual calculada (13 786 milhões de anos) coincide com a
+          publicada pelo Planck (13 787 ± 20 milhões) e a distância à radiação cósmica de fundo (13,9 Gpc) com a que o
+          Planck deduz do tamanho angular das suas manchas. Os testes comparam também o integrador com as soluções
+          analíticas conhecidas.
+        </p>
+        <p>
+          As datas geológicas seguem a Tabela Cronoestratigráfica Internacional; as restantes vêm dos artigos indicados
+          em cada acontecimento. Cada data está classificada como medida, estimativa, previsão de modelo ou registo
+          histórico. O calendário cósmico é apenas uma forma de visualizar proporções.
         </p>
       </section>
 

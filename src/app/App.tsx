@@ -23,6 +23,7 @@ const StarsPage = lazy(() => import('../features/stars/StarsPage'));
 const StarPage = lazy(() => import('../features/stars/StarPage'));
 const PlanetariumPage = lazy(() => import('../features/planetarium/PlanetariumPage'));
 const MissionsPage = lazy(() => import('../features/missions/MissionsPage'));
+const TimelinePage = lazy(() => import('../features/timeline/TimelinePage'));
 const MissionPage = lazy(() => import('../features/missions/MissionPage'));
 
 function PageFallback() {
@@ -64,6 +65,8 @@ function renderRoute(route: Route) {
       return <PlanetariumPage target={route.target} />;
     case 'missions':
       return <MissionsPage />;
+    case 'timeline':
+      return <TimelinePage />;
     case 'mission':
       return <MissionPage id={route.id} />;
     default:
@@ -81,6 +84,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   'black-holes': 'Buracos negros',
   planetarium: 'Planetário',
   missions: 'Missões espaciais',
+  timeline: 'Linha temporal do Universo',
   'not-found': 'Página não encontrada',
 };
 

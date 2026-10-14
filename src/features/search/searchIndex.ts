@@ -96,6 +96,14 @@ const PAGE_ENTRIES: SearchEntry[] = [
     route: { name: 'planetarium' },
   },
   {
+    id: 'page:timeline',
+    title: 'Linha temporal do Universo',
+    subtitle: 'Do Big Bang até hoje, com calculadora cosmológica',
+    category: 'page',
+    terms: ['linha temporal', 'timeline', 'big bang', 'história do universo', 'idade do universo', 'radiação cósmica de fundo', 'desvio para o vermelho', 'redshift', 'calendário cósmico', 'evolução da vida', 'formação da terra'],
+    route: { name: 'timeline' },
+  },
+  {
     id: 'page:missions',
     title: 'Missões espaciais',
     subtitle: 'Sondas, telescópios e voos tripulados, com estado atual e fontes',

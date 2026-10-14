@@ -1,10 +1,12 @@
 /** Textos da interface em português de Portugal (língua de referência). */
 import { planetariumPt } from './pt-PT-planetarium';
 import { missionsPt } from './pt-PT-missions';
+import { timelinePt } from './pt-PT-timeline';
 
 export const ptPT = {
   planetarium: planetariumPt,
   missions: missionsPt,
+  timeline: timelinePt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -15,6 +17,7 @@ export const ptPT = {
     deepSpace: 'Espaço profundo',
     planetarium: 'Planetário',
     missions: 'Missões espaciais',
+    timeline: 'Linha temporal do Universo',
     more: 'Mais',
     menu: 'Menu',
     skipToContent: 'Saltar para o conteúdo',
