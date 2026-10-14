@@ -87,8 +87,14 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - Cada acontecimento indica se a data é medida, estimada, prevista por um modelo ou um registo histórico, com fonte, tempo desde o Big Bang, tempo antes do presente e posição no calendário cósmico.
 - Explicação da diferença entre idade do Universo, tempo de viagem da luz e distância, com uma calculadora cosmológica (ΛCDM do Planck 2018): para um desvio para o vermelho dá a idade do Universo na emissão, o tempo de viagem da luz e as distâncias hoje, na emissão e de luminosidade.
 
+**Fenómenos extremos** (`#/fenomenos-extremos`, no separador do Espaço profundo)
+- Dez temas: formação dos buracos negros, horizonte de acontecimentos, disco de acreção, ondas gravitacionais, lentes gravitacionais, estrelas de neutrões e pulsares, supernovas, quasares, matéria escura e energia escura.
+- Cada tema explicado em três níveis (iniciante, intermédio, avançado, com as equações), números-chave marcados como medidos, calculados ou estimados, e fontes (artigos científicos).
+- Visualizações calculadas: horizonte, esfera de fotões, dilatação do tempo e marés para qualquer massa (da Terra a M87*); lente gravitacional pontual traçada píxel a píxel; expansão do Universo com e sem energia escura. Visualizações ilustrativas, assinaladas como tal: disco de acreção, fusão de buracos negros com o sinal "chirp", pulsar e curva de rotação de uma galáxia.
+- As animações param fora do ecrã e respeitam a opção "reduzir movimento" do sistema.
+
 **Ferramentas**
-- Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço". Inclui os objetos Messier, as estrelas com nome e os 6445 exoplanetas (índices leves carregados só quando a pesquisa abre).
+- Pesquisa global (Ctrl K ou `/`) com resultados enquanto se escreve, que também encontra missões e conceitos científicos, nomes em português, inglês e espanhol, tolerância a acentos e pequenos erros, e opção "Ver no espaço". Inclui os objetos Messier, as estrelas com nome e os 6445 exoplanetas (índices leves carregados só quando a pesquisa abre).
 - Favoritos e histórico guardados no navegador, sem conta.
 - Lista do Sistema Solar, tabela das luas principais e comparação de tamanhos reais à mesma escala.
 - Página "Dados e métodos" com a validação das posições dos planetas, das luas e do planetário contra o JPL Horizons, calculada no próprio navegador.
@@ -135,6 +141,7 @@ src/
   features/planetarium/ Planetário: lugares e fusos, estado do céu, desenho em Canvas 2D, painéis
   features/missions/    Missões espaciais: dados verificados, linha do tempo, fichas
   features/timeline/    Linha temporal do Universo e calculadora cosmológica
+  features/extreme/     Fenómenos extremos: textos em três níveis e visualizações
   services/       Cliente da NASA Image and Video Library
 public/
   textures/       Texturas (512 px e 2048 px)
@@ -166,7 +173,7 @@ Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts`, registá-lo em `src/i1
 
 ## Testes
 
-- `npm test` corre 230 testes unitários (incluindo a coerência das 36 missões, a cosmologia — idade do Planck, solução analítica, distância ao último espalhamento — e a ordem cronológica da linha temporal). Os do planetário comparam com o JPL Horizons o tempo sideral, a Lua em cinco datas, o Sol e os planetas em duas datas (posição, distância, fase e magnitude), o azimute e a altura em Lisboa e em Sydney e as horas de nascer, passagem e ocaso, e verificam os exemplos de Meeus para a precessão e o tempo sideral, a constelação das 509 estrelas com nome, os fusos horários (incluindo a mudança de hora), a projeção, as noites brancas e a noite polar. Os restantes cobrem: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
+- `npm test` corre 236 testes unitários (incluindo a coerência das 36 missões, a cosmologia — idade do Planck, solução analítica, distância ao último espalhamento — e a ordem cronológica da linha temporal). Os do planetário comparam com o JPL Horizons o tempo sideral, a Lua em cinco datas, o Sol e os planetas em duas datas (posição, distância, fase e magnitude), o azimute e a altura em Lisboa e em Sydney e as horas de nascer, passagem e ocaso, e verificam os exemplos de Meeus para a precessão e o tempo sideral, a constelação das 509 estrelas com nome, os fusos horários (incluindo a mudança de hora), a projeção, as noites brancas e a noite polar. Os restantes cobrem: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
 - A interface foi também verificada num navegador real (Chromium) em computador e telemóvel (89 verificações nas fases anteriores e 21 percursos no planetário e na navegação: alvos vindos das fichas, comparação de lugares, animação do tempo, limites de datas, teclado, menu "Mais" e menu móvel): arranque da cena 3D, seleção de planetas e luas, etiquetas das luas, controlos do tempo, pesquisa, fichas de planetas e luas, favoritos, validação na página de métodos, página e fichas de exoplanetas (gráficos, catálogo, filtros, animação das órbitas), espaço profundo (mapa do céu, filtros, aproximação, clique num objeto, distâncias da NASA e da Gaia, vista em tabela), estrelas (diagrama H–R, pesquisa, ficha), buracos negros, rotas inválidas, ausência de deslocamento horizontal no telemóvel e ausência de erros na consola.
 
 ## Publicar no GitHub Pages
@@ -179,10 +186,9 @@ O workflow `ci.yml` verifica tipos, testes e build em cada push.
 
 ## Próximos passos
 
-1. **Fenómenos extremos**: explicações em três níveis (buracos negros, estrelas de neutrões, supernovas, quasares, ondas gravitacionais).
-2. **Sistema Solar (complementos)**: asteroides e cometas notáveis, sombras e eclipses, formas irregulares de Fobos e Deimos.
-3. **Espaço profundo (complementos)**: mais objetos além do catálogo Messier (Nuvens de Magalhães, Carina, Hélice, pulsares).
-4. **Fase 5**: testes de interface no repositório, acessibilidade, desempenho, inglês e espanhol.
+1. **Sistema Solar (complementos)**: asteroides e cometas notáveis, sombras e eclipses, formas irregulares de Fobos e Deimos.
+2. **Espaço profundo (complementos)**: mais objetos além do catálogo Messier (Nuvens de Magalhães, Carina, Hélice, pulsares).
+3. **Fase 5**: testes de interface no repositório, acessibilidade, desempenho, inglês e espanhol.
 
 ## Créditos
 

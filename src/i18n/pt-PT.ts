@@ -2,11 +2,13 @@
 import { planetariumPt } from './pt-PT-planetarium';
 import { missionsPt } from './pt-PT-missions';
 import { timelinePt } from './pt-PT-timeline';
+import { extremePt } from './pt-PT-extreme';
 
 export const ptPT = {
   planetarium: planetariumPt,
   missions: missionsPt,
   timeline: timelinePt,
+  extreme: extremePt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -44,6 +46,7 @@ export const ptPT = {
     'deep-sky': 'Objeto Messier',
     'named-star': 'Estrela',
     mission: 'Missão espacial',
+    concept: 'Conceito',
   },
   explorer: {
     sceneLabel: 'Sistema Solar em 3D. Use as etiquetas ou a lista de objetos para navegar com o teclado.',
@@ -378,7 +381,7 @@ export const ptPT = {
     unknown: '—',
   },
   space: {
-    tabs: { deepSky: 'Galáxias, nebulosas e enxames', stars: 'Estrelas', blackHoles: 'Buracos negros' },
+    tabs: { deepSky: 'Galáxias, nebulosas e enxames', stars: 'Estrelas', blackHoles: 'Buracos negros', extreme: 'Fenómenos extremos' },
     tabsLabel: 'Secções do espaço profundo',
     loading: 'A carregar o catálogo…',
     loadError: 'Não foi possível carregar o catálogo. Verifique a ligação e tente novamente.',

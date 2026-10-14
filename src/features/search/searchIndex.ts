@@ -7,7 +7,7 @@ export interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star' | 'mission';
+  category: BodyType | 'page' | 'exoplanet' | 'deep-sky' | 'named-star' | 'mission' | 'concept';
   /** Termos indexados (nome, nomes alternativos, palavras-chave). */
   terms: string[];
   route: Route;
@@ -197,7 +197,7 @@ function scoreTerm(query: string, term: string): number {
 }
 
 /** Em caso de empate, estrelas e planetas aparecem antes das luas. */
-const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'mission', 'deep-sky', 'named-star', 'exoplanet'];
+const CATEGORY_ORDER: ReadonlyArray<SearchEntry['category']> = ['star', 'planet', 'dwarf-planet', 'moon', 'page', 'concept', 'mission', 'deep-sky', 'named-star', 'exoplanet'];
 
 export function search(index: readonly SearchEntry[], rawQuery: string, limit = 8): SearchResult[] {
   const query = normalize(rawQuery);

@@ -21,6 +21,7 @@ export type Route =
   | { name: 'planetarium'; target?: string }
   | { name: 'missions' }
   | { name: 'timeline' }
+  | { name: 'extreme'; topic?: string }
   | { name: 'mission'; id: string }
   | { name: 'not-found'; path: string };
 
@@ -51,6 +52,8 @@ export function parseHash(hash: string): Route {
       return arg ? { name: 'star', slug: arg } : { name: 'stars' };
     case 'buracos-negros':
       return arg ? { name: 'not-found', path } : { name: 'black-holes' };
+    case 'fenomenos-extremos':
+      return arg ? { name: 'extreme', topic: arg } : { name: 'extreme' };
     case 'linha-temporal':
       return arg ? { name: 'not-found', path } : { name: 'timeline' };
     case 'missoes':
@@ -94,6 +97,8 @@ export function routeToHash(route: Route): string {
       return '#/missoes';
     case 'timeline':
       return '#/linha-temporal';
+    case 'extreme':
+      return route.topic ? `#/fenomenos-extremos/${route.topic}` : '#/fenomenos-extremos';
     case 'mission':
       return `#/missoes/${route.id}`;
     case 'not-found':
