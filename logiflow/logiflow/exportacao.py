@@ -1,4 +1,4 @@
-"""Exportação para Excel: dados limpos e relatório.
+"""Exportação para Excel: dados limpos, relatório e relatório de desempenho.
 
 Garantias:
 
@@ -24,6 +24,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from . import __version__
 from . import campos as C
+from . import desempenho as D
 from .datas import formatar_data
 from .indicadores import (
     COL_DIAS_ATRASO,
@@ -45,6 +46,8 @@ from .validacao import (
 )
 
 FORMATO_DATA = "DD/MM/YYYY"
+FORMATO_PERCENTAGEM = "0.0%"
+FORMATO_DIAS = "0.0"
 _COR_CABECALHO = "1F4E79"
 _FONTE_CABECALHO = Font(bold=True, color="FFFFFF")
 _FUNDO_CABECALHO = PatternFill("solid", fgColor=_COR_CABECALHO)
@@ -126,6 +129,22 @@ def _escrever_pares(ws: Worksheet, linha: int, pares: Sequence[tuple[str, object
         ws.cell(row=linha, column=2).border = _LIMITE
         linha += 1
     return linha
+
+
+def _formatar_colunas(ws: Worksheet, primeira: int, ultima: int, formatos: dict[int, str]) -> None:
+    """Aplica formatos numéricos (por exemplo, percentagem) a colunas de uma tabela."""
+    for coluna, formato in formatos.items():
+        for linha in range(primeira, ultima + 1):
+            ws.cell(row=linha, column=coluna).number_format = formato
+
+
+def _escrever_notas(ws: Worksheet, linha: int, titulo: str, notas: Sequence[str], largura: int = 4) -> int:
+    _escrever(ws, linha, 1, titulo).font = _FONTE_SECCAO
+    for k, nota in enumerate(notas, start=linha + 1):
+        _escrever(ws, k, 1, f"• {nota}").alignment = Alignment(wrap_text=True, vertical="top")
+        ws.merge_cells(start_row=k, start_column=1, end_row=k, end_column=largura)
+        ws.row_dimensions[k].height = 30
+    return linha + len(notas) + 1
 
 
 def _gravar(livro: Workbook) -> bytes:
@@ -341,5 +360,150 @@ def exportar_relatorio(
     _escrever_tabela(ws, cabecalho, _linhas(
         tabela, [COL_LINHA, *campos, COL_PRAZO, COL_SITUACAO, COL_DIAS_ATRASO, COL_ERROS, COL_AVISOS]))
 
+    livro.properties.creator = f"LogiFlow {__version__}"
+    return _gravar(livro)
+
+
+# Relatório de desempenho -----------------------------------------------------
+
+def _preparar_impressao(livro: Workbook) -> None:
+    """Impressão (e PDF) em horizontal, com cada folha ajustada à largura da página."""
+    for ws in livro.worksheets:
+        ws.page_setup.orientation = "landscape"
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+        ws.page_setup.fitToWidth = 1
+        ws.page_setup.fitToHeight = 0
+        ws.sheet_properties.pageSetUpPr.fitToPage = True
+
+
+def _plural(n: int, singular: str, plural: str) -> str:
+    return f"{n} {singular if n == 1 else plural}"
+
+
+def _texto_dias(valor: float | None) -> str:
+    return f"{valor:.1f}".replace(".", ",") if valor is not None else "—"
+
+
+def _tabela_df(ws: Worksheet, df: pd.DataFrame, formatos: dict[str, str], linha_inicial: int = 1,
+               cabecalho: Sequence[str] | None = None) -> int:
+    """Escreve um DataFrame como tabela formatada; ``formatos`` usa os nomes das colunas."""
+    colunas = list(df.columns)
+    ultima = _escrever_tabela(ws, list(cabecalho or colunas), _linhas(df, colunas), linha_inicial=linha_inicial)
+    _formatar_colunas(ws, linha_inicial + 1, ultima,
+                      {colunas.index(c) + 1: f for c, f in formatos.items() if c in colunas})
+    return ultima
+
+
+def exportar_desempenho(
+    resultado: ResultadoValidacao,
+    tabela: pd.DataFrame,
+    nome_origem: str,
+    prazo_padrao_dias: int | None = None,
+    periodo: str = D.SEMANA,
+    cliente: str | None = None,
+) -> bytes:
+    """Relatório de desempenho operacional (.xlsx), de todos os clientes ou de um só.
+
+    ``tabela`` é a tabela devolvida por ``aplicar_prazos`` (todas as linhas). Com
+    ``cliente``, o relatório é filtrado **antes** de qualquer cálculo: não contém
+    dados de outros clientes, o que permite enviá-lo ao próprio cliente.
+    """
+    if cliente is not None:
+        tabela = D.filtrar_cliente(tabela, cliente)
+    r = D.resumir(tabela)
+    formatos = {D.TAXA: FORMATO_PERCENTAGEM, D.TEMPO_MEDIO: FORMATO_DIAS}
+    livro = Workbook()
+
+    # 1. Resumo -------------------------------------------------------------
+    ws = livro.active
+    ws.title = "Resumo"
+    _escrever(ws, 1, 1, "LogiFlow — Relatório de desempenho").font = _FONTE_TITULO
+    periodo_dados = (f"{formatar_data(r.data_inicio)} a {formatar_data(r.data_fim)}"
+                     if r.data_inicio else "—")
+    base = _plural(r.base, "encomenda sem erros", "encomendas sem erros")
+    if r.excluidas_com_erros:
+        base += " (" + _plural(r.excluidas_com_erros, "linha com erros ficou de fora",
+                               "linhas com erros ficaram de fora") + ")"
+    linha = _escrever_pares(ws, 3, [
+        ("Âmbito", f"Cliente «{cliente}»" if cliente is not None else "Todos os clientes"),
+        ("Ficheiro de origem", nome_origem),
+        ("Gerado em", _agora()),
+        ("Data de referência", resultado.data_referencia),
+        ("Datas das encomendas", periodo_dados),
+        ("Prazo usado", _texto_regra_prazo(resultado, prazo_padrao_dias)),
+        ("Base de cálculo", base),
+    ])
+
+    _escrever(ws, linha + 1, 1, "Indicadores").font = _FONTE_SECCAO
+    if r.taxa_no_prazo is None:
+        taxa, detalhe_taxa = "Não disponível", "Nenhuma entrega tem data de entrega e prazo."
+    else:
+        taxa = r.taxa_no_prazo
+        detalhe_taxa = f"{r.no_prazo} de {r.avaliadas} entregas avaliadas"
+        if r.amostra_pequena:
+            detalhe_taxa += f" — poucas entregas (menos de {D.AMOSTRA_MINIMA}): use como indicação"
+    if r.atrasadas is None:
+        atrasadas, detalhe_atrasadas = "Não disponível", "As pendentes não têm prazo."
+    else:
+        atrasadas = r.atrasadas
+        detalhe_atrasadas = (f"{r.pendentes_sem_prazo} pendente(s) sem prazo não avaliadas"
+                             if r.pendentes_sem_prazo else "")
+    detalhe_tempo = (f"Mediana: {_texto_dias(r.tempo_mediano_dias)} dias; {r.com_tempo} entregas com as duas datas"
+                     if r.com_tempo else "Nenhuma entrega tem data da encomenda e data de entrega.")
+    if r.incoerentes:
+        detalhe_tempo += f"; {r.incoerentes} com entrega antes da encomenda ficaram de fora"
+    indicadores = [
+        ("Taxa de entregas no prazo", taxa, detalhe_taxa),
+        ("Entregas com atraso", r.com_atraso,
+         f"Atraso médio: {_texto_dias(r.atraso_medio_dias)} dias" if r.com_atraso else ""),
+        ("Tempo médio de entrega (dias)", r.tempo_medio_dias if r.com_tempo else "Não disponível", detalhe_tempo),
+        ("Entregas efetuadas", r.entregues,
+         f"{r.entregues_sem_data} sem data de entrega" if r.entregues_sem_data else ""),
+        ("Pendentes", r.pendentes, "Estados «Pendente» e «Em trânsito»."),
+        ("Pendentes atrasadas", atrasadas, detalhe_atrasadas),
+    ]
+    inicio = linha + 2
+    fim = _escrever_tabela(ws, ["Indicador", "Valor", "Detalhe"], indicadores, linha_inicial=inicio, filtro=False)
+    if r.taxa_no_prazo is not None:
+        ws.cell(row=inicio + 1, column=2).number_format = FORMATO_PERCENTAGEM
+    if r.com_tempo:
+        ws.cell(row=inicio + 3, column=2).number_format = FORMATO_DIAS
+
+    _escrever_notas(ws, fim + 2, "Como foi calculado", [
+        "Só entram as encomendas sem erros (as mesmas dos «dados limpos»): linhas duplicadas ou com "
+        "datas inválidas distorceriam os resultados.",
+        "Uma entrega é avaliada quando tem o estado «Entregue», data de entrega e prazo. Entregar no "
+        "próprio dia do prazo conta como «no prazo».",
+        "Tempo de entrega = data de entrega − data da encomenda, em dias.",
+        f"Taxas com menos de {D.AMOSTRA_MINIMA} entregas avaliadas são assinaladas como pouco fiáveis.",
+        "Clientes e destinos escritos de formas diferentes (maiúsculas, acentos, pontuação) são agrupados.",
+    ], largura=3)
+    ws.column_dimensions["A"].width = 34
+    ws.column_dimensions["B"].width = 26
+    ws.column_dimensions["C"].width = 62
+
+    # 2. Por período -------------------------------------------------------
+    ws = livro.create_sheet("Por período")
+    por_periodo = D.por_periodo(tabela, periodo).drop(columns=D.INICIO_PERIODO)
+    cabecalho = [periodo if c == D.PERIODO else c for c in por_periodo.columns]
+    _tabela_df(ws, por_periodo, formatos, cabecalho=cabecalho)
+
+    # 3. Por cliente (só no relatório de todos os clientes) e por destino ---
+    if cliente is None:
+        _tabela_df(livro.create_sheet("Por cliente"), D.por_grupo(tabela, C.CLIENTE), formatos)
+    _tabela_df(livro.create_sheet("Por destino"), D.por_grupo(tabela, C.DESTINO), formatos)
+
+    # 4. Pendentes por antiguidade -------------------------------------------
+    _tabela_df(livro.create_sheet("Pendentes por antiguidade"),
+               D.antiguidade_pendentes(tabela, resultado.data_referencia), {})
+
+    # 5. Entregas com atraso (a lista que sustenta a taxa) --------------------
+    ws = livro.create_sheet("Entregas com atraso")
+    _escrever_tabela(ws, ["N.º Encomenda", "Cliente", "Destino", "Data", "Prazo", "Data de Entrega",
+                          "Dias de atraso", ROTULO_LINHA],
+                     _linhas(D.entregas_com_atraso(tabela), [C.NUMERO, C.CLIENTE, C.DESTINO, C.DATA, COL_PRAZO,
+                                                            C.DATA_ENTREGA, COL_DIAS_ATRASO, COL_LINHA]))
+
+    _preparar_impressao(livro)
     livro.properties.creator = f"LogiFlow {__version__}"
     return _gravar(livro)

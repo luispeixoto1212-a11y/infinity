@@ -23,12 +23,13 @@ import streamlit as st
 
 from logiflow import __version__
 from logiflow import campos as C
+from logiflow import desempenho as D
 from logiflow.exemplo import (
     DATA_REFERENCIA_EXEMPLO,
     FICHEIRO_EXEMPLO_CSV,
     FICHEIRO_EXEMPLO_XLSX,
 )
-from logiflow.exportacao import exportar_dados_limpos, exportar_relatorio
+from logiflow.exportacao import exportar_dados_limpos, exportar_desempenho, exportar_relatorio
 from logiflow.importacao import (
     TAMANHO_MAXIMO_MB,
     ErroImportacao,
@@ -61,6 +62,7 @@ NENHUMA = "(nenhuma)"
 # Acima deste número de encomendas, os Excel só são gerados a pedido (podem demorar).
 LIMITE_EXPORTACAO_IMEDIATA = 5_000
 COR_BARRAS = "#2a78d6"
+COR_BARRAS_SECUNDARIAS = "#a8a69e"  # períodos com poucas entregas avaliadas
 COR_TEXTO_SECUNDARIO = "#52514e"
 VALIDACAO_ERRO, VALIDACAO_AVISO, VALIDACAO_OK = "✖ Erro", "⚠ Aviso", "✔ OK"
 
@@ -88,6 +90,16 @@ def _nome_seguro(nome: str) -> str:
     return (base or "encomendas")[:60]
 
 
+def _texto_para_ficheiro(texto: str) -> str:
+    """Texto livre (por exemplo, um nome de cliente) seguro para usar num nome de ficheiro."""
+    return re.sub(r"[^\w\-]+", "_", texto, flags=re.UNICODE).strip("_")[:40] or "cliente"
+
+
+def _dias(valor: float | None) -> str:
+    """Dias com uma casa decimal e vírgula: 3,3."""
+    return "—" if valor is None else f"{valor:.1f}".replace(".", ",")
+
+
 # Leitura e processamento (em cache) -----------------------------------------
 
 @st.cache_data(show_spinner="A ler o ficheiro…", max_entries=8)
@@ -110,6 +122,12 @@ def _excel_limpos(_resultado: ResultadoValidacao, chave: tuple, nome: str) -> by
     return exportar_dados_limpos(_resultado, nome)
 
 
+@st.cache_data(show_spinner="A preparar o relatório de desempenho…", max_entries=16)
+def _excel_desempenho(_resultado: ResultadoValidacao, _tabela: pd.DataFrame, chave: tuple, nome: str,
+                      prazo_padrao: int | None, periodo: str, cliente: str | None) -> bytes:
+    return exportar_desempenho(_resultado, _tabela, nome, prazo_padrao, periodo, cliente)
+
+
 @st.cache_data(show_spinner="A preparar o relatório…", max_entries=8)
 def _excel_relatorio(_resultado: ResultadoValidacao, _tabela: pd.DataFrame, _ind: Indicadores,
                      chave: tuple, nome: str, prazo_padrao: int | None) -> bytes:
@@ -122,6 +140,8 @@ def _iniciar_estado() -> None:
     st.session_state.setdefault("usar_exemplo", False)
     st.session_state.setdefault("data_referencia", dt.date.today())
     st.session_state.setdefault("prazo_padrao", 0)
+    st.session_state.setdefault("periodo_desempenho", D.SEMANA)
+    st.session_state.setdefault("comparar_desempenho", C.rotulo(C.CLIENTE))
 
 
 def _abrir_exemplo() -> None:
@@ -299,7 +319,7 @@ def _resumo_ficheiro(lido: FicheiroLido, resultado: ResultadoValidacao | None, e
         detalhes.append(f"folha «{_md(lido.folha)}»")
     if lido.codificacao:
         detalhes.append(f"{lido.codificacao}, separador {lido.separador}")
-    detalhes.append(f"{_n(lido.total_linhas)} encomendas lidas")
+    detalhes.append(f"{_n(lido.total_linhas)} {'encomenda lida' if lido.total_linhas == 1 else 'encomendas lidas'}")
     if resultado is not None:
         detalhes.append(f"{_n(resultado.linhas_validas)} válidas")
         if resultado.linhas_com_erro:
@@ -538,6 +558,129 @@ def _separador_resumo(tabela: pd.DataFrame, ind: Indicadores) -> None:
         )
 
 
+# Títulos curtos no ecrã (o Excel usa os nomes completos); a explicação fica na ajuda.
+_CONFIG_DESEMPENHO = {
+    D.TAXA: st.column_config.ProgressColumn("Taxa no prazo", format="percent", min_value=0, max_value=1,
+                                            help="Entregues no prazo ÷ entregas avaliadas"),
+    D.TEMPO_MEDIO: st.column_config.NumberColumn("Tempo médio", format="localized",
+                                                 help="Tempo médio de entrega, em dias: data de entrega − "
+                                                      "data da encomenda"),
+    D.AVALIADAS: st.column_config.NumberColumn("Avaliadas",
+                                               help="Entregas avaliadas: estado «Entregue», com data de "
+                                                    "entrega e prazo"),
+    D.ATRASADAS: st.column_config.NumberColumn("Atrasadas",
+                                               help="Pendentes com o prazo ultrapassado. Vazio quando as "
+                                                    "pendentes não têm prazo"),
+    D.REGISTADAS: st.column_config.NumberColumn("Registadas", help="Encomendas registadas no período "
+                                                                  "(pela data da encomenda)"),
+    D.ENTREGAS: st.column_config.NumberColumn("Entregas", help="Entregas efetuadas no período "
+                                                              "(pela data de entrega)"),
+    D.OBSERVACAO: st.column_config.TextColumn("Observação", width="medium"),
+}
+
+
+def _grafico_taxa_periodo(por_periodo: pd.DataFrame) -> alt.Chart:
+    avaliados = por_periodo[por_periodo[D.AVALIADAS] > 0]
+    dados = pd.DataFrame({
+        "periodo": avaliados[D.PERIODO],
+        "taxa": avaliados[D.TAXA].astype(float),
+        "no_prazo": avaliados[D.NO_PRAZO],
+        "avaliadas": avaliados[D.AVALIADAS],
+    })
+    # Com poucas entregas, o rótulo diz quantas são (uma barra de 0 % nem se vê).
+    dados["rotulo"] = [f"{t:.0%}" if n >= D.AMOSTRA_MINIMA else f"{t:.0%} (só {n})"
+                       for t, n in zip(dados["taxa"], dados["avaliadas"])]
+    base = alt.Chart(dados).encode(
+        x=alt.X("periodo:N", sort=list(dados["periodo"]), title=None,
+                axis=alt.Axis(labelAngle=0, ticks=False, domain=False, labelFontSize=12, labelLimit=160)),
+        y=alt.Y("taxa:Q", title=None, scale=alt.Scale(domain=[0, 1.12]), axis=None),
+        tooltip=[alt.Tooltip("periodo:N", title="Período"), alt.Tooltip("taxa:Q", title="Taxa no prazo", format=".1%"),
+                 alt.Tooltip("no_prazo:Q", title="No prazo", format="d"),
+                 alt.Tooltip("avaliadas:Q", title="Entregas avaliadas", format="d")],
+    )
+    # Períodos com poucas entregas avaliadas ficam a cinzento: são indicação, não conclusão.
+    cor = alt.condition(alt.datum.avaliadas >= D.AMOSTRA_MINIMA, alt.value(COR_BARRAS),
+                        alt.value(COR_BARRAS_SECUNDARIAS))
+    barras = base.mark_bar(size=24, cornerRadiusEnd=4).encode(color=cor)
+    valores = base.mark_text(baseline="bottom", dy=-4, fontSize=12, color=COR_TEXTO_SECUNDARIO).encode(
+        text="rotulo:N")
+    return (barras + valores).properties(height=220).configure_view(stroke=None)
+
+
+def _separador_desempenho(tabela: pd.DataFrame, data_referencia: dt.date) -> str:
+    """Desenha o separador e devolve o agrupamento por período escolhido (para a exportação)."""
+    periodo = st.session_state.get("periodo_desempenho") or D.SEMANA
+    r = D.resumir(tabela)
+    if r.base == 0:
+        st.info("Não há encomendas sem erros entre as apresentadas. O desempenho só é calculado com "
+                "encomendas sem erros.", icon=":material/filter_alt:")
+        return periodo
+    nota_base = f"Calculado sobre **{_n(r.base)} {'encomenda' if r.base == 1 else 'encomendas'} sem erros**"
+    if r.excluidas_com_erros:
+        nota_base += (f"; {_n(r.excluidas_com_erros)} com erros "
+                      f"{'fica' if r.excluidas_com_erros == 1 else 'ficam'} de fora até serem corrigidas")
+    st.caption(nota_base + ". Os filtros acima também se aplicam.")
+
+    c1, c2, c3 = st.columns(3)
+    if r.taxa_no_prazo is None:
+        c1.metric("Entregas no prazo", "—", border=True, delta="sem data de entrega e prazo",
+                  delta_color="off", delta_arrow="off",
+                  help="Só se avaliam entregas com o estado «Entregue», data de entrega e prazo "
+                       "(data prevista ou prazo padrão).")
+    else:
+        c1.metric("Entregas no prazo", _pct(r.no_prazo, r.avaliadas), border=True,
+                  delta=f"{_n(r.no_prazo)} de {_n(r.avaliadas)} entregas avaliadas",
+                  delta_color="off", delta_arrow="off",
+                  help="Entregues até ao prazo (inclusive) ÷ entregas com data de entrega e prazo.")
+    c2.metric("Tempo médio de entrega", f"{_dias(r.tempo_medio_dias)} dias" if r.com_tempo else "—", border=True,
+              delta=(f"mediana {_dias(r.tempo_mediano_dias)} dias · {_n(r.com_tempo)} entregas"
+                     if r.com_tempo else "sem datas de entrega"),
+              delta_color="off", delta_arrow="off", help="Data de entrega − data da encomenda.")
+    c3.metric("Entregas com atraso", _n(r.com_atraso), border=True,
+              delta=f"atraso médio {_dias(r.atraso_medio_dias)} dias" if r.com_atraso else "nenhuma",
+              delta_color="off", delta_arrow="off", help="Entregues depois do prazo.")
+    notas = []
+    if r.amostra_pequena:
+        notas.append(f"Só {r.avaliadas} entregas avaliadas: a taxa serve de indicação, não de conclusão.")
+    if r.incoerentes:
+        notas.append(f"{_n(r.incoerentes)} entrega(s) com data anterior à encomenda ficaram fora do tempo médio.")
+    if r.entregues_sem_data:
+        notas.append(f"{_n(r.entregues_sem_data)} entrega(s) sem data de entrega não entram no tempo médio "
+                     "nem na evolução por período.")
+    for nota in notas:
+        st.caption(nota)
+
+    st.markdown("##### Evolução por período")
+    periodo = st.segmented_control("Agrupar por", D.PERIODOS, key="periodo_desempenho", required=True) or D.SEMANA
+    por_periodo = D.por_periodo(tabela, periodo)
+    if (por_periodo[D.AVALIADAS] > 0).any():
+        st.altair_chart(_grafico_taxa_periodo(por_periodo), width="stretch")
+        legenda = "Taxa de entregas no prazo, pela data de entrega. Passe o rato sobre as barras para ver " \
+                  "quantas entregas foram avaliadas."
+        if ((por_periodo[D.AVALIADAS] > 0) & (por_periodo[D.AVALIADAS] < D.AMOSTRA_MINIMA)).any():
+            legenda += f" Barras a cinzento: menos de {D.AMOSTRA_MINIMA} entregas avaliadas (pouco fiável)."
+        st.caption(legenda)
+    st.dataframe(por_periodo.drop(columns=D.INICIO_PERIODO).round({D.TEMPO_MEDIO: 1}), hide_index=True,
+                 width="stretch", column_config={D.PERIODO: st.column_config.TextColumn(periodo),
+                                                 **_CONFIG_DESEMPENHO}, placeholder="—")
+    st.caption("Encomendas registadas contam pela data da encomenda; entregas, pela data de entrega.")
+
+    st.markdown("##### Comparação")
+    campo = {C.rotulo(C.CLIENTE): C.CLIENTE, C.rotulo(C.DESTINO): C.DESTINO}
+    escolha = st.segmented_control("Comparar por", list(campo), key="comparar_desempenho",
+                                   required=True) or C.rotulo(C.CLIENTE)
+    st.dataframe(D.por_grupo(tabela, campo[escolha]).round({D.TEMPO_MEDIO: 1}), hide_index=True,
+                 width="stretch", column_config=_CONFIG_DESEMPENHO, placeholder="—")
+    st.caption("Ordenado pelo número de encomendas. Escritas diferentes do mesmo nome (maiúsculas, acentos, "
+               "pontuação) são agrupadas.")
+
+    st.markdown("##### Pendentes por antiguidade")
+    st.dataframe(D.antiguidade_pendentes(tabela, data_referencia), hide_index=True, width="content",
+                 placeholder="—")
+    st.caption(f"Dias desde a data da encomenda até à data de referência ({data_referencia:%d/%m/%Y}).")
+    return periodo
+
+
 def _separador_qualidade(tabela: pd.DataFrame, resultado: ResultadoValidacao) -> None:
     problemas = resultado.problemas
     problemas = problemas[problemas["Linha"].isin(tabela[COL_LINHA])]
@@ -560,7 +703,7 @@ def _separador_qualidade(tabela: pd.DataFrame, resultado: ResultadoValidacao) ->
 
 
 def _separador_exportar(resultado: ResultadoValidacao, tabela_completa: pd.DataFrame, nome: str,
-                        assinatura: str, data_referencia: dt.date, prazo: int | None) -> None:
+                        assinatura: str, data_referencia: dt.date, prazo: int | None, periodo: str) -> None:
     st.caption("As exportações incluem **sempre todas as encomendas do ficheiro**, independentemente dos filtros.")
     base = _nome_seguro(nome)
     carimbo = dt.date.today().strftime("%Y%m%d")
@@ -612,6 +755,31 @@ def _separador_exportar(resultado: ResultadoValidacao, tabela_completa: pd.DataF
         else:
             st.download_button("Descarregar relatório (.xlsx)", dados, file_name=f"{base}_relatorio_{carimbo}.xlsx",
                                mime=mime, type="primary", icon=":material/download:", on_click="ignore")
+
+    with st.container(border=True):
+        st.markdown("##### Relatório de desempenho")
+        descricao, opcoes = st.columns([3, 2], gap="large")
+        descricao.markdown(
+            "- **Resumo**: taxa de entregas no prazo, tempo médio de entrega e atrasos, com a regra usada.\n"
+            f"- **Por período** (agrupado por **{periodo.lower()}**, como no separador «Desempenho»), "
+            "**por cliente** e **por destino**.\n"
+            "- **Pendentes por antiguidade** e a lista de **entregas com atraso**.\n\n"
+            "Usa só as encomendas sem erros. Escolha um cliente para gerar um relatório **só com as "
+            "encomendas dele**, que pode enviar-lhe."
+        )
+        todos = "Todos os clientes"
+        cliente = opcoes.selectbox("Âmbito do relatório", [todos, *D.clientes(tabela_completa)],
+                                   key=f"ambito_desempenho_{assinatura}")
+        cliente = None if cliente == todos else cliente
+        try:
+            dados = _excel_desempenho(resultado, tabela_completa, chave, nome, prazo, periodo, cliente)
+        except Exception as erro:  # noqa: BLE001
+            opcoes.error(f"Não foi possível gerar o relatório de desempenho: {type(erro).__name__}: {_md(erro)}")
+        else:
+            sufixo = "todos" if cliente is None else _texto_para_ficheiro(cliente)
+            opcoes.download_button("Descarregar relatório de desempenho (.xlsx)", dados,
+                                   file_name=f"{base}_desempenho_{sufixo}_{carimbo}.xlsx", mime=mime,
+                                   type="primary", icon=":material/download:", on_click="ignore")
 
 
 # Programa principal -------------------------------------------------------------
@@ -678,6 +846,7 @@ def main() -> None:
     separadores = st.tabs([
         ":material/table_rows: Encomendas",
         ":material/bar_chart: Resumo",
+        ":material/speed: Desempenho",
         f":material/rule: Qualidade dos dados ({_n(n_problemas)})",
         ":material/download: Exportar",
     ])
@@ -686,9 +855,11 @@ def main() -> None:
     with separadores[1]:
         _separador_resumo(filtrada, ind)
     with separadores[2]:
-        _separador_qualidade(filtrada, resultado)
+        periodo = _separador_desempenho(filtrada, data_referencia)
     with separadores[3]:
-        _separador_exportar(resultado, tabela, nome, assinatura, data_referencia, prazo)
+        _separador_qualidade(filtrada, resultado)
+    with separadores[4]:
+        _separador_exportar(resultado, tabela, nome, assinatura, data_referencia, prazo, periodo)
 
 
 def _rodape() -> None:

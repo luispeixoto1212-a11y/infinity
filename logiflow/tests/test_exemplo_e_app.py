@@ -55,11 +55,12 @@ def test_app_com_ficheiro_de_exemplo():
     at = _app().run()
     at.button(key="usar_exemplo_inicio").click().run()
     assert not at.exception and not at.error
-    valores = {m.label: m.value for m in at.metric}
-    assert valores == {"Encomendas": "60", "Entregues": "41", "Pendentes": "11",
-                       "Atrasadas": "8", "Linhas com erros": "9"}
+    # Os cinco indicadores principais (topo da página) mantêm-se como na versão 1.0.
+    principais = [(m.label, m.value) for m in at.metric][:5]
+    assert principais == [("Encomendas", "60"), ("Entregues", "41"), ("Pendentes", "11"),
+                          ("Atrasadas", "8"), ("Linhas com erros", "9")]
     assert [t.label.split(" ", 1)[1] for t in at.tabs] == [
-        "Encomendas", "Resumo", "Qualidade dos dados (11)", "Exportar"]
+        "Encomendas", "Resumo", "Desempenho", "Qualidade dos dados (11)", "Exportar"]
 
 
 def test_app_filtro_por_estado_atualiza_indicadores():
@@ -106,4 +107,58 @@ def test_app_ficheiro_grande_so_exporta_a_pedido():
     at.button(key="usar_exemplo_inicio").click().run()
     assert not at.get("download_button")
     next(b for b in at.button if b.label == "Preparar ficheiros Excel").click().run()
-    assert len(at.get("download_button")) == 2 and not at.exception
+    # Dados limpos, relatório e relatório de desempenho: os três só existem depois do pedido.
+    assert len(at.get("download_button")) == 3 and not at.exception
+
+
+# Desempenho operacional (versão 1.1) ------------------------------------------
+
+def _app_exemplo() -> AppTest:
+    at = _app().run()
+    at.button(key="usar_exemplo_inicio").click().run()
+    return at
+
+
+def test_app_separador_desempenho_com_o_exemplo():
+    at = _app_exemplo()
+    assert not at.exception and not at.error
+    valores = {m.label: (m.value, m.delta) for m in at.metric}
+    assert valores["Entregas no prazo"] == ("74,3%", "26 de 35 entregas avaliadas")
+    assert valores["Tempo médio de entrega"] == ("3,3 dias", "mediana 3,0 dias · 35 entregas")
+    assert valores["Entregas com atraso"] == ("9", "atraso médio 1,6 dias")
+    assert any("51 encomendas sem erros" in c.value and "9 com erros" in c.value for c in at.caption)
+
+
+def test_app_desempenho_por_mes_e_por_destino():
+    at = _app_exemplo()
+    agrupar = next(b for b in at.get("button_group") if b.label == "Agrupar por")
+    agrupar.set_value("Mês").run()
+    comparar = next(b for b in at.get("button_group") if b.label == "Comparar por")
+    comparar.set_value("Destino").run()
+    assert not at.exception
+    assert any("agrupado por **mês**" in m.value for m in at.markdown)
+
+
+def test_app_desempenho_respeita_os_filtros():
+    at = _app_exemplo()
+    next(t for t in at.text_input if t.label == "Pesquisar").set_value("Ferragens").run()
+    valores = {m.label: m.value for m in at.metric}
+    assert valores["Entregas no prazo"] == "50,0%"  # 4 de 8 entregas da Ferragens Ponte Nova
+
+
+def test_app_desempenho_sem_datas_de_entrega():
+    at = _app_exemplo()
+    next(s for s in at.selectbox if s.label.startswith("Data de Entrega")).set_value("(nenhuma)").run()
+    valores = {m.label: m.value for m in at.metric}
+    assert valores["Entregas no prazo"] == "—" and valores["Tempo médio de entrega"] == "—"
+    assert valores["Entregues"] == "41"  # os indicadores da versão 1.0 não mudam
+
+
+def test_app_relatorio_de_desempenho_por_cliente():
+    at = _app_exemplo()
+    ambito = next(s for s in at.selectbox if s.label == "Âmbito do relatório")
+    assert ambito.options[0] == "Todos os clientes" and "Ferragens Ponte Nova" in ambito.options
+    ambito.set_value("Ferragens Ponte Nova").run()
+    assert not at.exception and not at.error
+    rotulos = [b.proto.label for b in at.get("download_button")]
+    assert "Descarregar relatório de desempenho (.xlsx)" in rotulos

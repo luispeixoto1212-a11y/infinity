@@ -1,9 +1,14 @@
 # LogiFlow — Gestor de Encomendas e Entregas
 
 Aplicação para pequenas transportadoras e empresas de distribuição: importa a lista de
-encomendas (Excel ou CSV), verifica a qualidade dos dados, mostra indicadores e exporta
-dados limpos e um relatório em Excel. Funciona no seu computador, sem internet e sem
-guardar nada.
+encomendas (Excel ou CSV), verifica a qualidade dos dados, mostra indicadores e o desempenho
+operacional (entregas no prazo, tempos de entrega, por cliente, destino e período) e exporta
+dados limpos e relatórios em Excel — incluindo um relatório de desempenho por cliente, pronto
+a enviar. Funciona no seu computador, sem internet e sem guardar nada.
+
+**Versão 1.1.0.** Novidade: separador «Desempenho» e relatório de desempenho em Excel
+(ver [Desempenho operacional](#desempenho-operacional)). A avaliação das próximas melhorias
+está em [ROTEIRO.md](ROTEIRO.md).
 
 ![Ecrã principal com o ficheiro de exemplo](docs/ecra_encomendas.png)
 
@@ -16,7 +21,9 @@ guardar nada.
 | Tabela com pesquisa e filtros por estado, data, situação face ao prazo e validação | Separador «Encomendas» |
 | Detetar campos vazios, números de encomenda duplicados e datas inválidas | Separador «Qualidade dos dados» |
 | Indicadores: total, entregues, pendentes e atrasadas | Topo da página |
+| Desempenho: taxa de entregas no prazo, tempo médio de entrega, comparação por cliente, destino e período, antiguidade das pendentes | Separador «Desempenho» |
 | Exportar dados limpos e relatório em Excel | Separador «Exportar» |
+| Exportar o relatório de desempenho, de todos os clientes ou de um só | Separador «Exportar» |
 | Ficheiro de exemplo com dados fictícios | Botão «Experimentar com o ficheiro de exemplo» |
 
 ---
@@ -84,9 +91,10 @@ Estes comandos usam diretamente o `python.exe` da pasta `.venv`, por isso não �
    «Situação»...). Se faltar alguma coluna obrigatória, aparece uma mensagem a dizer qual, e pode
    escolher a coluna certa em «Correspondência de colunas».
 3. **Reveja os indicadores e a tabela.** Os filtros afetam a tabela, os indicadores e os gráficos.
-4. **Veja a «Qualidade dos dados»**: cada problema indica a linha do ficheiro original, para o
+4. **Veja o «Desempenho»**: taxa de entregas no prazo, tempo de entrega e onde há mais atrasos.
+5. **Veja a «Qualidade dos dados»**: cada problema indica a linha do ficheiro original, para o
    poder corrigir na origem.
-5. **Exporte** os dados limpos e o relatório (separador «Exportar»).
+6. **Exporte** os dados limpos, o relatório e o relatório de desempenho (separador «Exportar»).
 
 ### Formato do ficheiro
 
@@ -128,6 +136,34 @@ Estados reconhecidos (em qualquer combinação de maiúsculas e acentos):
 Um estado que não esteja nesta lista (por exemplo, «Concluída») **não é adivinhado**: a linha
 recebe um aviso e não conta como entregue nem como pendente.
 
+### Desempenho operacional
+
+![Separador Desempenho com o ficheiro de exemplo](docs/ecra_desempenho.png)
+
+O separador «Desempenho» responde a «qual é o nosso nível de serviço, e onde falhamos?»:
+
+| Indicador | Como é calculado |
+| --- | --- |
+| **Entregas no prazo** | Entregues até ao prazo (inclusive) ÷ **entregas avaliadas**. Uma entrega é avaliada se tiver o estado «Entregue», data de entrega e prazo (data prevista ou prazo padrão). Mostra-se sempre o denominador («26 de 35 entregas avaliadas»). Sem entregas avaliadas, aparece «—»: não se inventa 0 % nem 100 %. |
+| **Tempo médio de entrega** | Data de entrega − data da encomenda, em dias (média e mediana). Entregas com data anterior à encomenda ficam de fora e são contadas à parte. |
+| **Entregas com atraso** | Entregues depois do prazo, com o atraso médio em dias. |
+| **Evolução por período** | Por semana (segunda a domingo) ou por mês. Encomendas registadas contam pela data da encomenda; entregas e taxa, pela data de entrega. |
+| **Comparação** | Por cliente ou por destino: encomendas, entregues, pendentes, atrasadas, taxa no prazo e tempo médio. |
+| **Pendentes por antiguidade** | Pendentes por dias desde a data da encomenda (até 2, 3 a 5, 6 a 10, mais de 10), com quantas estão atrasadas. |
+
+Regras importantes:
+
+- **Só entram as encomendas sem erros** (as mesmas dos «dados limpos»): linhas duplicadas ou
+  com datas inválidas distorceriam as taxas. O ecrã e o relatório dizem quantas ficaram de fora.
+  Por isso, os números do separador podem diferir dos cartões do topo, que contam todas as linhas.
+- Os filtros do topo também se aplicam ao separador.
+- Taxas com **menos de 5 entregas avaliadas** são assinaladas («Poucas entregas avaliadas») e
+  aparecem a cinzento no gráfico: servem de indicação, não de conclusão.
+- Clientes e destinos escritos de formas diferentes («Loja Ávila, Lda.» e «LOJA AVILA LDA») são
+  agrupados; mostra-se a grafia mais frequente.
+- Quando nenhuma pendente de um grupo tem prazo, a coluna «Atrasadas» fica vazia (desconhecido),
+  em vez de 0.
+
 ### Erros e avisos
 
 | Tipo | Gravidade | O que acontece à linha |
@@ -149,8 +185,17 @@ quantas eram.
   estados uniformizados), «Linhas com erros» (valores originais + motivo) e «Informação».
 - **Relatório (.xlsx):** «Resumo» (indicadores, regra de prazo usada, qualidade dos dados),
   «Por estado», «Atrasadas», «Problemas» e «Todas as encomendas».
+- **Relatório de desempenho (.xlsx):** «Resumo» (âmbito, base de cálculo, regra de prazo,
+  indicadores e como foram calculados), «Por período», «Por cliente», «Por destino», «Pendentes
+  por antiguidade» e «Entregas com atraso». Preparado para impressão (horizontal, ajustado à
+  largura da página).
+  - **Âmbito:** «Todos os clientes» ou **um só cliente**. No relatório de um cliente, os dados
+    são filtrados antes de qualquer cálculo: **não contém dados de outros clientes** (verificado
+    por testes automáticos), por isso pode ser enviado ao próprio cliente.
 
-As exportações incluem sempre todas as encomendas do ficheiro, independentemente dos filtros.
+As exportações incluem sempre todas as encomendas do ficheiro, independentemente dos filtros do
+topo (o relatório de desempenho usa as encomendas sem erros, de todos os clientes ou do cliente
+escolhido).
 
 ---
 
@@ -203,7 +248,9 @@ Inclui problemas colocados de propósito, para a demonstração:
 | 60 e 61 | Linha repetida por inteiro |
 
 Com a data de referência 20/10/2026 (usada automaticamente quando abre o exemplo), os indicadores
-são: 60 encomendas, 41 entregues, 11 pendentes, 8 atrasadas e 9 linhas com erros.
+são: 60 encomendas, 41 entregues, 11 pendentes, 8 atrasadas e 9 linhas com erros. No separador
+«Desempenho» (51 encomendas sem erros): 74,3 % de entregas no prazo (26 de 35), tempo médio de
+entrega de 3,3 dias e 9 entregas com atraso.
 
 Para voltar a gerar os ficheiros: `.venv\Scripts\python.exe scripts\gerar_exemplo.py`
 
@@ -218,17 +265,21 @@ Faça duplo clique em **`testar.bat`**, ou:
 .venv\Scripts\python.exe -m pytest
 ```
 
-São 100 testes, que verificam:
+São 128 testes, que verificam:
 
 - **Importação:** codificações, separadores, cabeçalho depois de um título, linhas vazias, colunas
   sem nome, ficheiros inválidos, demasiado grandes ou maliciosos, e fórmulas que não são executadas.
 - **Validação:** deteção de colunas, campos vazios, duplicados, datas válidas e inválidas, estados,
   e que nenhuma encomenda é dada como entregue sem o estado o dizer.
 - **Indicadores:** atrasos com data prevista, com prazo padrão e sem dados.
-- **Exportações:** nenhuma linha se perde, as datas ficam datas, nada é gravado como fórmula e o
-  relatório bate certo com os indicadores.
-- **Interface:** a aplicação abre, carrega o exemplo, os filtros atualizam os indicadores e as
-  exportações ficam disponíveis.
+- **Desempenho:** taxa no prazo e denominadores, tempos de entrega com datas incoerentes, exclusão
+  das linhas com erros, agrupamento por cliente/destino/semana/mês, antiguidade das pendentes e
+  casos sem datas («não disponível» em vez de valores inventados).
+- **Exportações:** nenhuma linha se perde, as datas ficam datas, nada é gravado como fórmula, o
+  relatório bate certo com os indicadores e o relatório de desempenho de um cliente não contém
+  dados de outros clientes.
+- **Interface:** a aplicação abre, carrega o exemplo, os filtros atualizam os indicadores e o
+  desempenho, e as exportações (incluindo o relatório por cliente) ficam disponíveis.
 
 ---
 
@@ -243,12 +294,15 @@ logiflow/
 │   ├── datas.py            ← interpretação de datas (dia/mês/ano)
 │   ├── validacao.py        ← vazios, duplicados, datas inválidas, avisos
 │   ├── indicadores.py      ← prazos, atrasos e indicadores
-│   ├── exportacao.py       ← Excel de dados limpos e relatório
+│   ├── desempenho.py       ← taxa no prazo, tempos de entrega, por cliente/destino/período
+│   ├── exportacao.py       ← Excel de dados limpos, relatório e relatório de desempenho
 │   └── exemplo.py          ← localização do ficheiro de exemplo
 ├── tests/                  ← testes automáticos (pytest)
 ├── dados_exemplo/          ← ficheiros de exemplo (dados fictícios)
 ├── scripts/gerar_exemplo.py← gera os ficheiros de exemplo
 ├── docs/                   ← capturas de ecrã
+├── ROTEIRO.md              ← avaliação das próximas melhorias
+├── DEMONSTRACAO.md         ← guião de demonstração a clientes
 ├── .streamlit/config.toml  ← configuração (só localhost, sem estatísticas, tema)
 ├── instalar.bat / iniciar.bat / testar.bat  ← atalhos para Windows
 ├── requirements.txt        ← dependências da aplicação
@@ -273,8 +327,15 @@ Estas funcionalidades **não estão implementadas** nesta versão:
 - **Importar vários ficheiros de uma vez** ou juntar ficheiros.
 - **Exportar só as encomendas filtradas**, ou exportar em CSV ou PDF (exporta-se sempre o
   ficheiro completo, em Excel).
-- **Utilizadores, palavras-passe ou acesso por várias pessoas na rede.**
+- **Utilizadores, palavras-passe, acesso por várias pessoas na rede ou separação de dados por
+  empresa.** A aplicação **não** está preparada para utilização empresarial multiutilizador.
 - **Integrações** com transportadoras, GPS, mapas, rotas, faturação, e-mail ou SMS.
+- **Histórico de importações e comparação entre ficheiros** (por exemplo, esta semana face à
+  anterior): o desempenho é calculado só sobre o ficheiro aberto. Ver [ROTEIRO.md](ROTEIRO.md).
+- **Relatório em PDF, logótipo ou personalização da empresa** e **painel de exceções com
+  prioridades**: avaliados em [ROTEIRO.md](ROTEIRO.md), não implementados.
+- **Configurar os limites do desempenho** (mínimo de 5 entregas avaliadas; faixas de
+  antiguidade 2/5/10 dias): são fixos nesta versão.
 - **Datas guardadas como número** (por exemplo, `45930`) não são convertidas, porque não é
   possível ter a certeza de que são datas: aparecem como data inválida.
 - **Fórmulas do Excel sem valor guardado** (ficheiros gerados por outros programas) aparecem
@@ -304,4 +365,5 @@ Outras limitações:
 
 ## Demonstração a clientes
 
-Ver [DEMONSTRACAO.md](DEMONSTRACAO.md): guião de 10 minutos com o ficheiro de exemplo.
+Ver [DEMONSTRACAO.md](DEMONSTRACAO.md): guião de 12 minutos com o ficheiro de exemplo, incluindo
+o desempenho e o relatório por cliente.

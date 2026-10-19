@@ -1,17 +1,20 @@
-# Guião de demonstração do LogiFlow (cerca de 10 minutos)
+# Guião de demonstração do LogiFlow (cerca de 12 minutos)
 
 Objetivo: mostrar a um potencial cliente (uma transportadora ou distribuidora) que o LogiFlow
-transforma uma folha de Excel desarrumada em números fiáveis e num relatório pronto a enviar,
-sem inventar dados.
+transforma uma folha de Excel desarrumada em números fiáveis, mede o nível de serviço e produz
+relatórios prontos a enviar — incluindo um relatório para cada cliente dele — sem inventar dados.
 
 ## Antes da reunião (15 minutos, no dia anterior)
 
 1. Instale e abra a aplicação no portátil que vai usar (`instalar.bat`, depois `iniciar.bat`).
 2. Clique em «Experimentar com o ficheiro de exemplo» e confirme que vê **60 encomendas,
    41 entregues, 11 pendentes, 8 atrasadas e 9 linhas com erros**.
-3. Descarregue uma vez o relatório e os dados limpos, para confirmar que o Excel os abre.
-4. Use o browser em ecrã inteiro (F11) e feche os outros separadores.
-5. Se possível, peça ao cliente um **ficheiro real de exportação** (pode ser só um mês). Teste-o
+3. Descarregue uma vez o relatório, os dados limpos e o relatório de desempenho de um cliente,
+   para confirmar que o Excel os abre.
+4. No separador «Desempenho», confirme **74,3 % de entregas no prazo (26 de 35)**, **3,3 dias**
+   de tempo médio de entrega e **9 entregas com atraso**.
+5. Use o browser em ecrã inteiro (F11) e feche os outros separadores.
+6. Se possível, peça ao cliente um **ficheiro real de exportação** (pode ser só um mês). Teste-o
    antes da reunião, porque o cabeçalho pode precisar de ser escolhido em «Correspondência de
    colunas».
 
@@ -65,7 +68,21 @@ sem inventar dados.
     **não** é contada como entregue.
 - Mensagem-chave: **«Nenhum dado é apagado em silêncio.»**
 
-### 6. Exportar (1 minuto)
+### 6. Desempenho (2 minutos) — o argumento de venda
+
+> «Os vossos clientes perguntam-vos: “quantas das minhas encomendas chegaram a horas?”. Agora
+> têm a resposta em segundos.»
+
+- Abra o separador **Desempenho**: **74,3 % de entregas no prazo**, «26 de 35 entregas
+  avaliadas». Sublinhe que o denominador está sempre visível e que só entram as 51 encomendas
+  sem erros.
+- No gráfico por semana, aponte a primeira semana a cinzento, «0% (só 2)»: **com poucas
+  entregas, a aplicação avisa em vez de tirar conclusões.**
+- Em **Comparação → Cliente**, mostre que a «Ferragens Ponte Nova» tem 50 % no prazo em
+  8 entregas: «é com este cliente que têm de falar». Mude para **Destino**.
+- Mostre **Pendentes por antiguidade**: 5 pendentes com 6 a 10 dias, todas atrasadas.
+
+### 7. Exportar (2 minutos)
 
 - Separador **Exportar** → descarregue os **Dados limpos** e abra-os no Excel:
   - folha «Encomendas válidas» (51 linhas);
@@ -73,8 +90,12 @@ sem inventar dados.
   - folha «Informação», que confirma que 51 + 9 = 60.
 - Descarregue o **Relatório** e mostre a folha «Resumo»: pronto a enviar à direção ou ao cliente
   final.
+- Em **Relatório de desempenho**, escolha o âmbito **«Ferragens Ponte Nova»** e descarregue.
+  Abra-o: só tem as encomendas desse cliente (taxa no prazo, entregas com atraso, por semana e
+  por destino). Mensagem-chave: **«Pode enviar este ficheiro ao cliente: não tem dados de mais
+  ninguém.»**
 
-### 7. Fecho (1 minuto)
+### 8. Fecho (1 minuto)
 
 - Resuma: **importa → valida → mostra o que interessa → exporta**, sem instalar servidores nem
   pagar serviços externos, e com os dados a ficarem no computador da empresa.
@@ -86,7 +107,9 @@ sem inventar dados.
 | --- | --- |
 | «Funciona com o nosso Excel?» | Sim, se for .xlsx ou CSV. Os cabeçalhos são reconhecidos automaticamente ou escolhidos à mão. O .xls antigo tem de ser guardado como .xlsx. |
 | «Os dados vão para a nuvem?» | Não. A aplicação corre no computador e só aceita ligações dele próprio. Nada é guardado. |
-| «Guarda o histórico?» | Não nesta versão. É uma funcionalidade possível de acrescentar (ver README, «Funcionalidades não implementadas»). |
+| «Guarda o histórico?» | Não nesta versão. O desempenho é calculado sobre o ficheiro aberto; para comparar meses, importe um ficheiro com esse período. O histórico está avaliado no ROTEIRO, não implementado. |
+| «Dá um PDF com o nosso logótipo?» | Não nesta versão: o relatório de desempenho é em Excel, preparado para imprimir. O PDF está avaliado no ROTEIRO, não implementado. |
+| «Os números são fiáveis com poucos dados?» | A aplicação mostra sempre quantas entregas foram avaliadas e assinala taxas com menos de 5 entregas. |
 | «Dá para várias pessoas ao mesmo tempo?» | Não nesta versão: é uma aplicação local, para um posto de trabalho. |
 | «E se o ficheiro tiver erros?» | É para isso que serve: aponta cada erro com a linha, para o corrigir na origem, sem perder nada. |
 | «Liga-se ao nosso software ou às transportadoras?» | Não. Trabalha a partir de ficheiros exportados. |
