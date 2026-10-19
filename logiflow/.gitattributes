@@ -1,0 +1,3 @@
+# Os ficheiros .bat do Windows precisam de fins de linha CRLF. São guardados
+# assim no repositório e o Git não os converte (também ao descarregar em ZIP).
+*.bat -text

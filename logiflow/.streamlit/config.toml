@@ -1,0 +1,30 @@
+# Configuração do Streamlit para o LogiFlow.
+# Este ficheiro é lido automaticamente quando a aplicação é iniciada nesta pasta.
+
+[server]
+# Só este computador consegue abrir a aplicação (não fica visível na rede local).
+address = "localhost"
+# Porta: 8501. Se já estiver ocupada (outro LogiFlow aberto), usa-se a seguinte (8502...).
+# Tamanho máximo de cada ficheiro importado, em MB (a aplicação também o verifica).
+maxUploadSize = 20
+# Não perguntar o e-mail no primeiro arranque.
+showEmailPrompt = false
+
+[browser]
+# Não enviar estatísticas de utilização para o Streamlit.
+gatherUsageStats = false
+
+[client]
+# Menu simplificado, adequado a utilizadores finais.
+toolbarMode = "minimal"
+# As exportações fazem-se pelos botões de Excel da aplicação (com proteção contra fórmulas).
+disableDataExport = true
+# Não mostrar detalhes técnicos de erros internos (a aplicação mostra mensagens próprias).
+showErrorDetails = "none"
+
+[theme]
+base = "light"
+primaryColor = "#1F4E79"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F5F8"
+textColor = "#1B2430"

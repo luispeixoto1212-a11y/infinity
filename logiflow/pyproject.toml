@@ -1,0 +1,10 @@
+# Configuração dos testes automáticos (pytest).
+# Este projeto não é instalado como pacote; corre-se diretamente com "streamlit run app.py".
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = [
+    "ignore:.*missing ScriptRunContext.*",
+]

@@ -198,6 +198,10 @@ O workflow `ci.yml` verifica tipos, testes unitários e build em cada push e, a 
 2. **Fase 5**: tutorial inicial, desempenho, inglês e espanhol.
 3. **Sistema Solar (complementos)**: sombras e eclipses, formas irregulares dos pequenos corpos em 3D.
 
+## Outros projetos neste repositório
+
+- **[LogiFlow](logiflow/README.md)** (pasta `logiflow/`): gestor de encomendas e entregas para pequenas transportadoras, em Python e Streamlit. É independente do atlas e tem instruções próprias.
+
 ## Créditos
 
 Ver [CREDITS.md](CREDITS.md).

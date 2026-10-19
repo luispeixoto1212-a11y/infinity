@@ -1,0 +1,68 @@
+name: LogiFlow
+
+# Corre só quando há alterações na pasta logiflow/ (ou neste ficheiro).
+on:
+  push:
+    paths:
+      - "logiflow/**"
+      - ".github/workflows/logiflow.yml"
+  pull_request:
+    paths:
+      - "logiflow/**"
+      - ".github/workflows/logiflow.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: logiflow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: logiflow/requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest
+
+  windows-arranque:
+    # Reproduz o que o utilizador faz no Windows: instalar.bat e depois iniciar.bat.
+    name: Instalar e iniciar no Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: logiflow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: instalar.bat
+        shell: cmd
+        run: call instalar.bat < NUL
+      - name: iniciar.bat e confirmar que a aplicação responde
+        shell: pwsh
+        run: |
+          $processo = Start-Process -FilePath cmd.exe -ArgumentList '/c', 'iniciar.bat' -PassThru -WindowStyle Hidden
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            try {
+              $resposta = Invoke-WebRequest -Uri 'http://localhost:8501/_stcore/health' -UseBasicParsing -TimeoutSec 5
+              if ($resposta.Content -eq 'ok') { $ok = $true; break }
+            } catch { }
+          }
+          Stop-Process -Id $processo.Id -Force -ErrorAction SilentlyContinue
+          Get-Process -Name python -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { Write-Error 'A aplicação não respondeu em http://localhost:8501'; exit 1 }
+          Write-Output 'A aplicação respondeu: ok'

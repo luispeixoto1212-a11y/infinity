@@ -1,0 +1,5 @@
+# Dependências da aplicação (versões fixas e testadas).
+streamlit==1.66.0   # interface gráfica no navegador
+pandas==3.0.6       # tabela de encomendas, pesquisa e filtros
+openpyxl==3.1.5     # leitura e escrita de ficheiros Excel (.xlsx)
+defusedxml==0.7.1   # segurança: o openpyxl usa-o para recusar ficheiros Excel com XML malicioso

@@ -1,0 +1,5 @@
+# Ambiente virtual e ficheiros temporários do Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
