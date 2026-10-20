@@ -13,11 +13,15 @@ Princípios:
   outra pasta; os testes usam-na para trabalhar em pastas temporárias.
 * O esquema é versionado (``PRAGMA user_version``) e só evolui por migrações
   explícitas e não destrutivas. Antes de migrar uma base de dados com dados, é
-  feita uma cópia de segurança automática.
+  feita uma cópia de segurança automática (validada).
 * Uma base de dados danificada, de outra aplicação ou de uma versão mais recente
   **nunca** é substituída nem apagada: a operação é recusada com uma mensagem.
 * Cada operação abre e fecha a sua própria ligação; as alterações de vários
   registos fazem-se numa transação; as consultas são sempre parametrizadas.
+* Uma cópia de um ficheiro SQLite é escrita primeiro com o sufixo ``.parcial`` e só
+  recebe o nome final depois de validada: uma cópia interrompida nunca parece válida.
+* Durante uma recuperação de cópia de segurança, um ficheiro de «manutenção» ao lado da
+  base de dados impede as outras janelas de gravar (verificado dentro de cada transação).
 """
 
 from __future__ import annotations
@@ -25,9 +29,12 @@ from __future__ import annotations
 import contextlib
 import datetime as dt
 import errno
+import json
 import os
 import sqlite3
 import sys
+import threading
+import time
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -37,11 +44,26 @@ NOME_BASE_DADOS = "logiflow.db"
 NOME_PASTA_COPIAS = "copias"
 VARIAVEL_PASTA = "LOGIFLOW_DADOS"
 APLICACAO_ID = 0x4C474657  # «LGFW»: identifica um ficheiro SQLite como base de dados do LogiFlow
-TEMPO_ESPERA_S = 5.0       # espera máxima por uma base de dados ocupada por outra janela
-MINUTOS_ATE_INTERROMPIDA = 10
+TEMPO_ESPERA_S = 5.0       # espera máxima, por operação, por uma base de dados ocupada por outra janela
+TEMPO_MAXIMO_OCUPADA_S = 30.0  # numa cópia (API de cópia do SQLite): desiste se continuar ocupada
+MINUTOS_ATE_INTERROMPIDA = 2   # gravar 100 000 encomendas demora ~1,5 s: 2 minutos é muito folgado
+SEGUNDOS_MANUTENCAO_ABANDONADA = 60  # o bloqueio de manutenção é renovado a cada 5 s enquanto dura
+HORAS_ATE_LIMPAR_TEMPORARIOS = 1
 TAMANHO_MAXIMO_MENSAGEM = 500
 
-TABELAS_OBRIGATORIAS = frozenset({"importacoes", "encomendas_historico", "eventos"})
+SUFIXO_PARCIAL = ".parcial"
+SUFIXO_MANUTENCAO = ".manutencao"
+PREFIXO_TEMPORARIO = ".recuperacao-"
+SUFIXOS_AUXILIARES = ("-wal", "-shm", "-journal")
+CABECALHO_SQLITE = b"SQLite format 3\x00"
+
+TABELAS_POR_ESQUEMA = {
+    1: frozenset({"importacoes", "encomendas_historico", "eventos"}),
+    2: frozenset({"preferencias", "eliminacoes"}),
+}
+TABELAS_OBRIGATORIAS = TABELAS_POR_ESQUEMA[1]  # as do primeiro esquema (ver ``tabelas_obrigatorias``)
+
+_WINERROR_EM_USO = {32, 33}  # ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION
 
 
 class ErroPersistencia(Exception):
@@ -53,6 +75,14 @@ class BaseDadosDanificada(ErroPersistencia):
 
 
 class BaseDadosIncompativel(ErroPersistencia):
+    pass
+
+
+class BaseDadosOcupada(ErroPersistencia):
+    pass
+
+
+class ManutencaoEmCurso(ErroPersistencia):
     pass
 
 
@@ -103,6 +133,64 @@ def criar_pasta(pasta: Path) -> Path:
     return pasta
 
 
+# Bloqueio de manutenção (recuperação de cópias) ---------------------------------------
+
+def caminho_manutencao(caminho_db: Path) -> Path:
+    return Path(f"{caminho_db}{SUFIXO_MANUTENCAO}")
+
+
+def manutencao_ativa(caminho_db: Path) -> bool:
+    """Há uma recuperação em curso noutra janela? Um bloqueio sem sinal de vida há mais
+    de ``SEGUNDOS_MANUTENCAO_ABANDONADA`` (a janela foi fechada a meio) é ignorado."""
+    try:
+        idade = time.time() - caminho_manutencao(caminho_db).stat().st_mtime
+    except (FileNotFoundError, NotADirectoryError):
+        return False
+    return idade <= SEGUNDOS_MANUTENCAO_ABANDONADA
+
+
+MENSAGEM_MANUTENCAO = ("Está a decorrer uma recuperação de cópia de segurança noutra janela do LogiFlow. "
+                       "Nada foi gravado; tente de novo dentro de momentos.")
+
+
+@contextlib.contextmanager
+def bloqueio_manutencao(caminho_db: Path, operacao: str) -> Iterator[Path]:
+    """Impede as outras janelas de gravar enquanto dura (ver ``transacao``). Um fio de
+    execução renova o ficheiro a cada 5 s; se a aplicação for fechada a meio, o bloqueio
+    fica abandonado e deixa de contar ao fim de ``SEGUNDOS_MANUTENCAO_ABANDONADA``."""
+    ficheiro = caminho_manutencao(caminho_db)
+    criar_pasta(ficheiro.parent)
+    try:
+        descritor = os.open(ficheiro, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        if manutencao_ativa(caminho_db):
+            raise ManutencaoEmCurso("Já está a decorrer uma recuperação de cópia de segurança noutra janela "
+                                    "do LogiFlow. Espere que termine.") from None
+        ficheiro.unlink(missing_ok=True)  # abandonado por uma janela fechada a meio
+        try:
+            descritor = os.open(ficheiro, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            raise ManutencaoEmCurso("Já está a decorrer uma recuperação de cópia de segurança noutra janela "
+                                    "do LogiFlow. Espere que termine.") from None
+    with os.fdopen(descritor, "w", encoding="utf-8") as saida:
+        json.dump({"operacao": operacao, "inicio": agora_utc()}, saida)
+    parar = threading.Event()
+
+    def renovar() -> None:
+        while not parar.wait(5):
+            with contextlib.suppress(OSError):
+                os.utime(ficheiro)
+
+    fio = threading.Thread(target=renovar, name="logiflow-manutencao", daemon=True)
+    fio.start()
+    try:
+        yield ficheiro
+    finally:
+        parar.set()
+        fio.join()
+        ficheiro.unlink(missing_ok=True)
+
+
 # Ligações e transações -------------------------------------------------------------
 
 def agora_utc() -> str:
@@ -114,7 +202,7 @@ def ligar(caminho: Path, *, so_leitura: bool = False) -> Iterator[sqlite3.Connec
     """Ligação à base de dados, sempre fechada no fim.
 
     ``so_leitura`` abre o ficheiro sem o poder alterar nem criar (usado para validar
-    cópias de segurança).
+    cópias de segurança: não lê nem altera ficheiros ``-wal``).
     """
     if so_leitura:
         ligacao = sqlite3.connect(f"{Path(caminho).resolve().as_uri()}?mode=ro&immutable=1", uri=True,
@@ -129,11 +217,22 @@ def ligar(caminho: Path, *, so_leitura: bool = False) -> Iterator[sqlite3.Connec
         ligacao.close()
 
 
+def _recusar_durante_manutencao(ligacao: sqlite3.Connection) -> None:
+    ficheiro = ligacao.execute("PRAGMA database_list").fetchone()[2]
+    if ficheiro and manutencao_ativa(Path(ficheiro)):
+        raise ManutencaoEmCurso(MENSAGEM_MANUTENCAO)
+
+
 @contextlib.contextmanager
 def transacao(ligacao: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
-    """Tudo ou nada: confirma no fim ou desfaz se ocorrer qualquer erro."""
+    """Tudo ou nada: confirma no fim ou desfaz se ocorrer qualquer erro.
+
+    Já com o bloqueio de escrita do SQLite, verifica se há uma recuperação em curso noutra
+    janela; se houver, não grava nada. Como a recuperação espera pelas gravações que já
+    começaram antes de copiar a base atual, nenhuma gravação se perde entre as duas."""
     ligacao.execute("BEGIN IMMEDIATE")
     try:
+        _recusar_durante_manutencao(ligacao)
         yield ligacao
     except BaseException:
         ligacao.execute("ROLLBACK")
@@ -142,27 +241,48 @@ def transacao(ligacao: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
 
 
 def mensagem_segura(erro: BaseException) -> str:
-    """Mensagem curta para guardar: as mensagens próprias da aplicação (que não contêm
-    dados das encomendas) ou apenas o tipo de erro técnico."""
+    """Mensagem curta para mostrar e guardar: as mensagens próprias da aplicação (que não
+    contêm dados das encomendas) ou uma explicação do problema técnico."""
     from .importacao import ErroImportacao  # importação local: evita dependência circular
 
+    texto_erro = str(erro).lower()
     if isinstance(erro, (ErroImportacao, ErroPersistencia)):
         texto = str(erro)
-    elif isinstance(erro, sqlite3.OperationalError) and "locked" in str(erro).lower():
+    elif isinstance(erro, sqlite3.OperationalError) and ("locked" in texto_erro or "busy" in texto_erro):
         texto = "A base de dados estava ocupada por outra janela do LogiFlow."
+    elif isinstance(erro, sqlite3.OperationalError) and "unable to open" in texto_erro:
+        texto = ("Não foi possível abrir a base de dados do histórico: a pasta pode não estar acessível ou o "
+                 "ficheiro estar a ser usado por outro programa.")
+    elif isinstance(erro, sqlite3.DatabaseError) and "disk i/o" in texto_erro:
+        texto = "Erro de leitura ou escrita no disco."
+    elif isinstance(erro, PermissionError) and getattr(erro, "winerror", None) in _WINERROR_EM_USO:
+        texto = ("O ficheiro está a ser usado por outro programa (por exemplo, outra janela do LogiFlow, um "
+                 "antivírus ou um programa de sincronização). Feche-o e tente de novo.")
     elif isinstance(erro, PermissionError):
-        texto = "Sem permissão para escrever na pasta de dados do LogiFlow."
+        texto = ("Sem permissão para alterar o ficheiro ou a pasta (pode também estar a ser usado por outro "
+                 "programa, como outra janela do LogiFlow ou um antivírus).")
+    elif isinstance(erro, FileNotFoundError):
+        texto = ("Uma pasta ou um ficheiro deixou de estar disponível (por exemplo, uma pen USB retirada). "
+                 "Verifique e tente de novo.")
     elif isinstance(erro, OSError) and erro.errno == errno.ENOSPC:
         texto = "Não há espaço livre no disco."
-    elif isinstance(erro, sqlite3.DatabaseError) and "full" in str(erro).lower():
+    elif isinstance(erro, OSError) and erro.errno == errno.EROFS:
+        texto = "A pasta só permite leitura."
+    elif isinstance(erro, sqlite3.DatabaseError) and "full" in texto_erro:
         texto = "Não há espaço livre no disco."
     elif isinstance(erro, sqlite3.DatabaseError) and any(
-            sinal in str(erro).lower() for sinal in ("malformed", "not a database", "corrupt")):
+            sinal in texto_erro for sinal in ("malformed", "not a database", "corrupt")):
         texto = ("A base de dados do histórico não pode ser lida (pode estar danificada). Pode recuperar uma "
                  "cópia de segurança no separador «Histórico».")
     else:
         texto = f"Erro técnico ({type(erro).__name__})."
     return texto[:TAMANHO_MAXIMO_MENSAGEM]
+
+
+def base_danificada(erro: BaseException) -> bool:
+    """O erro indica que o ficheiro da base de dados está danificado?"""
+    return isinstance(erro, sqlite3.DatabaseError) and any(
+        sinal in str(erro).lower() for sinal in ("malformed", "not a database", "corrupt"))
 
 
 def registar_evento(ligacao: sqlite3.Connection, tipo: str, importacao_id: int | None = None,
@@ -241,11 +361,39 @@ _MIGRACAO_1 = (
     "CREATE INDEX ix_eventos_momento ON eventos (momento)",
 )
 
-MIGRACOES: dict[int, tuple[str, ...]] = {1: _MIGRACAO_1}
+# Esquema 2 (conservação de dados): só acrescenta colunas e tabelas.
+# * importacoes.dados_eliminados_em / motivo_eliminacao: as encomendas e o nome do ficheiro
+#   desta importação foram eliminados (por pedido ou por ter passado o prazo); os totais ficam.
+# * preferencias: definições (por exemplo, o prazo de conservação).
+# * eliminacoes: registo das importações eliminadas, identificadas pelo conteúdo e pelo momento
+#   (nunca só pelo n.º), para voltar a eliminá-las se uma cópia antiga for recuperada.
+_MIGRACAO_2 = (
+    "ALTER TABLE importacoes ADD COLUMN dados_eliminados_em TEXT",
+    "ALTER TABLE importacoes ADD COLUMN motivo_eliminacao TEXT",
+    """CREATE TABLE preferencias (
+        chave TEXT PRIMARY KEY,
+        valor TEXT,
+        alterada_em TEXT NOT NULL
+    )""",
+    """CREATE TABLE eliminacoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        momento TEXT NOT NULL,
+        impressao_digital TEXT NOT NULL,
+        iniciada_em TEXT NOT NULL,
+        motivo TEXT NOT NULL CHECK (motivo IN ('manual', 'prazo')),
+        UNIQUE (impressao_digital, iniciada_em)
+    )""",
+)
+
+MIGRACOES: dict[int, tuple[str, ...]] = {1: _MIGRACAO_1, 2: _MIGRACAO_2}
 
 
 def esquema_atual() -> int:
     return max(MIGRACOES)
+
+
+def tabelas_obrigatorias(versao: int) -> frozenset[str]:
+    return frozenset().union(*(t for n, t in TABELAS_POR_ESQUEMA.items() if n <= versao))
 
 
 @dataclass(frozen=True)
@@ -256,6 +404,12 @@ class InfoBaseDados:
     migrada_de: int | None
     copia_antes_da_migracao: Path | None
     interrompidas_marcadas: int
+    verificacao: str = "ok"           # resultado do PRAGMA quick_check («ok» ou o primeiro erro)
+    temporarios_limpos: int = 0
+
+    @property
+    def integra(self) -> bool:
+        return self.verificacao == "ok"
 
 
 def ler_identificacao(ligacao: sqlite3.Connection) -> tuple[int, int, set[str]]:
@@ -281,48 +435,177 @@ def verificar_compatibilidade(app_id: int, versao: int, tabelas: set[str], descr
         raise BaseDadosIncompativel(
             f"{descricao} foi criada por uma versão mais recente do LogiFlow (esquema {versao}; esta versão "
             f"conhece até ao {esquema_atual()}). Atualize a aplicação. Nada foi alterado.")
-    em_falta = TABELAS_OBRIGATORIAS - tabelas
-    if versao >= 1 and em_falta:
+    if versao >= 1 and tabelas_obrigatorias(versao) - tabelas:
         raise BaseDadosIncompativel(f"{descricao} está incompleta (faltam tabelas). Não foi alterada.")
     return False
 
 
-def copiar_sqlite(origem: Path, destino: Path, *, origem_so_leitura: bool = False) -> None:
-    """Cópia consistente (API de cópia do SQLite) para um ficheiro **novo**, num só ficheiro
-    autónomo (modo de diário DELETE). Nunca sobrescreve um ficheiro existente.
+def verificar_integridade(ligacao: sqlite3.Connection, rapida: bool = False) -> str:
+    """``"ok"`` ou a primeira mensagem de erro do ``PRAGMA integrity_check`` (ou ``quick_check``)."""
+    resultado = ligacao.execute(f"PRAGMA {'quick_check' if rapida else 'integrity_check'}").fetchall()
+    return "ok" if resultado == [("ok",)] else str(resultado[0][0])
 
-    ``origem_so_leitura`` lê a origem sem a poder alterar (usado com cópias de segurança)."""
-    with open(destino, "xb"):  # criação exclusiva: falha se já existir
+
+# Exame de ficheiros e cópias -------------------------------------------------------------
+
+@dataclass(frozen=True)
+class ExameBaseDados:
+    caminho: Path
+    valida: bool
+    mensagem: str
+    versao_esquema: int | None = None
+    importacoes: int | None = None
+    com_erros: bool = False     # danificada: não pode ser lida ou falhou a verificação de integridade
+    incompativel: bool = False  # legível, mas de outra aplicação, de uma versão mais recente ou incompleta
+
+
+def examinar_base_dados(caminho: Path, descricao: str = "A cópia") -> ExameBaseDados:
+    """Verifica um ficheiro sem o alterar (abre-o só para leitura): cabeçalho SQLite,
+    identificação do LogiFlow, esquema conhecido, tabelas e integridade."""
+    caminho = Path(caminho)
+    if not caminho.is_file():
+        return ExameBaseDados(caminho, False, "O ficheiro não existe.")
+    try:
+        with open(caminho, "rb") as ficheiro:
+            cabecalho = ficheiro.read(len(CABECALHO_SQLITE))
+    except OSError:
+        return ExameBaseDados(caminho, False, "Não foi possível ler o ficheiro.")
+    if cabecalho != CABECALHO_SQLITE:
+        return ExameBaseDados(caminho, False, "O ficheiro não é uma base de dados SQLite.")
+    try:
+        with ligar(caminho, so_leitura=True) as ligacao:
+            app_id, versao, tabelas = ler_identificacao(ligacao)
+            if verificar_compatibilidade(app_id, versao, tabelas, descricao):
+                return ExameBaseDados(caminho, False, f"{descricao} está vazia (não tem o histórico do LogiFlow).")
+            if verificar_integridade(ligacao) != "ok":
+                return ExameBaseDados(caminho, False, f"{descricao} está danificada (falhou a verificação de "
+                                      "integridade).", versao, com_erros=True)
+            total = ligacao.execute("SELECT COUNT(*) FROM importacoes").fetchone()[0]
+    except BaseDadosIncompativel as erro:
+        return ExameBaseDados(caminho, False, str(erro), incompativel=True)
+    except sqlite3.DatabaseError:
+        return ExameBaseDados(caminho, False, f"{descricao} está danificada ou não pode ser lida.", com_erros=True)
+    return ExameBaseDados(caminho, True, f"{descricao} é válida: esquema {versao}, {total} importação(ões).",
+                          versao, total)
+
+
+def _apagar_com_auxiliares(caminho: Path) -> None:
+    for sufixo in ("", *SUFIXOS_AUXILIARES):
+        Path(f"{caminho}{sufixo}").unlink(missing_ok=True)
+
+
+def publicar(parcial: Path, final: Path) -> None:
+    """Dá o nome final a um ficheiro acabado de escrever, **sem nunca substituir** um existente."""
+    if os.name == "nt":
+        os.rename(parcial, final)  # no Windows, falha se o destino já existir
+        return
+    try:
+        os.link(parcial, final)  # falha se o destino já existir
+    except FileExistsError:
+        raise
+    except OSError:  # sistemas de ficheiros sem ligações (por exemplo, pens USB em FAT/exFAT)
+        if final.exists():
+            raise FileExistsError(errno.EEXIST, "O ficheiro já existe", str(final)) from None
+        os.rename(parcial, final)
+        return
+    os.unlink(parcial)
+
+
+def copiar_paginas(fonte: sqlite3.Connection, alvo: sqlite3.Connection, paginas: int = -1) -> None:
+    """API de cópia do SQLite com limite de espera: se a base continuar ocupada por outra
+    janela durante mais de ``TEMPO_MAXIMO_OCUPADA_S``, desiste (o destino fica como estava)."""
+    desde: float | None = None
+
+    def progresso(estado: int, restantes: int, total: int) -> None:
+        nonlocal desde
+        if estado in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+            agora = time.monotonic()
+            desde = desde if desde is not None else agora
+            if agora - desde > TEMPO_MAXIMO_OCUPADA_S:
+                raise BaseDadosOcupada("A base de dados continuou ocupada por outra janela do LogiFlow. "
+                                       "Nada foi alterado; tente de novo dentro de momentos.")
+        else:
+            desde = None
+
+    fonte.backup(alvo, pages=paginas, progress=progresso, sleep=0.1)
+
+
+def copiar_sqlite(origem: Path, destino: Path, *, origem_so_leitura: bool = False,
+                  destino_se_com_erros: Path | None = None, validar: bool = True) -> ExameBaseDados:
+    """Cópia consistente (API de cópia do SQLite) para um ficheiro **novo** e autónomo
+    (modo de diário DELETE). Nunca sobrescreve um ficheiro existente.
+
+    A cópia é escrita em ``destino.parcial``, validada e só então publicada com o nome final.
+    Se a origem tiver erros de integridade, a cópia é publicada em ``destino_se_com_erros``
+    (quando indicado: pode servir para salvar dados) ou apagada. ``origem_so_leitura`` lê a
+    origem sem a poder alterar (usado com cópias de segurança)."""
+    if destino.exists():
+        raise FileExistsError(errno.EEXIST, "O ficheiro já existe", str(destino))
+    parcial = Path(f"{destino}{SUFIXO_PARCIAL}")
+    with open(parcial, "xb"):  # criação exclusiva: falha se já existir
         pass
     try:
         with ligar(origem, so_leitura=origem_so_leitura) as fonte:
-            alvo = sqlite3.connect(str(destino), isolation_level=None)
+            alvo = sqlite3.connect(str(parcial), timeout=TEMPO_ESPERA_S, isolation_level=None)
             try:
-                fonte.backup(alvo)
+                copiar_paginas(fonte, alvo)
                 alvo.execute("PRAGMA journal_mode = DELETE")
             finally:
                 alvo.close()
+        exame = examinar_base_dados(parcial) if validar else ExameBaseDados(parcial, True, "")
+        if exame.valida:
+            publicar(parcial, destino)
+            return ExameBaseDados(destino, True, exame.mensagem, exame.versao_esquema, exame.importacoes)
+        if exame.com_erros and destino_se_com_erros is not None:
+            publicar(parcial, destino_se_com_erros)
+            return ExameBaseDados(destino_se_com_erros, False, exame.mensagem, exame.versao_esquema,
+                                  com_erros=True)
+        raise ErroPersistencia(f"A cópia não passou a validação e foi descartada: {exame.mensagem}")
     except BaseException:
-        destino.unlink(missing_ok=True)  # só o ficheiro novo, criado agora, e incompleto
+        _apagar_com_auxiliares(parcial)  # só o ficheiro novo, criado agora, ainda sem nome final
         raise
 
 
 def nome_unico(pasta: Path, prefixo: str, momento: dt.datetime | None = None) -> Path:
-    """``prefixo-AAAAMMDD-HHMMSS.db``; se já existir, acrescenta ``-2``, ``-3``…"""
+    """``prefixo-AAAAMMDD-HHMMSS.db``; se já existir (ou estiver a ser escrito), acrescenta ``-2``…"""
     carimbo = (momento or dt.datetime.now()).strftime("%Y%m%d-%H%M%S")
     candidato = pasta / f"{prefixo}-{carimbo}.db"
     n = 2
-    while candidato.exists():
+    while candidato.exists() or Path(f"{candidato}{SUFIXO_PARCIAL}").exists():
         candidato = pasta / f"{prefixo}-{carimbo}-{n}.db"
         n += 1
     return candidato
 
 
+def limpar_temporarios(pasta: Path, horas: float = HORAS_ATE_LIMPAR_TEMPORARIOS) -> int:
+    """Apaga ficheiros temporários do próprio LogiFlow com mais de ``horas``: cópias que não
+    chegaram a ser publicadas (``logiflow-*.db.parcial``) e bases temporárias de recuperações
+    interrompidas (``.recuperacao-*``). Nenhum deles é a única cópia de dados: são cópias
+    incompletas ou cópias de uma cópia que continua a existir. Nunca toca noutros ficheiros."""
+    if not pasta.is_dir():
+        return 0
+    limite = time.time() - horas * 3600
+    apagados = 0
+    candidatos = [*pasta.glob(f"{PREFIXO_TEMPORARIO}*"), *pasta.glob(f"logiflow-*.db{SUFIXO_PARCIAL}*")]
+    for ficheiro in candidatos:
+        try:
+            if ficheiro.is_file() and ficheiro.stat().st_mtime < limite:
+                ficheiro.unlink()
+                apagados += 1
+        except OSError:
+            continue  # em uso ou sem permissão: fica para a próxima vez
+    return apagados
+
+
+# Criar ou atualizar a base de dados -----------------------------------------------------
+
 def preparar_base_dados(caminho: Path, *, copia_antes_de_migrar: bool = True) -> InfoBaseDados:
     """Cria ou atualiza a base de dados. Idempotente: pode ser chamada em cada arranque.
 
     Nunca substitui nem apaga uma base de dados existente: se estiver danificada ou for
-    incompatível, lança uma exceção e deixa o ficheiro como estava.
+    incompatível, lança uma exceção e deixa o ficheiro como estava. Se a estrutura estiver
+    legível mas a verificação rápida encontrar erros nos dados, não lança: devolve o
+    resultado em ``verificacao`` e não grava nada (a aplicação passa a modo só de leitura).
     """
     criar_pasta(caminho.parent)
     nova = not caminho.exists() or caminho.stat().st_size == 0
@@ -341,8 +624,13 @@ def preparar_base_dados(caminho: Path, *, copia_antes_de_migrar: bool = True) ->
     copia = None
     if not nova and versao < esquema_atual() and copia_antes_de_migrar:
         pasta_copias = criar_pasta(caminho.parent / NOME_PASTA_COPIAS)
-        copia = nome_unico(pasta_copias, f"logiflow-antes-migracao-v{versao}-para-v{esquema_atual()}")
-        copiar_sqlite(caminho, copia)
+        destino = nome_unico(pasta_copias, f"logiflow-antes-migracao-v{versao}-para-v{esquema_atual()}")
+        try:
+            copia = copiar_sqlite(caminho, destino).caminho
+        except ErroPersistencia as erro:
+            raise BaseDadosDanificada(
+                f"Não foi possível fazer a cópia de segurança antes de atualizar a base de dados ({erro}). "
+                "A base de dados não foi alterada.") from None
 
     with ligar(caminho) as ligacao:
         for numero in range(versao + 1, esquema_atual() + 1):
@@ -354,17 +642,29 @@ def preparar_base_dados(caminho: Path, *, copia_antes_de_migrar: bool = True) ->
                 if numero == 1:
                     ligacao.execute(f"PRAGMA application_id = {APLICACAO_ID}")
                 ligacao.execute(f"PRAGMA user_version = {numero}")
-                registar_evento(ligacao, "base_dados_criada" if numero == 1 else "migracao",
-                                detalhe=f"esquema {numero}")
-        ligacao.execute("PRAGMA journal_mode = WAL")
-        marcadas = marcar_interrompidas(ligacao)
+                if not nova:
+                    registar_evento(ligacao, "migracao", detalhe=f"esquema {numero}")
+                elif numero == esquema_atual():
+                    registar_evento(ligacao, "base_dados_criada", detalhe=f"esquema {numero}")
+        try:
+            verificacao = verificar_integridade(ligacao, rapida=True)
+        except sqlite3.DatabaseError as erro:
+            verificacao = str(erro)
+        marcadas = 0
+        if verificacao == "ok":
+            ligacao.execute("PRAGMA journal_mode = WAL")
+            marcadas = marcar_interrompidas(ligacao)
+    limpos = 0
+    if verificacao == "ok" and not manutencao_ativa(caminho):
+        limpos = limpar_temporarios(caminho.parent) + limpar_temporarios(caminho.parent / NOME_PASTA_COPIAS)
     return InfoBaseDados(caminho, esquema_atual(), nova, None if nova or versao == esquema_atual() else versao,
-                         copia, marcadas)
+                         copia, marcadas, verificacao, limpos)
 
 
-def marcar_interrompidas(ligacao: sqlite3.Connection, minutos: int = MINUTOS_ATE_INTERROMPIDA) -> int:
+def marcar_interrompidas(ligacao: sqlite3.Connection, minutos: float | None = None) -> int:
     """Importações que ficaram «em processamento» (a aplicação foi fechada a meio) passam a
     «falhada». Os dados dessas importações nunca chegaram a ser confirmados."""
+    minutos = MINUTOS_ATE_INTERROMPIDA if minutos is None else minutos
     limite = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=minutos)).isoformat(timespec="seconds")
     with transacao(ligacao):
         cursor = ligacao.execute(
@@ -373,9 +673,3 @@ def marcar_interrompidas(ligacao: sqlite3.Connection, minutos: int = MINUTOS_ATE
             (agora_utc(), "Interrompida antes de concluir (a aplicação foi fechada ou falhou). "
                           "Nenhum dado desta importação foi guardado.", limite))
     return cursor.rowcount
-
-
-def verificar_integridade(ligacao: sqlite3.Connection) -> str:
-    """``"ok"`` ou a primeira mensagem de erro do ``PRAGMA integrity_check``."""
-    resultado = ligacao.execute("PRAGMA integrity_check").fetchall()
-    return "ok" if resultado == [("ok",)] else str(resultado[0][0])

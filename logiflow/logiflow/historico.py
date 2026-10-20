@@ -202,7 +202,7 @@ class ResultadoRegisto:
 
 
 def _ultima_concluida(ligacao: sqlite3.Connection, antes_de: int | None = None) -> int | None:
-    sql = "SELECT MAX(id) FROM importacoes WHERE estado IN (?, ?)"
+    sql = "SELECT MAX(id) FROM importacoes WHERE estado IN (?, ?) AND dados_eliminados_em IS NULL"
     parametros: list = list(ESTADOS_CONCLUIDOS)
     if antes_de is not None:
         sql += " AND id < ?"
@@ -238,7 +238,8 @@ def registar_importacao(caminho_db: Path, dados: DadosImportacao) -> ResultadoRe
         with transacao(ligacao):
             existente = ligacao.execute(
                 "SELECT id, estado, iniciada_em FROM importacoes WHERE impressao_digital = ? AND estado IN (?, ?, ?) "
-                "ORDER BY id LIMIT 1", (impressao, *ESTADOS_CONCLUIDOS, EM_PROCESSAMENTO)).fetchone()
+                "AND dados_eliminados_em IS NULL ORDER BY id LIMIT 1",  # dados eliminados: pode importar de novo
+                (impressao, *ESTADOS_CONCLUIDOS, EM_PROCESSAMENTO)).fetchone()
             if existente is not None:
                 registar_evento(ligacao, "importacao_repetida", existente[0])
                 if existente[1] == EM_PROCESSAMENTO:
@@ -319,7 +320,7 @@ COLUNAS_LISTA = ["id", "iniciada_em", "concluida_em", "nome_ficheiro", "origem",
                  "encomendas_validas", "linhas_com_erros", "linhas_com_avisos", "ind_entregues", "ind_pendentes",
                  "ind_atrasadas", "exc_alta", "exc_media", "exc_baixa", "data_referencia", "prazo_padrao_dias",
                  "importacao_anterior_id", "mensagem_erro", "folha", "mapeamento", "tamanho_bytes",
-                 "hash_conteudo", "versao_aplicacao", "versao_formato"]
+                 "hash_conteudo", "versao_aplicacao", "versao_formato", "dados_eliminados_em", "motivo_eliminacao"]
 
 
 def formatar_momento(iso: str | None) -> str:
@@ -375,11 +376,11 @@ def obter_importacao(caminho_db: Path, importacao_id: int) -> dict | None:
 
 
 def importacoes_concluidas(caminho_db: Path, limite: int = 500) -> pd.DataFrame:
-    """Importações que podem ser comparadas (as mais recentes primeiro)."""
+    """Importações que podem ser comparadas (concluídas e com dados; as mais recentes primeiro)."""
     with ligar(caminho_db) as ligacao:
         linhas = ligacao.execute(
             "SELECT id, iniciada_em, nome_ficheiro, linhas_lidas FROM importacoes WHERE estado IN (?, ?) "
-            "ORDER BY id DESC LIMIT ?", (*ESTADOS_CONCLUIDOS, int(limite))).fetchall()
+            "AND dados_eliminados_em IS NULL ORDER BY id DESC LIMIT ?", (*ESTADOS_CONCLUIDOS, int(limite))).fetchall()
     return pd.DataFrame(linhas, columns=["id", "iniciada_em", "nome_ficheiro", "linhas_lidas"])
 
 

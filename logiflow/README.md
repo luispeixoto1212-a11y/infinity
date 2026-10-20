@@ -33,6 +33,7 @@ em [ROTEIRO.md](ROTEIRO.md).
 | **Histórico de importações** guardado neste computador: lista com pesquisa e filtros, detalhes e encomendas guardadas | Separador «Histórico» (último) |
 | **Comparar duas importações**: encomendas novas, alteradas, sem alterações e não encontradas | Separador «Histórico» |
 | **Cópias de segurança** da base de dados e recuperação validada | Separador «Histórico» |
+| **Conservação dos dados**: prazo configurável e eliminação dos dados de uma importação, coerentes com as cópias | Separador «Histórico» |
 | Ficheiro de exemplo com dados fictícios (e o mesmo ficheiro «do dia seguinte») | Botão «Experimentar com o ficheiro de exemplo» |
 
 ---
@@ -85,7 +86,7 @@ SQLite faz parte do Python.
 A 1.2.0 não guardava dados, por isso não há nada a migrar. Nas atualizações seguintes, o histórico
 fica fora da pasta substituída e, se o formato da base de dados mudar, é atualizado
 automaticamente no arranque, com uma cópia de segurança feita antes. Detalhes em
-[docs/HISTORICO.md](docs/HISTORICO.md#11-atualizar-a-partir-da-versão-120).
+[docs/HISTORICO.md](docs/HISTORICO.md#13-atualizar-a-partir-da-versão-120).
 
 ### Alternativa: comandos no PowerShell
 
@@ -309,16 +310,26 @@ migrações, cópias e recuperação manual) em [docs/HISTORICO.md](docs/HISTORI
   n.º ou com n.º repetido em qualquer das duas importações **ficam de fora** e são listadas à
   parte; com mais de 20 % de linhas de fora, a comparação é assinalada como parcial. Espaços a mais,
   sinónimos de estado e formatos de data diferentes não contam como alterações.
+- **Conservação dos dados:** um **prazo de conservação** (sem limite por omissão; 3 a 36 meses),
+  aplicado sempre que a aplicação é aberta, e o botão **«Eliminar os dados desta importação»**, ambos
+  com confirmação. Ficam só as datas, o estado e os totais; o conteúdo apagado é sobrescrito no
+  ficheiro. As eliminações ficam registadas (sem dados pessoais) para **não voltarem** quando se
+  recupera uma cópia antiga. Ajuda a aplicar uma política de conservação, mas **não garante, por si
+  só, o cumprimento do RGPD**. Detalhes em [docs/HISTORICO.md](docs/HISTORICO.md#6-conservação-dos-dados-prazo-e-eliminação).
 - **Cópias de segurança:** botão «Criar cópia de segurança agora», para uma pasta à escolha
   (validada; por omissão `copias` junto do histórico). Cada cópia tem um nome com data e hora,
-  nunca substitui outra e é verificada logo a seguir. **Guarde cópias também noutro disco.**
-- **Recuperar uma cópia:** a cópia é validada e preparada num ficheiro temporário; só depois o
-  histórico atual é guardado à parte (`logiflow-antes-da-recuperacao-….db`) e substituído. Uma
+  nunca substitui outra e só aparece depois de verificada (uma cópia interrompida nunca parece
+  válida). A lista assinala as cópias que têm dados entretanto eliminados ou fora do prazo, e
+  permite apagá-las, com confirmação. **Guarde cópias também noutro disco.**
+- **Recuperar uma cópia:** a cópia é validada, preparada num ficheiro temporário e sujeita às
+  eliminações e ao prazo em vigor; só depois o histórico atual é guardado à parte e substituído —
+  as outras janelas não gravam durante a recuperação e a pasta nunca fica sem base de dados. Uma
   cópia inválida ou incompatível não altera nada. Há também um
-  [procedimento de recuperação manual](docs/HISTORICO.md#10-recuperação-manual-sem-a-aplicação).
+  [procedimento de recuperação manual](docs/HISTORICO.md#12-recuperação-manual-sem-a-aplicação).
 - **Se a base de dados estiver danificada**, a aplicação continua a funcionar (importar, validar,
-  exportar) e o separador «Histórico» explica o problema e permite recuperar uma cópia. A base
-  danificada nunca é apagada.
+  exportar) e o separador «Histórico» explica o problema e permite recuperar uma cópia. Com erros
+  só nos dados, o histórico fica **só de leitura** (nada é gravado). A base danificada nunca é
+  apagada: é guardada byte a byte antes de ser substituída.
 
 ---
 
@@ -331,10 +342,11 @@ migrações, cópias e recuperação manual) em [docs/HISTORICO.md](docs/HISTORI
   numa base de dados SQLite na pasta de dados do utilizador (`%LOCALAPPDATA%\LogiFlow`), com os
   7 campos de cada encomenda (incluindo cliente e destino, que podem ser dados pessoais) e os
   totais — **nunca** o ficheiro original nem as outras colunas. Pode desligar a gravação na barra
-  lateral. Nesta versão não há apagamento seletivo nem prazo de conservação automático: para
+  lateral, definir um prazo de conservação e eliminar os dados de uma importação (ver acima); para
   apagar tudo, feche a aplicação e apague essa pasta (ver
-  [docs/HISTORICO.md](docs/HISTORICO.md#apagar-todo-o-histórico)). A base de dados não é
-  encriptada: depende da proteção da conta do Windows.
+  [docs/HISTORICO.md](docs/HISTORICO.md#apagar-todo-o-histórico)). Estas funções ajudam a cumprir
+  uma política de conservação, mas **não são, por si só, garantia de cumprimento do RGPD**. A base
+  de dados não é encriptada: depende da proteção da conta do Windows.
 - **Base de dados:** consultas sempre parametrizadas, transações em todas as gravações,
   integridade referencial ligada e mensagens de erro guardadas sem dados das encomendas.
 - **Sem credenciais nem serviços pagos.**
@@ -411,9 +423,9 @@ Faça duplo clique em **`testar.bat`**, ou:
 .venv\Scripts\python.exe -m pytest
 ```
 
-São 285 testes: os 171 da versão 1.2.0 (um deles atualizado de propósito para exigir o separador
-«Histórico» no fim, depois dos restantes) e 114 novos do histórico. Um deles (pasta sem permissão de
-escrita) só corre em Linux/macOS sem privilégios de administrador. Verificam:
+São 353 testes: os 171 da versão 1.2.0 (um deles atualizado de propósito para exigir o separador
+«Histórico» no fim, depois dos restantes) e 182 novos do histórico. Dois deles (permissões de
+pastas) só correm em Linux/macOS, e um destes só sem privilégios de administrador. Verificam:
 
 - **Importação:** codificações, separadores, cabeçalho depois de um título, linhas vazias, colunas
   sem nome, ficheiros inválidos, demasiado grandes ou maliciosos, e fórmulas que não são executadas.
@@ -444,6 +456,13 @@ escrita) só corre em Linux/macOS sem privilégios de administrador. Verificam:
   substituída, pastas de dados em Windows/macOS/Linux, filtros do histórico isolados, exportações
   inalteradas e volumes de 100 000 encomendas. Os testes usam sempre pastas temporárias e
   verificam no fim que a pasta de dados real não foi tocada.
+- **Conservação e falhas (revisão da 1.3.0):** prazo de conservação e eliminação (incluindo que o
+  texto apagado deixa de estar no ficheiro), recuperação de cópias antigas sem fazer voltar dados
+  eliminados (também com a base danificada e na recuperação manual), migração real do esquema 1
+  para o 2, e **processos terminados de repente** a meio de uma importação, de uma recuperação (em
+  vários pontos), de uma cópia, de uma migração e de uma eliminação; outra janela a gravar durante
+  uma recuperação; base ocupada para lá do limite de espera; ficheiro em uso no Windows (simulado);
+  base com erros nos dados (modo só de leitura).
 
 No GitHub, o CI corre estes testes em Windows e Linux e, num Windows limpo, corre o `instalar.bat`,
 grava uma importação de exemplo na pasta de dados real (`%LOCALAPPDATA%\LogiFlow`), corre o
@@ -470,6 +489,7 @@ logiflow/
 │   ├── historico.py        ← gravar importações (transações, deduplicação) e consultar o histórico
 │   ├── comparacao.py       ← comparar duas importações
 │   ├── copias.py           ← cópias de segurança e recuperação
+│   ├── conservacao.py      ← prazo de conservação, eliminação e registo de eliminações
 │   └── exemplo.py          ← localização dos ficheiros de exemplo
 ├── tests/                  ← testes automáticos (pytest)
 ├── dados_exemplo/          ← ficheiros de exemplo (dados fictícios)
@@ -503,8 +523,9 @@ Estas funcionalidades **não estão implementadas** nesta versão:
 - **Utilizadores, palavras-passe, acesso por várias pessoas na rede ou separação de dados por
   empresa.** A aplicação **não** está preparada para utilização empresarial multiutilizador.
 - **Integrações** com transportadoras, GPS, mapas, rotas, faturação, e-mail ou SMS.
-- **Apagar importações do histórico** uma a uma, **prazo de conservação** automático e **cópias
-  de segurança automáticas periódicas** (só há a cópia automática antes de uma migração).
+- **Eliminar todos os dados de um cliente** em todas as importações (só por importação e por
+  prazo) e **cópias de segurança automáticas periódicas** (só há as cópias automáticas antes de uma
+  migração e de uma recuperação).
 - **Desempenho e exceções ao longo do tempo** a partir do histórico (gráficos de várias
   importações): o histórico guarda os totais de cada importação, mas o separador «Desempenho»
   continua a usar só o ficheiro aberto.
@@ -549,7 +570,9 @@ Outras limitações:
 | Abriu-se em <http://localhost:8502> | Já havia outro LogiFlow aberto. Pode fechar a janela preta mais antiga. |
 | Acentos trocados num CSV | No Excel, guarde com «CSV UTF-8 (delimitado por vírgulas)». |
 | «Faltam colunas obrigatórias» | Abra «Correspondência de colunas» e escolha a coluna certa para cada campo. |
-| «A base de dados do histórico não pode ser lida» | A aplicação continua a funcionar. No separador «Histórico», recupere uma cópia de segurança; ou siga a [recuperação manual](docs/HISTORICO.md#10-recuperação-manual-sem-a-aplicação). A base danificada não é apagada. |
+| «A base de dados do histórico não pode ser lida» ou «está só de leitura» | A aplicação continua a funcionar. No separador «Histórico», recupere uma cópia de segurança; ou siga a [recuperação manual](docs/HISTORICO.md#12-recuperação-manual-sem-a-aplicação). A base danificada não é apagada. |
+| «Está a decorrer uma recuperação de cópia de segurança noutra janela» | Espere que termine e tente de novo. Se a outra janela foi fechada a meio, o bloqueio deixa de contar ao fim de 1 minuto. |
+| «O ficheiro está a ser usado por outro programa» | Feche outras janelas do LogiFlow e programas que possam ter a base aberta (por exemplo, o DB Browser) e tente de novo. |
 | «A base de dados estava ocupada por outra janela» | Outra janela do LogiFlow estava a gravar. Carregue em «Tentar guardar de novo». |
 | Não quero guardar histórico | Desligue «Guardar importações no histórico» na barra lateral. |
 | O antivírus bloqueia o `.bat` | Os scripts só criam a pasta `.venv` e iniciam a aplicação; pode abri-los no Bloco de Notas para confirmar. Em alternativa, use os comandos do PowerShell acima. |

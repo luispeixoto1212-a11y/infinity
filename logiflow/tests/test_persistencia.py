@@ -26,11 +26,13 @@ def _hash(caminho: Path) -> str:
     return hashlib.sha256(caminho.read_bytes()).hexdigest()
 
 
-def _migracao_2(monkeypatch, instrucoes=None):
-    """Simula uma versão futura com um esquema 2 (só acrescenta, como as migrações reais)."""
+def _migracao_seguinte(monkeypatch, instrucoes=None) -> int:
+    """Simula uma versão futura com mais um esquema (só acrescenta, como as migrações reais)."""
     instrucoes = instrucoes or ("ALTER TABLE importacoes ADD COLUMN nota TEXT",
-                                "CREATE TABLE preferencias (chave TEXT PRIMARY KEY, valor TEXT)")
-    monkeypatch.setitem(P.MIGRACOES, 2, tuple(instrucoes))
+                                "CREATE TABLE futura (chave TEXT PRIMARY KEY, valor TEXT)")
+    numero = P.esquema_atual() + 1
+    monkeypatch.setitem(P.MIGRACOES, numero, tuple(instrucoes))
+    return numero
 
 
 # 1. Criação inicial ---------------------------------------------------------------------
@@ -39,15 +41,17 @@ def test_criacao_inicial_da_base_de_dados(pasta_dados_temporaria):
     caminho = P.caminho_base_dados()
     assert caminho.parent == pasta_dados_temporaria and not caminho.exists()
     info = P.preparar_base_dados(caminho)
-    assert info.criada and info.versao_esquema == P.esquema_atual() == 1 and info.migrada_de is None
-    assert info.copia_antes_da_migracao is None
+    assert info.criada and info.versao_esquema == P.esquema_atual() == 2 and info.migrada_de is None
+    assert info.copia_antes_da_migracao is None and info.integra
     with P.ligar(caminho) as ligacao:
         app_id, versao, tabelas = P.ler_identificacao(ligacao)
-        assert (app_id, versao) == (P.APLICACAO_ID, 1)
-        assert P.TABELAS_OBRIGATORIAS <= tabelas
+        assert (app_id, versao) == (P.APLICACAO_ID, 2)
+        assert P.TABELAS_OBRIGATORIAS <= tabelas and P.tabelas_obrigatorias(2) <= tabelas
+        assert {"preferencias", "eliminacoes"} <= tabelas
         assert ligacao.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         assert ligacao.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-        assert ligacao.execute("SELECT tipo, detalhe FROM eventos").fetchall() == [("base_dados_criada", "esquema 1")]
+        # Uma base nova regista a criação no esquema atual (não uma migração por cada esquema).
+        assert ligacao.execute("SELECT tipo, detalhe FROM eventos").fetchall() == [("base_dados_criada", "esquema 2")]
         assert P.verificar_integridade(ligacao) == "ok"
 
 
@@ -102,19 +106,21 @@ def test_transacao_desfaz_tudo_em_caso_de_erro(base_dados):
 def test_migracao_de_esquema_preserva_dados_e_faz_copia_antes(base_dados, monkeypatch):
     guardar(base_dados, CSV_SIMPLES)
     antes = H.carregar_fotografia(base_dados, 1)
-    _migracao_2(monkeypatch)
+    atual = P.esquema_atual()
+    seguinte = _migracao_seguinte(monkeypatch)
 
     info = P.preparar_base_dados(base_dados)
-    assert (info.criada, info.migrada_de, info.versao_esquema) == (False, 1, 2)
+    assert (info.criada, info.migrada_de, info.versao_esquema) == (False, atual, seguinte)
     copia = info.copia_antes_da_migracao
     assert copia is not None and copia.parent == base_dados.parent / P.NOME_PASTA_COPIAS
-    assert copia.name.startswith("logiflow-antes-migracao-v1-para-v2-")
+    assert copia.name.startswith(f"logiflow-antes-migracao-v{atual}-para-v{seguinte}-")
     with P.ligar(copia, so_leitura=True) as ligacao:  # a cópia ficou no esquema antigo, íntegra
-        assert P.ler_identificacao(ligacao)[1] == 1 and P.verificar_integridade(ligacao) == "ok"
+        assert P.ler_identificacao(ligacao)[1] == atual and P.verificar_integridade(ligacao) == "ok"
     with P.ligar(base_dados) as ligacao:
-        assert P.ler_identificacao(ligacao)[1] == 2
+        assert P.ler_identificacao(ligacao)[1] == seguinte
         assert "nota" in [c[1] for c in ligacao.execute("PRAGMA table_info(importacoes)")]
-        assert ligacao.execute("SELECT detalhe FROM eventos WHERE tipo = 'migracao'").fetchall() == [("esquema 2",)]
+        assert ligacao.execute("SELECT detalhe FROM eventos WHERE tipo = 'migracao'").fetchall() == [
+            (f"esquema {seguinte}",)]
     assert H.carregar_fotografia(base_dados, 1).equals(antes)
 
     # Reabrir de novo (próximo arranque): nada a migrar, nenhuma cópia nova.
@@ -125,19 +131,20 @@ def test_migracao_de_esquema_preserva_dados_e_faz_copia_antes(base_dados, monkey
 
 def test_migracao_que_falha_e_desfeita_e_a_base_fica_como_estava(base_dados, monkeypatch):
     guardar(base_dados, CSV_SIMPLES)
-    _migracao_2(monkeypatch, ("CREATE TABLE nova (x)", "ISTO NÃO É SQL"))
+    atual = P.esquema_atual()
+    _migracao_seguinte(monkeypatch, ("CREATE TABLE nova (x)", "ISTO NÃO É SQL"))
     with pytest.raises(sqlite3.OperationalError):
         P.preparar_base_dados(base_dados)
     with P.ligar(base_dados) as ligacao:
         _, versao, tabelas = P.ler_identificacao(ligacao)
-    assert versao == 1 and "nova" not in tabelas
+    assert versao == atual and "nova" not in tabelas
     assert len(H.carregar_fotografia(base_dados, 1)) == 2
 
 
 def test_base_de_versao_mais_recente_e_recusada_sem_alteracoes(base_dados, monkeypatch):
-    _migracao_2(monkeypatch)
+    seguinte = _migracao_seguinte(monkeypatch)
     P.preparar_base_dados(base_dados)
-    monkeypatch.delitem(P.MIGRACOES, 2)  # «voltar» a uma versão antiga da aplicação
+    monkeypatch.delitem(P.MIGRACOES, seguinte)  # «voltar» a uma versão antiga da aplicação
     assinatura = _hash(base_dados)
     with pytest.raises(P.BaseDadosIncompativel, match="versão mais recente"):
         P.preparar_base_dados(base_dados)
@@ -262,8 +269,28 @@ def test_duas_janelas_a_gravar_o_mesmo_ficheiro_ao_mesmo_tempo(base_dados):
 
 def test_mensagens_guardadas_nao_contem_dados_das_encomendas():
     assert P.mensagem_segura(RuntimeError("Cliente Secreto, Lda.")) == "Erro técnico (RuntimeError)."
-    assert P.mensagem_segura(PermissionError("C:/pasta")) == "Sem permissão para escrever na pasta de dados do LogiFlow."
     assert len(P.mensagem_segura(P.ErroPersistencia("x" * 2000))) == P.TAMANHO_MAXIMO_MENSAGEM
+
+
+def _erro_em_uso_windows() -> PermissionError:
+    erro = PermissionError(13, "O ficheiro está a ser utilizado por outro processo")
+    erro.winerror = 32  # ERROR_SHARING_VIOLATION
+    return erro
+
+
+@pytest.mark.parametrize("erro, esperado", [
+    (_erro_em_uso_windows(), "está a ser usado por outro programa"),
+    (PermissionError(13, "C:/pasta"), "Sem permissão para alterar o ficheiro ou a pasta"),
+    (FileNotFoundError(2, "D:/pen"), "deixou de estar disponível (por exemplo, uma pen USB retirada)"),
+    (sqlite3.OperationalError("unable to open database file"), "Não foi possível abrir a base de dados"),
+    (sqlite3.OperationalError("database is locked"), "ocupada por outra janela"),
+    (sqlite3.OperationalError("disk I/O error"), "Erro de leitura ou escrita no disco"),
+    (sqlite3.DatabaseError("database disk image is malformed"), "pode estar danificada"),
+    (OSError(28, "No space left on device"), "Não há espaço livre no disco"),
+])
+def test_mensagens_de_erro_explicam_o_problema(erro, esperado):
+    mensagem = P.mensagem_segura(erro)
+    assert esperado in mensagem and "C:/pasta" not in mensagem and "D:/pen" not in mensagem
 
 
 # 15. Caminhos de dados em Windows, macOS e Linux -----------------------------------------------------
@@ -322,5 +349,5 @@ def test_duas_janelas_a_arrancar_ao_mesmo_tempo(pasta_dados_temporaria):
         linha.join()
     assert not erros
     with P.ligar(caminho) as ligacao:
-        assert P.ler_identificacao(ligacao)[1] == 1
+        assert P.ler_identificacao(ligacao)[1] == P.esquema_atual()
         assert ligacao.execute("SELECT COUNT(*) FROM eventos WHERE tipo = 'base_dados_criada'").fetchone()[0] == 1

@@ -217,5 +217,8 @@ def comparar_importacoes(caminho_db: Path, id_anterior: int, id_atual: int) -> R
         return ResultadoComparacao(False, "Uma das importações escolhidas já não existe no histórico.")
     if info_anterior["estado"] not in ESTADOS_CONCLUIDOS or info_atual["estado"] not in ESTADOS_CONCLUIDOS:
         return ResultadoComparacao(False, "Só se podem comparar importações concluídas (as falhadas não têm dados).")
+    if info_anterior["dados_eliminados_em"] or info_atual["dados_eliminados_em"]:
+        return ResultadoComparacao(False, "Os dados de uma das importações escolhidas foram eliminados; não é "
+                                          "possível compará-la.")
     return comparar(carregar_fotografia(caminho_db, id_anterior), carregar_fotografia(caminho_db, id_atual),
                     campos_presentes(info_anterior), campos_presentes(info_atual))

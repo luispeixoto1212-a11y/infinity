@@ -26,8 +26,8 @@ justifica a compra («qual é o nosso nível de serviço, e onde falhamos?»), p
 entregável que a transportadora pode enviar a cada cliente, usa apenas dados já validados e
 não guarda dados nem acrescenta dependências. Serve ainda de base às melhorias 5 e 2.
 
-Ordem sugerida a seguir (atualizada na 1.3.0): **completar a 2 (apagamento e prazo de conservação)
-→ 3 → 5 → 6**.
+Ordem sugerida a seguir (atualizada na 1.3.0): **3 → 5 → 6**, completando a 2 com a eliminação
+por cliente quando houver uso com dados pessoais em escala.
 
 ---
 
@@ -84,11 +84,17 @@ Python. Documentação completa em [docs/HISTORICO.md](docs/HISTORICO.md).
 - Comparação: nova, alterada, sem alterações e não encontrada na importação atual (sem inferir
   entregas nem cancelamentos); n.ºs vazios ou repetidos ficam de fora; aviso de comparação parcial
   acima de 20 %.
-- Cópias de segurança com a API do SQLite, nomes únicos, validação, recuperação via ficheiro
-  temporário com preservação da base atual; procedimento manual documentado.
-- **Ficou por fazer** (riscos de RGPD ainda abertos): apagamento seletivo de importações, prazo de
-  conservação automático, cópias periódicas automáticas, encriptação da base de dados e gráficos
-  de evolução entre importações.
+- Cópias de segurança com a API do SQLite, nomes únicos, publicadas só depois de validadas;
+  recuperação via ficheiro temporário com preservação da base atual (byte a byte, se estiver
+  danificada), troca atómica, bloqueio de manutenção para as outras janelas e limite de espera;
+  verificação rápida no arranque (modo só de leitura com erros nos dados); procedimento manual
+  documentado. Testado com processos terminados de repente a meio de cada operação.
+- Conservação inicial: prazo configurável (3 a 36 meses ou sem limite), eliminação dos dados de uma
+  importação, conteúdo sobrescrito no ficheiro, registo de eliminações (sem dados pessoais) que
+  impede os dados eliminados de voltar ao recuperar cópias, e cópias assinaladas e apagadas a
+  pedido. Não é, por si só, garantia de cumprimento do RGPD.
+- **Ficou por fazer:** eliminação de todos os dados de um cliente, cópias periódicas automáticas,
+  encriptação da base de dados e gráficos de evolução entre importações.
 
 ## 3. Modelos de importação reutilizáveis
 

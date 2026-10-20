@@ -8,6 +8,8 @@ from pathlib import Path
 from openpyxl import load_workbook
 from streamlit.testing.v1 import AppTest
 
+from logiflow import conservacao as R
+from logiflow import copias
 from logiflow import historico as H
 from logiflow import persistencia as P
 from logiflow.exemplo import DATA_REFERENCIA_EXEMPLO, FICHEIRO_EXEMPLO_DIA2_XLSX, FICHEIRO_EXEMPLO_XLSX
@@ -252,7 +254,7 @@ def test_base_danificada_nao_impede_a_aplicacao_e_pode_ser_recuperada(pasta_dado
     assert any("O histórico não está disponível" in e.value for e in at.error)
     at.checkbox(key="hist_confirmar_recuperacao").check().run()
     at.button(key="hist_recuperar").click().run()
-    assert any("estava danificada e foi guardada à parte" in s.value for s in at.success)
+    assert any("os ficheiros originais foram guardados, sem alterações" in s.value for s in at.success)
     assert list(_lista(at)["Ficheiro"]) == ["dia1.xlsx"]  # o histórico é o da cópia, sem acrescentos
     assert any("não foi gravado outra vez" in m for m in _mensagens(at))
     at.button(key="hist_guardar_depois_de_recuperar").click().run()  # gravar o ficheiro aberto, a pedido
@@ -272,3 +274,116 @@ def test_pasta_de_dados_invalida_nao_impede_a_aplicacao(monkeypatch):
     at = _carregar(_app(), "dia1.xlsx", DIA1)
     assert not at.exception and [(m.label, m.value) for m in at.metric][0] == ("Encomendas", "60")
     assert any("caminho absoluto" in w.value for w in at.warning)
+
+
+# Conservação de dados e base com erros (revisão da 1.3.0) ------------------------------------------------
+
+def _envelhecer_importacao(importacao_id: int, iniciada_em: str = "2024-01-01T08:00:00+00:00") -> None:
+    with P.ligar(_base()) as ligacao, P.transacao(ligacao):
+        ligacao.execute("UPDATE importacoes SET iniciada_em = ? WHERE id = ?", (iniciada_em, importacao_id))
+
+
+def test_prazo_de_conservacao_pede_confirmacao_e_elimina(pasta_dados_temporaria):
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    _carregar(at, "dia2.xlsx", DIA2)
+    _envelhecer_importacao(1)
+    at.selectbox(key="hist_prazo").set_value(12).run()
+    assert any("os dados de 1 importação(ões)" in w.value for w in at.warning)
+    assert at.button(key="hist_guardar_prazo").disabled  # só depois de confirmar
+    at.checkbox(key="hist_confirmar_prazo").check().run()
+    at.button(key="hist_guardar_prazo").click().run()
+    assert not at.exception and any("Prazo de conservação" in s.value for s in at.success)
+    lista = _lista(at)
+    assert list(lista["Encomendas guardadas"]) == ["Sim", "Eliminadas"]
+    assert list(lista["Ficheiro"]) == ["dia2.xlsx", "(eliminado)"]
+    assert H.carregar_fotografia(_base(), 1).empty and R.ler_prazo(_base()) == 12
+    assert any("não garante, por si só, o cumprimento do RGPD" in c.value for c in at.caption)
+
+
+def test_prazo_sem_dados_afetados_nao_pede_confirmacao(pasta_dados_temporaria):
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    at.selectbox(key="hist_prazo").set_value(24).run()
+    assert not at.button(key="hist_guardar_prazo").disabled
+    at.button(key="hist_guardar_prazo").click().run()
+    assert R.ler_prazo(_base()) == 24 and len(H.carregar_fotografia(_base(), 1)) == 60
+
+
+def test_eliminar_uma_importacao_na_interface(pasta_dados_temporaria):
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    _carregar(at, "dia2.xlsx", DIA2)
+    at.selectbox(key="hist_detalhe").set_value(1).run()
+    assert at.button(key="hist_eliminar_importacao").disabled
+    at.checkbox(key="hist_confirmar_eliminacao").check().run()
+    at.button(key="hist_eliminar_importacao").click().run()
+    assert not at.exception and any("foram eliminados" in s.value for s in at.success)
+    detalhe = next(m.value for m in at.markdown if m.value.startswith("**Estado:**"))
+    assert "Dados eliminados" in detalhe and "pedido manual" in detalhe
+    assert not any(b.key == "hist_comparar_anterior" for b in at.button)
+    assert "São precisas pelo menos duas importações concluídas" in " ".join(c.value for c in at.caption)
+    assert H.carregar_fotografia(_base(), 1).empty and len(H.carregar_fotografia(_base(), 2)) == 62
+
+
+def test_copias_com_dados_eliminados_assinaladas_apagadas_e_reeliminadas(pasta_dados_temporaria):
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    _carregar(at, "dia2.xlsx", DIA2)
+    at.button(key="hist_criar_copia").click().run()  # cópia com as duas importações
+    R.eliminar_importacao(_base(), 1)
+    at.run()
+    tabela = next(d.value for d in at.dataframe if "Conservação" in d.value.columns)
+    assert list(tabela["Conservação"]) == ["Atenção: tem dados eliminados"]
+    # Recuperar essa cópia volta a eliminar os dados (não reaparecem).
+    at.checkbox(key="hist_confirmar_recuperacao").check().run()
+    at.button(key="hist_recuperar").click().run()
+    assert any("foram eliminados de novo" in s.value for s in at.success)
+    assert H.carregar_fotografia(_base(), 1).empty
+    # Apagar as cópias assinaladas (com confirmação); as outras ficam.
+    copias_antes = sorted(p.name for p in (pasta_dados_temporaria / "copias").glob("logiflow-*.db"))
+    assert at.button(key="hist_apagar_copias").disabled
+    at.checkbox(key="hist_confirmar_apagar_copias").check().run()
+    at.button(key="hist_apagar_copias").click().run()
+    restantes = sorted(p.name for p in (pasta_dados_temporaria / "copias").glob("logiflow-*.db"))
+    assert any("Foram apagadas" in s.value for s in at.success)
+    assert len(restantes) < len(copias_antes)
+    for nome in restantes:  # o que ficou não tem dados eliminados
+        assert not next(c for c in copias.avaliar_copias(pasta_dados_temporaria / "copias", _base())
+                        if c.caminho.name == nome).assinalada
+
+
+def test_conservacao_aplicada_ao_abrir_e_avisada(pasta_dados_temporaria):
+    _carregar(_app(), "dia1.xlsx", DIA1)
+    R.definir_prazo(_base(), 12)
+    _envelhecer_importacao(1)
+    at = _app()  # uma nova sessão (abrir a aplicação)
+    assert any("Ao abrir a aplicação, foram eliminados os dados de 1 importação" in i.value for i in at.info)
+    assert H.carregar_fotografia(_base(), 1).empty
+
+
+def test_base_com_erros_fica_so_de_leitura_na_interface(pasta_dados_temporaria):
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    at.button(key="hist_criar_copia").click().run()
+    with P.ligar(_base()) as ligacao:
+        ligacao.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        paginas = ligacao.execute("PRAGMA page_count").fetchone()[0]
+    dados = bytearray(_base().read_bytes())
+    meio = (paginas // 2) * 4096
+    dados[meio + 8:meio + 4096] = b"\x5a" * (4096 - 8)
+    _base().write_bytes(bytes(dados))
+
+    at = _carregar(_app(), "dia2.xlsx", DIA2)
+    assert not at.exception and [(m.label, m.value) for m in at.metric][0] == ("Encomendas", "62")
+    assert any("está só de leitura" in w.value for w in at.warning)
+    assert any("tem erros e está só de leitura" in e.value for e in at.error)
+    assert H.listar_importacoes(_base())[1] == 1  # nada foi gravado
+    # Uma cópia feita agora fica «com erros» (não é descartada) e a recuperação da boa repõe tudo.
+    at.button(key="hist_criar_copia").click().run()
+    assert any("não serve para recuperar o histórico" in e.value for e in at.error)
+    assert list((pasta_dados_temporaria / "copias").glob("logiflow-copia-com-erros-*.db"))
+    boa = next(c for c in copias.listar_copias(pasta_dados_temporaria / "copias")
+               if not c.name.startswith("logiflow-copia-com-erros"))
+    at.selectbox(key="hist_copia").set_value(boa.name).run()
+    at.checkbox(key="hist_confirmar_recuperacao").check().run()
+    at.button(key="hist_recuperar").click().run()
+    assert any("Histórico recuperado" in s.value for s in at.success)
+    assert not any("só de leitura" in e.value for e in at.error)
+    at.button(key="hist_guardar_depois_de_recuperar").click().run()
+    assert list(_lista(at)["Ficheiro"]) == ["dia2.xlsx", "dia1.xlsx"]

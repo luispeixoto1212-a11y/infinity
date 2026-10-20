@@ -135,10 +135,11 @@ def test_copia_de_outra_aplicacao_vazia_ou_mais_recente(base_dados, destino, mon
     vazia = destino / "logiflow-vazia.db"
     sqlite3.connect(vazia).close()
     assert vazia.stat().st_size == 0 and not B.validar_copia(vazia).valida
-    monkeypatch.setitem(P.MIGRACOES, 2, ("CREATE TABLE futura (x)",))
+    seguinte = P.esquema_atual() + 1
+    monkeypatch.setitem(P.MIGRACOES, seguinte, ("CREATE TABLE futura (x)",))
     P.preparar_base_dados(base_dados)
     futura = B.criar_copia(base_dados, destino).caminho
-    monkeypatch.delitem(P.MIGRACOES, 2)
+    monkeypatch.delitem(P.MIGRACOES, seguinte)
     info = B.validar_copia(futura)
     assert not info.valida and "versão mais recente" in info.mensagem
 
@@ -161,7 +162,7 @@ def test_recuperar_repoe_os_dados_e_guarda_a_base_atual(base_dados, destino):
     assert _nomes(base_dados) == ["dia2.csv", "dia1.csv"]
 
     resultado = B.restaurar_copia(base_dados, copia)
-    assert resultado.importacoes == 1 and not resultado.danificada_movida
+    assert resultado.importacoes == 1 and not resultado.base_anterior_danificada
     assert _nomes(base_dados) == ["dia1.csv"]
     assert len(H.carregar_fotografia(base_dados, 1)) == 1
     assert "foi guardada como «logiflow-antes-da-recuperacao-" in resultado.mensagem
@@ -202,24 +203,26 @@ def test_recuperar_com_a_base_atual_danificada(base_dados, destino):
         P.preparar_base_dados(base_dados)
 
     resultado = B.restaurar_copia(base_dados, copia)
-    assert resultado.danificada_movida and "estava danificada" in resultado.mensagem
-    assert _hash(resultado.preservada_em) == estragada  # movida, nunca apagada
+    assert resultado.base_anterior_danificada and "estava danificada" in resultado.mensagem
+    assert _hash(resultado.preservada_em) == estragada  # copiada byte a byte, nunca apagada
     assert resultado.preservada_em.name.startswith("logiflow-danificada-")
     assert _nomes(base_dados) == ["dia1.csv"]
 
 
 def test_recuperar_copia_de_esquema_anterior_atualiza_o_esquema(base_dados, destino, monkeypatch):
     guardar(base_dados, DIA1)
-    copia_v1 = B.criar_copia(base_dados, destino).caminho
-    monkeypatch.setitem(P.MIGRACOES, 2, ("ALTER TABLE importacoes ADD COLUMN nota TEXT",))
+    copia_antiga = B.criar_copia(base_dados, destino).caminho
+    antigo = P.esquema_atual()
+    seguinte = antigo + 1
+    monkeypatch.setitem(P.MIGRACOES, seguinte, ("ALTER TABLE importacoes ADD COLUMN nota TEXT",))
     P.preparar_base_dados(base_dados)
 
-    resultado = B.restaurar_copia(base_dados, copia_v1)
-    assert resultado.versao_copia == 1 and "atualizada para o 2" in resultado.mensagem
+    resultado = B.restaurar_copia(base_dados, copia_antiga)
+    assert resultado.versao_copia == antigo and f"atualizada para o {seguinte}" in resultado.mensagem
     with P.ligar(base_dados) as ligacao:
-        assert P.ler_identificacao(ligacao)[1] == 2
-    with P.ligar(copia_v1, so_leitura=True) as ligacao:
-        assert P.ler_identificacao(ligacao)[1] == 1  # a cópia ficou como estava
+        assert P.ler_identificacao(ligacao)[1] == seguinte
+    with P.ligar(copia_antiga, so_leitura=True) as ligacao:
+        assert P.ler_identificacao(ligacao)[1] == antigo  # a cópia ficou como estava
 
 
 def test_falha_no_fim_da_recuperacao_repoe_a_base_anterior(base_dados, destino, monkeypatch):
@@ -243,6 +246,7 @@ def test_falha_no_fim_da_recuperacao_repoe_a_base_anterior(base_dados, destino, 
 
 
 def test_falha_no_fim_com_a_base_danificada_deixa_a_danificada_no_lugar(base_dados, destino, monkeypatch):
+    """Alteração intencional (revisão da 1.3.0): a base danificada é copiada, não movida; a cópia fica."""
     guardar(base_dados, DIA1)
     copia = B.criar_copia(base_dados, destino).caminho
     base_dados.write_bytes(b"danificada" * 500)
@@ -255,7 +259,10 @@ def test_falha_no_fim_com_a_base_danificada_deixa_a_danificada_no_lugar(base_dad
     with pytest.raises(P.ErroPersistencia):
         B.restaurar_copia(base_dados, copia)
     assert _hash(base_dados) == estragada  # tal como estava, para recuperação manual
-    assert not list((base_dados.parent / P.NOME_PASTA_COPIAS).glob("logiflow-danificada-*"))
+    guardadas = list((base_dados.parent / P.NOME_PASTA_COPIAS).glob("logiflow-danificada-*.db"))
+    assert len(guardadas) == 1 and _hash(guardadas[0]) == estragada  # e também guardada à parte, igual
+    assert not list(base_dados.parent.glob(".recuperacao-*"))
+    assert not P.caminho_manutencao(base_dados).exists()  # o bloqueio foi libertado
 
 
 def test_recuperar_quando_ainda_nao_ha_base_de_dados(pasta_dados_temporaria, tmp_path, destino):

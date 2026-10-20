@@ -24,6 +24,7 @@ import pandas as pd
 import streamlit as st
 
 from logiflow import __version__, comparacao, copias
+from logiflow import conservacao as R
 from logiflow import campos as C
 from logiflow import desempenho as D
 from logiflow import excecoes as E
@@ -948,6 +949,15 @@ class _Historico:
     def disponivel(self) -> bool:
         return self.info is not None
 
+    @property
+    def so_leitura(self) -> bool:
+        """A base tem erros (verificação no arranque ou durante a sessão): nada é gravado nem eliminado."""
+        return self.disponivel and (not self.info.integra or bool(st.session_state.get("hist_danificada")))
+
+    @property
+    def gravavel(self) -> bool:
+        return self.disponivel and not self.so_leitura
+
 
 def _historico() -> _Historico:
     try:
@@ -958,10 +968,13 @@ def _historico() -> _Historico:
     if preparada is None or preparada[0] != str(caminho):
         try:
             with st.spinner("A preparar o histórico…"):
-                preparada = (str(caminho), P.preparar_base_dados(caminho))
+                info = P.preparar_base_dados(caminho)
+                # Uma vez por sessão: aplica o prazo de conservação e as eliminações registadas.
+                resumo = R.aplicar_conservacao(caminho) if info.integra else None
         except Exception as erro:  # noqa: BLE001 — sem histórico, o resto da aplicação continua a funcionar
             return _Historico(caminho, None, P.mensagem_segura(erro))  # volta a tentar na próxima interação
-        st.session_state.hist_base_preparada = preparada
+        preparada = st.session_state.hist_base_preparada = (str(caminho), info)
+        st.session_state.hist_conservacao_sessao = resumo
     return _Historico(caminho, preparada[1], None)
 
 
@@ -988,6 +1001,8 @@ def _gravar_importacao(hist: _Historico, chave: str, origem: str, nome: str, con
                                  prazo, origem)
         registo = H.registar_importacao(hist.caminho, dados)
     except Exception as erro:  # noqa: BLE001 — comunicado ao utilizador, nunca ignorado
+        if P.base_danificada(erro):  # a partir daqui, nesta sessão, o histórico fica só de leitura
+            st.session_state.hist_danificada = True
         registo = H.ResultadoRegisto(H.FALHOU, None, None,
                                      f"Não foi possível guardar no histórico: {P.mensagem_segura(erro)}")
     st.session_state[chave] = registo
@@ -1021,11 +1036,15 @@ def _mensagem_registo(hist: _Historico, exemplo: bool, chave: str) -> None:
     elif not hist.disponivel:
         st.warning(f"O histórico não está disponível, por isso esta importação não foi guardada: {_md(hist.erro)}",
                    icon=":material/warning:")
+    elif hist.so_leitura:
+        st.warning("A base de dados do histórico tem erros e está só de leitura, por isso esta importação não foi "
+                   "guardada. Pode recuperar uma cópia de segurança no separador «Histórico».",
+                   icon=":material/warning:")
 
 
 def _registar_falha_leitura(hist: _Historico, nome: str, conteudo: bytes, folha: str | None,
                             erro: ErroImportacao) -> None:
-    if not (st.session_state.guardar_historico and hist.disponivel):
+    if not (st.session_state.guardar_historico and hist.gravavel):
         return
     chave = f"historico_falha_{H.hash_conteudo(conteudo + (folha or '').encode())}"
     if chave not in st.session_state:
@@ -1065,6 +1084,8 @@ def _tabela_historico(lista: pd.DataFrame) -> pd.DataFrame:
         "Atrasadas": _inteiros(lista["ind_atrasadas"]),
         "Exceções (alta / média / baixa)": excecoes,
         "Data de referência": lista["data_referencia"].map(_data_iso),
+        "Encomendas guardadas": ["Eliminadas" if isinstance(e, str) and e else ("Sim" if estado in H.ESTADOS_CONCLUIDOS
+                                 else "—") for e, estado in zip(lista["dados_eliminados_em"], lista["estado"])],
     })
 
 
@@ -1108,7 +1129,23 @@ def _lista_historico(caminho: Path) -> dict[int, str]:
     return dict(zip(lista["id"].astype(int), lista["nome_ficheiro"]))
 
 
-def _detalhe_importacao(caminho: Path, mostradas: dict[int, str]) -> None:
+def _eliminar_importacao(caminho_db: Path, importacao_id: int) -> None:
+    try:
+        resumo = R.eliminar_importacao(caminho_db, importacao_id)
+    except Exception as erro:  # noqa: BLE001
+        st.session_state.hist_aviso = ("erro", f"Os dados não foram eliminados. {P.mensagem_segura(erro)}")
+    else:
+        avisos = " ".join(resumo.avisos)
+        st.session_state.hist_aviso = ("ok", (
+            f"Os dados da importação n.º {importacao_id} foram eliminados ({_n(resumo.linhas)} encomenda(s)); "
+            "ficaram só as datas, o estado e os totais. As cópias de segurança feitas antes ainda os têm: veja "
+            f"«Cópias de segurança». {avisos}").strip())
+        st.session_state.pop("historico_comparacao", None)
+    st.session_state.hist_confirmar_eliminacao = False
+
+
+def _detalhe_importacao(hist: _Historico, mostradas: dict[int, str]) -> None:
+    caminho = hist.caminho
     if not mostradas:
         return
     ids = list(mostradas)
@@ -1137,12 +1174,29 @@ def _detalhe_importacao(caminho: Path, mostradas: dict[int, str]) -> None:
     anterior = int(imp["importacao_anterior_id"]) if pd.notna(imp["importacao_anterior_id"]) else None
     if anterior is not None:
         linhas.append(f"**Importação anterior concluída:** n.º {anterior}")
+    eliminada = isinstance(imp["dados_eliminados_em"], str) and bool(imp["dados_eliminados_em"])
+    if eliminada:
+        motivo = R.MOTIVOS.get(imp["motivo_eliminacao"], "pedido")
+        linhas.append(f"**Dados eliminados** em {H.formatar_momento(imp['dados_eliminados_em'])} ({motivo}): "
+                      "ficaram só as datas, o estado e os totais.")
     st.markdown("  \n".join(linhas))
+    if eliminada:
+        return
     if anterior is not None and imp["estado"] in H.ESTADOS_CONCLUIDOS:
         st.button(f"Comparar com a importação anterior (n.º {anterior})", on_click=_comparar_com_anterior,
                   args=(caminho, anterior, escolhido), icon=":material/compare_arrows:", key="hist_comparar_anterior")
     if isinstance(imp["mensagem_erro"], str) and imp["mensagem_erro"]:
         st.warning(_md(imp["mensagem_erro"]), icon=":material/warning:")
+    if imp["estado"] != H.EM_PROCESSAMENTO:
+        with st.expander("Eliminar os dados desta importação", icon=":material/delete:", key="hist_expansor_eliminar"):
+            st.caption("Apaga as encomendas guardadas e o nome do ficheiro desta importação; ficam só as datas, o "
+                       "estado e os totais. Não pode ser desfeito. As cópias de segurança já feitas não são alteradas "
+                       "(ver «Cópias de segurança»); se uma delas for recuperada, estes dados voltam a ser eliminados.")
+            confirmado = st.checkbox(f"Confirmo que quero eliminar os dados da importação n.º {escolhido}",
+                                     key="hist_confirmar_eliminacao", disabled=not hist.gravavel)
+            st.button("Eliminar os dados", on_click=_eliminar_importacao, args=(caminho, escolhido),
+                      disabled=not (confirmado and hist.gravavel), icon=":material/delete:",
+                      key="hist_eliminar_importacao")
     mapeamento = H.campos_presentes(imp)
     if imp["estado"] not in H.ESTADOS_CONCLUIDOS:
         return
@@ -1235,14 +1289,13 @@ def _comparacao_historico(caminho: Path) -> None:
 
 def _apos_recuperacao() -> None:
     """Depois de recuperar uma cópia, os resultados guardados na sessão deixam de valer."""
-    st.session_state.pop("hist_base_preparada", None)
+    for chave in ("hist_base_preparada", "historico_comparacao", "hist_detalhe_topo", "hist_danificada"):
+        st.session_state.pop(chave, None)  # os detalhes voltam à importação mais recente; verificação de novo
     for chave in list(st.session_state):
         if chave.startswith("historico_registo_"):
             st.session_state[chave] = None  # não volta a gravar automaticamente o ficheiro aberto
     if st.session_state.get("hist_chave_atual"):
         st.session_state[st.session_state.hist_chave_atual] = None
-    st.session_state.pop("historico_comparacao", None)
-    st.session_state.pop("hist_detalhe_topo", None)  # os detalhes voltam à importação mais recente
     st.session_state.hist_pagina = 1
     st.session_state.hist_confirmar_recuperacao = False
 
@@ -1253,7 +1306,10 @@ def _criar_copia(caminho_db: Path, pasta: Path) -> None:
     except Exception as erro:  # noqa: BLE001
         st.session_state.hist_aviso = ("erro", f"A cópia não foi criada. {P.mensagem_segura(erro)}")
     else:
-        st.session_state.hist_aviso = ("ok", f"Cópia criada e verificada: «{info.caminho.name}». {info.mensagem}")
+        if info.valida:
+            st.session_state.hist_aviso = ("ok", f"Cópia criada e verificada: «{info.caminho.name}». {info.mensagem}")
+        else:  # base com erros: a cópia ficou guardada à parte, só para tentar salvar dados
+            st.session_state.hist_aviso = ("erro", info.mensagem)
 
 
 def _recuperar_copia(caminho_db: Path, copia: Path) -> None:
@@ -1272,6 +1328,58 @@ def _guardar_exemplo(hist: _Historico, chave: str, contexto: dict) -> None:
     st.session_state.hist_aviso = ("erro" if registo.situacao == H.FALHOU else "ok", registo.mensagem)
 
 
+def _definir_prazo(caminho_db: Path, meses: int | None) -> None:
+    try:
+        resumo = R.definir_prazo(caminho_db, meses)
+    except Exception as erro:  # noqa: BLE001
+        st.session_state.hist_aviso = ("erro", f"O prazo não foi alterado. {P.mensagem_segura(erro)}")
+    else:
+        texto = f"Prazo de conservação: {R.descrever_prazo(meses).lower()}."
+        if resumo.importacoes:
+            texto += f" Foram eliminados os dados de {_n(resumo.importacoes)} importação(ões) fora do prazo."
+        st.session_state.hist_aviso = ("ok", " ".join([texto, *resumo.avisos]))
+        st.session_state.pop("historico_comparacao", None)
+    st.session_state.hist_confirmar_prazo = False
+
+
+def _apagar_copias(pasta: Path, caminhos: list[Path]) -> None:
+    try:
+        apagadas = copias.apagar_copias(pasta, caminhos)
+    except Exception as erro:  # noqa: BLE001
+        st.session_state.hist_aviso = ("erro", f"Nenhuma cópia foi apagada. {P.mensagem_segura(erro)}")
+    else:
+        st.session_state.hist_aviso = ("ok", f"Foram apagadas {_n(apagadas)} cópia(s) de segurança desta pasta.")
+    st.session_state.hist_confirmar_apagar_copias = False
+
+
+def _secao_conservacao(hist: _Historico) -> None:
+    st.markdown("#### Conservação dos dados")
+    st.caption("Define durante quanto tempo ficam guardadas as encomendas de cada importação. Passado o prazo, "
+               "são eliminadas (ficam só as datas, o estado e os totais). Esta funcionalidade ajuda a aplicar uma "
+               "política de conservação, mas não garante, por si só, o cumprimento do RGPD: defina o prazo com quem "
+               "é responsável pela proteção de dados na empresa.")
+    atual = R.ler_prazo(hist.caminho)
+    if atual is None:
+        st.caption(":material/info: Ainda não foi definido um prazo: as encomendas ficam guardadas sem limite.")
+    opcoes = [None, *R.PRAZOS_MESES]
+    if st.session_state.get("hist_prazo", atual) not in opcoes:
+        st.session_state.hist_prazo = atual
+    st.session_state.setdefault("hist_prazo", atual)
+    escolhido = st.selectbox("Prazo de conservação das encomendas guardadas", opcoes, format_func=R.descrever_prazo,
+                             key="hist_prazo", disabled=not hist.gravavel)
+    if escolhido == atual:
+        return
+    afetadas = R.previsao(hist.caminho, escolhido)
+    confirmado = True
+    if afetadas:
+        limite = R.data_limite(escolhido).strftime("%d/%m/%Y")
+        st.warning(f"Com este prazo, os dados de {_n(afetadas)} importação(ões) feitas antes de {limite} são "
+                   "eliminados já, ao guardar. Não pode ser desfeito.", icon=":material/warning:")
+        confirmado = st.checkbox("Confirmo a eliminação destes dados", key="hist_confirmar_prazo")
+    st.button("Guardar o prazo de conservação", on_click=_definir_prazo, args=(hist.caminho, escolhido),
+              disabled=not (confirmado and hist.gravavel), icon=":material/save:", key="hist_guardar_prazo")
+
+
 def _secao_copias(hist: _Historico) -> None:
     st.markdown("#### Cópias de segurança")
     predefinida = copias.pasta_copias_predefinida(hist.caminho)
@@ -1280,7 +1388,8 @@ def _secao_copias(hist: _Historico) -> None:
         "Pasta das cópias de segurança", key="hist_pasta_copias",
         help="Caminho completo de uma pasta que já exista. Por omissão, a pasta «copias» junto do histórico.")
     st.caption("Recomendação: guarde também cópias noutro disco ou numa pen USB — uma cópia no mesmo disco não "
-               "protege contra avarias do disco. Uma cópia nunca substitui um ficheiro existente.")
+               "protege contra avarias do disco. Uma cópia nunca substitui um ficheiro existente e só aparece "
+               "depois de verificada.")
     try:
         if Path(texto.strip()) == predefinida:
             P.criar_pasta(predefinida)
@@ -1291,10 +1400,42 @@ def _secao_copias(hist: _Historico) -> None:
     st.button("Criar cópia de segurança agora", on_click=_criar_copia, args=(hist.caminho, pasta),
               disabled=not hist.disponivel, icon=":material/backup:", key="hist_criar_copia")
 
-    disponiveis = {p.name: p for p in copias.listar_copias(pasta)}
-    if not disponiveis:
+    try:
+        avaliadas = copias.avaliar_copias(pasta, hist.caminho) if hist.disponivel else [
+            copias.CopiaListada(c, copias.momento_copia(c), c.stat().st_size, False, False, False)
+            for c in copias.listar_copias(pasta)]
+    except Exception as erro:  # noqa: BLE001
+        st.warning(f"Não foi possível listar as cópias: {_md(P.mensagem_segura(erro))}", icon=":material/warning:")
+        return
+    if not avaliadas:
         st.caption("Ainda não há cópias do LogiFlow nesta pasta.")
         return
+
+    def situacao(copia: copias.CopiaListada) -> str:
+        if not copia.legivel:
+            return "Não foi possível ler" if hist.disponivel else "—"
+        motivos = [m for m, sim in (("tem dados eliminados", copia.contem_eliminados),
+                                    ("tem dados fora do prazo", copia.contem_fora_do_prazo)) if sim]
+        return ("Atenção: " + " e ".join(motivos)) if motivos else "—"
+
+    st.dataframe(pd.DataFrame({
+        "Cópia": [c.caminho.name for c in avaliadas],
+        "Feita em": [c.momento.strftime("%d/%m/%Y %H:%M") for c in avaliadas],
+        "Tamanho": [f"{_n(max(1, round(c.tamanho_bytes / 1024)))} KB" for c in avaliadas],
+        "Conservação": [situacao(c) for c in avaliadas],
+    }), hide_index=True, width="stretch")
+    assinaladas = [c.caminho for c in avaliadas if c.assinalada]
+    if assinaladas:
+        st.warning(f"{_n(len(assinaladas))} cópia(s) desta pasta têm dados que entretanto foram eliminados ou que "
+                   "ultrapassam o prazo de conservação. Se forem recuperadas, esses dados voltam a ser eliminados; "
+                   "para deixarem de existir, é preciso apagá-las. Cópias noutras pastas, discos ou pens não aparecem "
+                   "aqui.", icon=":material/warning:")
+        confirmado = st.checkbox(f"Confirmo que quero apagar estas {_n(len(assinaladas))} cópia(s) (não pode ser "
+                                 "desfeito)", key="hist_confirmar_apagar_copias")
+        st.button("Apagar as cópias assinaladas", on_click=_apagar_copias, args=(pasta, assinaladas),
+                  disabled=not confirmado, icon=":material/delete:", key="hist_apagar_copias")
+
+    disponiveis = {c.caminho.name: c.caminho for c in avaliadas}
     if st.session_state.get("hist_copia") not in disponiveis:
         st.session_state.hist_copia = next(iter(disponiveis))
     nome = st.selectbox("Cópia de segurança", list(disponiveis),
@@ -1304,8 +1445,8 @@ def _secao_copias(hist: _Historico) -> None:
         info = copias.validar_copia(escolhida)
         (st.success if info.valida else st.error)(_md(info.mensagem))
     confirmado = st.checkbox("Confirmo que quero substituir o histórico atual por esta cópia (o histórico atual "
-                             "é guardado antes, na pasta «copias» junto do histórico).",
-                             key="hist_confirmar_recuperacao")
+                             "é guardado antes, na pasta «copias» junto do histórico; os dados já eliminados "
+                             "voltam a ser eliminados).", key="hist_confirmar_recuperacao")
     st.button("Recuperar a cópia escolhida", on_click=_recuperar_copia, args=(hist.caminho, escolhida),
               disabled=not confirmado, type="primary", icon=":material/restore:", key="hist_recuperar")
 
@@ -1313,9 +1454,13 @@ def _secao_copias(hist: _Historico) -> None:
 def _separador_historico(hist: _Historico, exemplo: tuple[str, dict] | None = None) -> None:
     st.caption("Registo das importações guardadas neste computador: o que foi importado, quando, com que "
                "resultado, e as diferenças entre importações. O ficheiro original não é guardado.")
+    # Espaço sempre presente para a mensagem da última operação: quando a mensagem desaparece, os
+    # elementos abaixo não mudam de posição (e os painéis abertos não se fecham sozinhos).
+    espaco_aviso = st.container()
     aviso = st.session_state.pop("hist_aviso", None)
     if aviso is not None:
-        (st.success if aviso[0] == "ok" else st.error)(_md(aviso[1]))
+        with espaco_aviso:
+            (st.success if aviso[0] == "ok" else st.error)(_md(aviso[1]))
     if hist.caminho is None:
         st.error(f"**O histórico não está disponível.** {_md(hist.erro)}", icon=":material/error:")
         return
@@ -1325,6 +1470,10 @@ def _separador_historico(hist: _Historico, exemplo: tuple[str, dict] | None = No
         _secao_copias(hist)
         return
     info = hist.info
+    if hist.so_leitura:
+        st.error("**A base de dados do histórico tem erros e está só de leitura:** nada é gravado nem eliminado "
+                 "até ser recuperada uma cópia de segurança (abaixo) ou seguida a recuperação manual. Uma cópia "
+                 "feita agora fica marcada «com erros» e serve só para tentar salvar dados.", icon=":material/error:")
     if info.migrada_de is not None:
         copia = f" Antes, foi feita uma cópia: «{info.copia_antes_da_migracao.name}»." if info.copia_antes_da_migracao else ""
         st.info(f"A base de dados do histórico foi atualizada do esquema {info.migrada_de} para o "
@@ -1332,15 +1481,26 @@ def _separador_historico(hist: _Historico, exemplo: tuple[str, dict] | None = No
     if info.interrompidas_marcadas:
         st.caption(f"{_n(info.interrompidas_marcadas)} importação(ões) interrompida(s) numa sessão anterior "
                    "foram marcadas como falhadas (nenhum dado delas tinha sido guardado).")
+    resumo = st.session_state.get("hist_conservacao_sessao")
+    if resumo is not None and resumo.importacoes:
+        st.info(f"Ao abrir a aplicação, foram eliminados os dados de {_n(resumo.importacoes)} importação(ões): "
+                f"{_n(resumo.por_prazo)} por terem passado o prazo de conservação e {_n(resumo.por_registo)} já "
+                "eliminada(s) antes (por exemplo, depois de recuperar uma cópia).", icon=":material/delete_sweep:")
+    for texto in (resumo.avisos if resumo is not None else ()):
+        st.warning(_md(texto), icon=":material/warning:")
     if exemplo is not None:
         st.button("Guardar o exemplo no histórico", on_click=_guardar_exemplo, args=(hist, *exemplo),
-                  icon=":material/save:", key="hist_guardar_exemplo")
+                  disabled=not hist.gravavel, icon=":material/save:", key="hist_guardar_exemplo")
     try:
         mostradas = _lista_historico(hist.caminho)
-        _detalhe_importacao(hist.caminho, mostradas)
+        _detalhe_importacao(hist, mostradas)
         st.divider()
         _comparacao_historico(hist.caminho)
+        st.divider()
+        _secao_conservacao(hist)
     except Exception as erro:  # noqa: BLE001 — por exemplo, base de dados ocupada ou danificada entretanto
+        if P.base_danificada(erro):
+            st.session_state.hist_danificada = True
         st.error(f"Não foi possível ler o histórico: {_md(P.mensagem_segura(erro))}", icon=":material/error:")
     st.divider()
     _secao_copias(hist)
@@ -1408,7 +1568,7 @@ def main() -> None:
     contexto = dict(nome=nome, conteudo=conteudo, lido=lido, mapeamento=mapeamento, resultado=resultado,
                     tabela=tabela, data_referencia=data_referencia, prazo=prazo)
     chave_registo = st.session_state.hist_chave_atual = _chave_registo(conteudo, lido, mapeamento)
-    if (not exemplo and st.session_state.guardar_historico and hist.disponivel
+    if (not exemplo and st.session_state.guardar_historico and hist.gravavel
             and chave_registo not in st.session_state):
         with st.spinner("A guardar no histórico…"):
             _gravar_importacao(hist, chave_registo, H.ORIGEM_FICHEIRO, **contexto)
