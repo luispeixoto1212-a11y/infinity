@@ -24,12 +24,18 @@ import streamlit as st
 from logiflow import __version__
 from logiflow import campos as C
 from logiflow import desempenho as D
+from logiflow import excecoes as E
 from logiflow.exemplo import (
     DATA_REFERENCIA_EXEMPLO,
     FICHEIRO_EXEMPLO_CSV,
     FICHEIRO_EXEMPLO_XLSX,
 )
-from logiflow.exportacao import exportar_dados_limpos, exportar_desempenho, exportar_relatorio
+from logiflow.exportacao import (
+    exportar_dados_limpos,
+    exportar_desempenho,
+    exportar_excecoes,
+    exportar_relatorio,
+)
 from logiflow.importacao import (
     TAMANHO_MAXIMO_MB,
     ErroImportacao,
@@ -126,6 +132,12 @@ def _excel_limpos(_resultado: ResultadoValidacao, chave: tuple, nome: str) -> by
 def _excel_desempenho(_resultado: ResultadoValidacao, _tabela: pd.DataFrame, chave: tuple, nome: str,
                       prazo_padrao: int | None, periodo: str, cliente: str | None) -> bytes:
     return exportar_desempenho(_resultado, _tabela, nome, prazo_padrao, periodo, cliente)
+
+
+@st.cache_data(show_spinner="A preparar o Excel das exceções…", max_entries=16)
+def _excel_excecoes(excecoes: pd.DataFrame, nome: str, data_referencia: dt.date, filtros: tuple) -> bytes:
+    # O conteúdo da tabela entra na chave da cache: o ficheiro corresponde sempre ao que está visível.
+    return exportar_excecoes(excecoes, nome, data_referencia, filtros)
 
 
 @st.cache_data(show_spinner="A preparar o relatório…", max_entries=8)
@@ -681,6 +693,122 @@ def _separador_desempenho(tabela: pd.DataFrame, data_referencia: dt.date) -> str
     return periodo
 
 
+_CONFIG_EXCECOES = {
+    E.PRIORIDADE: st.column_config.TextColumn(E.PRIORIDADE, width="small",
+                                              help="Alta: atrasada · Média: prazo próximo ou pendente há "
+                                                   "demasiado tempo · Baixa: só qualidade de dados"),
+    E.CATEGORIAS_COL: st.column_config.TextColumn(E.CATEGORIAS_COL, width=290),
+    E.MOTIVOS: st.column_config.TextColumn(E.MOTIVOS, width=520),
+    E.PRAZO: st.column_config.DateColumn(E.PRAZO, format="DD/MM/YYYY",
+                                         help="Vazio quando o prazo não é conhecido"),
+    E.ORIGEM_PRAZO: st.column_config.TextColumn(E.ORIGEM_PRAZO,
+                                                help="«Data prevista» do ficheiro ou prazo calculado com o prazo padrão"),
+    E.DIAS_ATRASO: st.column_config.NumberColumn(E.DIAS_ATRASO, format="%d"),
+    E.DIAS_POR_ENTREGAR: st.column_config.NumberColumn(E.DIAS_POR_ENTREGAR, format="%d",
+                                                       help="Desde a data da encomenda; só com data válida"),
+    E.AVISOS: st.column_config.TextColumn(E.AVISOS, width="medium"),
+    E.LINHA: st.column_config.NumberColumn(E.LINHA, format="%d", width="small",
+                                           help="Número da linha no ficheiro original"),
+}
+_CHAVES_EXCECOES = ("pesquisa", "categorias", "prioridades", "cliente", "ordem")
+TODOS_OS_CLIENTES = "Todos os clientes"
+
+
+def _limpar_filtros_excecoes(assinatura: str) -> None:
+    for chave in _CHAVES_EXCECOES:
+        st.session_state.pop(f"exc_{chave}_{assinatura}", None)
+
+
+def _separador_excecoes(todas: pd.DataFrame, apresentadas: int, nome: str, assinatura: str,
+                        data_referencia: dt.date, filtros_topo: bool) -> None:
+    """Painel de exceções. Os filtros daqui só afetam este painel e a sua exportação."""
+    st.caption("Encomendas que precisam de intervenção, entre as apresentadas (os filtros do topo "
+               "aplicam-se). Cada linha do ficheiro aparece uma só vez, com todos os motivos e a "
+               "prioridade mais alta; uma encomenda pode estar em várias categorias.")
+    if todas.empty:
+        st.success(f"Não há exceções nas {_n(apresentadas)} encomendas apresentadas: nenhuma atrasada, "
+                   "nenhuma a vencer hoje ou amanhã, nenhuma por entregar há "
+                   f"{E.LIMITE_PENDENCIA_DIAS} ou mais dias e nenhum erro de dados.",
+                   icon=":material/check_circle:")
+        return
+
+    totais = E.contagens(todas)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Prioridade alta", _n(totais["por_prioridade"][E.ALTA]), border=True, delta="atrasadas",
+              delta_color="off", delta_arrow="off", help="Pendentes com o prazo já ultrapassado.")
+    c2.metric("Prioridade média", _n(totais["por_prioridade"][E.MEDIA]), border=True,
+              delta="prazo próximo ou pendência", delta_color="off", delta_arrow="off",
+              help=f"Prazo hoje ou amanhã, ou por entregar há {E.LIMITE_PENDENCIA_DIAS} ou mais dias.")
+    c3.metric("Prioridade baixa", _n(totais["por_prioridade"][E.BAIXA]), border=True,
+              delta="só qualidade de dados", delta_color="off", delta_arrow="off",
+              help="Erros de dados ou números repetidos, sem urgência operacional demonstrada.")
+    c4.metric("Encomendas com exceções", _n(totais["encomendas"]), border=True,
+              delta=f"de {_n(apresentadas)} apresentadas", delta_color="off", delta_arrow="off",
+              help="Cada encomenda conta uma vez, mesmo que esteja em várias categorias.")
+
+    with st.expander("Categorias e regras", icon=":material/info:"):
+        st.dataframe(pd.DataFrame([{
+            "Categoria": c, "Encomendas": totais["por_categoria"][c],
+            "Prioridade": E.PRIORIDADE_DA_CATEGORIA[c], "Regra": E.REGRAS[c],
+        } for c in E.CATEGORIAS]), hide_index=True, width="stretch",
+            column_config={"Regra": st.column_config.TextColumn(width="large")})
+        st.caption("Os totais por categoria não se somam: uma encomenda pode estar em várias. Encomendas "
+                   "só com avisos (por exemplo, estado não reconhecido) não entram no painel; continuam em "
+                   "«Qualidade dos dados».")
+
+    chave = {k: f"exc_{k}_{assinatura}" for k in _CHAVES_EXCECOES}
+    f1, f2, f3, f4, f5 = st.columns([2.0, 2.3, 2.0, 2.2, 2.0], vertical_alignment="bottom")
+    pesquisa = f1.text_input("Pesquisar exceções", placeholder="N.º ou cliente", key=chave["pesquisa"],
+                             icon=":material/search:")
+    categorias = f2.multiselect("Categoria", E.CATEGORIAS, placeholder="Todas", key=chave["categorias"],
+                                format_func=lambda c: f"{c} ({totais['por_categoria'][c]})")
+    prioridades = f3.multiselect("Prioridade", E.PRIORIDADES, placeholder="Todas", key=chave["prioridades"])
+    cliente = f4.selectbox("Filtrar por cliente", [TODOS_OS_CLIENTES, *E.clientes(todas)], key=chave["cliente"])
+    ordem = f5.selectbox("Ordenar por", E.ORDENACOES, key=chave["ordem"],
+                         help="Prioridade: Alta → Média → Baixa e, dentro de cada uma, mais dias de atraso e "
+                              "mais dias por entregar primeiro. Antiguidade: mais dias por entregar primeiro.")
+    cliente = None if cliente == TODOS_OS_CLIENTES else cliente
+
+    visiveis = E.ordenar(E.filtrar(todas, pesquisa, categorias, prioridades, cliente), ordem)
+    # A coluna vazia à direita evita que a barra de ferramentas da tabela tape o botão.
+    resumo, limpar, _ = st.columns([5, 2, 1.3], vertical_alignment="center")
+    resumo.caption(f"A mostrar **{_n(len(visiveis))}** de {_n(len(todas))} encomendas com exceções. "
+                   "Estes filtros só afetam este painel e a sua exportação.")
+    limpar.button("Limpar filtros do painel", on_click=_limpar_filtros_excecoes, args=(assinatura,),
+                  icon=":material/filter_alt_off:", type="tertiary")
+    if visiveis.empty:
+        st.info("Nenhuma exceção corresponde aos filtros do painel.", icon=":material/filter_alt:")
+        return
+    st.dataframe(E.visiveis(visiveis), hide_index=True, width="stretch",
+                 column_config=_CONFIG_EXCECOES, placeholder="—")
+
+    # Exportação: exatamente as linhas visíveis, pela mesma ordem.
+    filtros = (
+        ("Filtros do topo aplicados", "Sim" if filtros_topo else "Não"),
+        ("Pesquisa", pesquisa.strip() or "—"),
+        ("Categorias", ", ".join(categorias) or "Todas"),
+        ("Prioridades", ", ".join(prioridades) or "Todas"),
+        ("Cliente", cliente or TODOS_OS_CLIENTES),
+        ("Ordenação", ordem),
+    )
+    pedido = f"exportar_excecoes_{assinatura}"
+    assinatura_vista = (tuple(visiveis[E.LINHA]), filtros, data_referencia)
+    if len(visiveis) > LIMITE_EXPORTACAO_IMEDIATA and st.session_state.get(pedido) != assinatura_vista:
+        if not st.button(f"Preparar Excel das {_n(len(visiveis))} exceções", icon=":material/build:"):
+            return
+        st.session_state[pedido] = assinatura_vista
+    try:
+        dados = _excel_excecoes(visiveis, nome, data_referencia, filtros)
+    except Exception as erro:  # noqa: BLE001
+        st.error(f"Não foi possível gerar o Excel das exceções: {type(erro).__name__}: {_md(erro)}")
+        return
+    sufixo = _texto_para_ficheiro(cliente) if cliente else ("filtradas" if len(visiveis) < len(todas) else "todas")
+    st.download_button(f"Descarregar estas {_n(len(visiveis))} exceções (.xlsx)", dados,
+                       file_name=f"{_nome_seguro(nome)}_excecoes_{sufixo}_{dt.date.today():%Y%m%d}.xlsx",
+                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                       type="primary", icon=":material/download:", on_click="ignore")
+
+
 def _separador_qualidade(tabela: pd.DataFrame, resultado: ResultadoValidacao) -> None:
     problemas = resultado.problemas
     problemas = problemas[problemas["Linha"].isin(tabela[COL_LINHA])]
@@ -843,8 +971,11 @@ def main() -> None:
     _indicadores(ind, resultado.total)
 
     n_problemas = len(resultado.problemas)
+    # Exceções sobre a tabela já filtrada pelos filtros do topo (não a altera).
+    excecoes = E.identificar_excecoes(filtrada, resultado.problemas, data_referencia)
     separadores = st.tabs([
         ":material/table_rows: Encomendas",
+        f":material/priority_high: Exceções ({_n(len(excecoes))})",
         ":material/bar_chart: Resumo",
         ":material/speed: Desempenho",
         f":material/rule: Qualidade dos dados ({_n(n_problemas)})",
@@ -853,12 +984,15 @@ def main() -> None:
     with separadores[0]:
         _separador_encomendas(filtrada, resultado, prazo)
     with separadores[1]:
-        _separador_resumo(filtrada, ind)
+        _separador_excecoes(excecoes, len(filtrada), nome, assinatura, data_referencia,
+                            filtros_topo=len(filtrada) != resultado.total)
     with separadores[2]:
-        periodo = _separador_desempenho(filtrada, data_referencia)
+        _separador_resumo(filtrada, ind)
     with separadores[3]:
-        _separador_qualidade(filtrada, resultado)
+        periodo = _separador_desempenho(filtrada, data_referencia)
     with separadores[4]:
+        _separador_qualidade(filtrada, resultado)
+    with separadores[5]:
         _separador_exportar(resultado, tabela, nome, assinatura, data_referencia, prazo, periodo)
 
 

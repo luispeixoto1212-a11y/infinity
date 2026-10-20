@@ -1,4 +1,4 @@
-"""Exportação para Excel: dados limpos, relatório e relatório de desempenho.
+"""Exportação para Excel: dados limpos, relatório, relatório de desempenho e exceções.
 
 Garantias:
 
@@ -25,6 +25,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from . import __version__
 from . import campos as C
 from . import desempenho as D
+from . import excecoes as E
 from .datas import formatar_data
 from .indicadores import (
     COL_DIAS_ATRASO,
@@ -100,6 +101,9 @@ def _escrever_tabela(ws: Worksheet, cabecalho: Sequence[str], linhas: Iterable[S
     """Escreve uma tabela formatada e devolve a última linha usada."""
     for j, titulo in enumerate(cabecalho, start=1):
         celula = ws.cell(row=linha_inicial, column=j, value=titulo)
+        # Alguns cabeçalhos são nomes de colunas do ficheiro importado: também nunca como fórmula.
+        if celula.data_type == "f":
+            celula.data_type = "s"
         celula.font = _FONTE_CABECALHO
         celula.fill = _FUNDO_CABECALHO
         celula.alignment = Alignment(vertical="center", wrap_text=True)
@@ -503,6 +507,73 @@ def exportar_desempenho(
                           "Dias de atraso", ROTULO_LINHA],
                      _linhas(D.entregas_com_atraso(tabela), [C.NUMERO, C.CLIENTE, C.DESTINO, C.DATA, COL_PRAZO,
                                                             C.DATA_ENTREGA, COL_DIAS_ATRASO, COL_LINHA]))
+
+    _preparar_impressao(livro)
+    livro.properties.creator = f"LogiFlow {__version__}"
+    return _gravar(livro)
+
+
+# Exceções ---------------------------------------------------------------------
+
+def exportar_excecoes(
+    excecoes: pd.DataFrame,
+    nome_origem: str,
+    data_referencia: dt.date,
+    filtros: Sequence[tuple[str, str]] = (),
+) -> bytes:
+    """Excel com as exceções recebidas — na aplicação, as que estão visíveis no painel
+    depois de todos os filtros, pela mesma ordem.
+
+    Não acrescenta linhas, clientes nem totais que não venham em ``excecoes``: o que não
+    está visível não é exportado. ``filtros`` descreve os filtros aplicados (pares
+    rótulo/valor), para ficarem registados no ficheiro.
+    """
+    tabela = E.visiveis(excecoes)
+    totais = E.contagens(excecoes)
+    livro = Workbook()
+
+    # 1. Exceções -----------------------------------------------------------
+    ws = livro.active
+    ws.title = "Exceções"
+    cabecalho = [ROTULO_LINHA if c == E.LINHA else c for c in tabela.columns]
+    _escrever_tabela(ws, cabecalho, _linhas(tabela, list(tabela.columns)))
+    if tabela.empty:
+        _escrever(ws, 3, 1, "Não há exceções com os filtros aplicados.")
+    for coluna in (E.MOTIVOS, E.AVISOS):
+        letra = get_column_letter(list(tabela.columns).index(coluna) + 1)
+        ws.column_dimensions[letra].width = 60
+        for celula in ws[letra][1:]:  # texto longo: quebra de linha, também na impressão
+            celula.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # 2. Informação ---------------------------------------------------------
+    ws = livro.create_sheet("Informação")
+    _escrever(ws, 1, 1, "LogiFlow — Exceções").font = _FONTE_TITULO
+    linha = _escrever_pares(ws, 3, [
+        ("Ficheiro de origem", nome_origem),
+        ("Gerado em", _agora()),
+        ("Data de referência", data_referencia),
+        ("Encomendas exportadas", totais["encomendas"]),
+        *filtros,
+    ])
+    _escrever(ws, linha + 1, 1, "Por prioridade").font = _FONTE_SECCAO
+    fim = _escrever_tabela(ws, ["Prioridade", "Encomendas"],
+                           list(totais["por_prioridade"].items()), linha_inicial=linha + 2, filtro=False)
+    _escrever(ws, fim + 2, 1, "Por categoria").font = _FONTE_SECCAO
+    fim = _escrever_tabela(ws, ["Categoria", "Encomendas", "Prioridade", "Regra"],
+                           [(c, n, E.PRIORIDADE_DA_CATEGORIA[c], E.REGRAS[c])
+                            for c, n in totais["por_categoria"].items()],
+                           linha_inicial=fim + 3, filtro=False)
+    _escrever_notas(ws, fim + 2, "Notas", [
+        "Uma encomenda pode estar em várias categorias: os totais por categoria não se somam.",
+        "Cada linha do ficheiro de origem aparece uma só vez, com todos os motivos e a prioridade mais alta.",
+        "Prioridade: Alta = atrasada; Média = prazo próximo ou pendente há demasiado tempo; "
+        "Baixa = só problemas de qualidade de dados.",
+        "Os prazos calculados com o prazo padrão estão identificados na coluna «Origem do prazo».",
+    ])
+    ws.column_dimensions["A"].width = 34
+    ws.column_dimensions["B"].width = 30
+    ws.column_dimensions["C"].width = 12
+    ws.column_dimensions["D"].width = 80
 
     _preparar_impressao(livro)
     livro.properties.creator = f"LogiFlow {__version__}"

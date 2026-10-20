@@ -59,8 +59,12 @@ def test_app_com_ficheiro_de_exemplo():
     principais = [(m.label, m.value) for m in at.metric][:5]
     assert principais == [("Encomendas", "60"), ("Entregues", "41"), ("Pendentes", "11"),
                           ("Atrasadas", "8"), ("Linhas com erros", "9")]
-    assert [t.label.split(" ", 1)[1] for t in at.tabs] == [
+    # Alteração intencional na 1.2.0: novo separador «Exceções» a seguir a «Encomendas».
+    # Os cinco separadores da 1.1.0 mantêm os mesmos nomes e a mesma ordem.
+    separadores = [t.label.split(" ", 1)[1] for t in at.tabs]
+    assert [s for s in separadores if not s.startswith("Exceções")] == [
         "Encomendas", "Resumo", "Desempenho", "Qualidade dos dados (11)", "Exportar"]
+    assert separadores[1] == "Exceções (18)"
 
 
 def test_app_filtro_por_estado_atualiza_indicadores():
@@ -162,3 +166,93 @@ def test_app_relatorio_de_desempenho_por_cliente():
     assert not at.exception and not at.error
     rotulos = [b.proto.label for b in at.get("download_button")]
     assert "Descarregar relatório de desempenho (.xlsx)" in rotulos
+
+
+# Painel de exceções (versão 1.2) ----------------------------------------------------
+
+def _metricas(at: AppTest) -> dict[str, str]:
+    return {m.label: m.value for m in at.metric}
+
+
+def _mostrar(at: AppTest) -> str:
+    return next(c.value for c in at.caption if "encomendas com exceções" in c.value)
+
+
+def _local(at: AppTest, tipo: str, rotulo: str):
+    return next(w for w in getattr(at, tipo) if w.label == rotulo)
+
+
+def test_app_painel_de_excecoes_com_o_exemplo():
+    at = _app_exemplo()
+    assert not at.exception and not at.error
+    m = _metricas(at)
+    assert (m["Prioridade alta"], m["Prioridade média"], m["Prioridade baixa"]) == ("8", "1", "9")
+    assert m["Encomendas com exceções"] == "18"
+    assert m["Atrasadas"] == "8"  # o mesmo número do indicador do topo
+    assert "**18** de 18" in _mostrar(at)
+    assert "Descarregar estas 18 exceções (.xlsx)" in [b.proto.label for b in at.get("download_button")]
+
+
+def test_app_filtros_do_painel_combinados_e_exportacao_do_visivel():
+    at = _app_exemplo()
+    _local(at, "multiselect", "Prioridade").set_value(["Alta"]).run()
+    assert "**8** de 18" in _mostrar(at)
+    _local(at, "multiselect", "Categoria").set_value(["Pendente há demasiado tempo"]).run()
+    assert "**6** de 18" in _mostrar(at)
+    _local(at, "text_input", "Pesquisar exceções").set_value("eletro").run()
+    assert "**1** de 18" in _mostrar(at)
+    rotulos = [b.proto.label for b in at.get("download_button")]
+    assert "Descarregar estas 1 exceções (.xlsx)" in rotulos
+    _local(at, "button", "Limpar filtros do painel").click().run()
+    assert "**18** de 18" in _mostrar(at)
+
+
+def test_app_filtro_por_cliente_e_ordenacao_no_painel():
+    at = _app_exemplo()
+    cliente = _local(at, "selectbox", "Filtrar por cliente")
+    assert cliente.options[0] == "Todos os clientes" and "Vinhos Encosta Serena, Lda." in cliente.options
+    cliente.set_value("Vinhos Encosta Serena, Lda.").run()
+    assert "**2** de 18" in _mostrar(at) and not at.exception  # ENC-26-0049 e ENC-26-0053
+    _local(at, "selectbox", "Ordenar por").set_value("Antiguidade").run()
+    assert not at.exception and "**2** de 18" in _mostrar(at)
+
+
+def test_app_filtros_do_painel_nao_afetam_os_outros_separadores():
+    at = _app_exemplo()
+    antes = _metricas(at)
+    caption_encomendas = next(c.value for c in at.caption if c.value.startswith("A mostrar 60"))
+    _local(at, "multiselect", "Prioridade").set_value(["Baixa"]).run()
+    _local(at, "text_input", "Pesquisar exceções").set_value("ENC-26-0059").run()
+    depois = _metricas(at)
+    for rotulo in ("Encomendas", "Entregues", "Pendentes", "Atrasadas", "Linhas com erros",
+                   "Entregas no prazo", "Tempo médio de entrega", "Entregas com atraso",
+                   "Prioridade alta", "Encomendas com exceções"):
+        assert depois[rotulo] == antes[rotulo], rotulo
+    assert any(c.value == caption_encomendas for c in at.caption)
+    assert "**2** de 18" in _mostrar(at)  # as duas ocorrências do número repetido
+
+
+def test_app_filtros_globais_aplicam_se_ao_painel():
+    at = _app_exemplo()
+    next(t for t in at.text_input if t.label == "Pesquisar").set_value("Ferragens").run()
+    separador = next(t.label for t in at.tabs if "Exceções" in t.label)
+    m = _metricas(at)
+    assert separador.endswith(f"Exceções ({m['Encomendas com exceções']})")
+    assert int(m["Encomendas com exceções"]) < 18
+    assert "**" in _mostrar(at) and not at.exception
+
+
+def test_app_painel_sem_excecoes_mostra_estado_vazio_sem_exportacao():
+    at = _app_exemplo()
+    next(m for m in at.multiselect if m.label == "Estado").set_value(["Entregue"]).run()
+    next(s for s in at.selectbox if s.label == "Validação").set_value("Sem erros").run()
+    assert any("Não há exceções nas 35 encomendas apresentadas" in s.value for s in at.success)
+    assert not any("exceções (.xlsx)" in b.proto.label for b in at.get("download_button"))
+    assert next(t.label for t in at.tabs if "Exceções" in t.label).endswith("Exceções (0)")
+
+
+def test_app_filtros_do_painel_sem_resultados():
+    at = _app_exemplo()
+    _local(at, "text_input", "Pesquisar exceções").set_value("não existe").run()
+    assert any("Nenhuma exceção corresponde aos filtros do painel" in i.value for i in at.info)
+    assert not any("exceções (.xlsx)" in b.proto.label for b in at.get("download_button"))

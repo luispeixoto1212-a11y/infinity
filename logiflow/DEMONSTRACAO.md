@@ -1,4 +1,4 @@
-# Guião de demonstração do LogiFlow (cerca de 12 minutos)
+# Guião de demonstração do LogiFlow (cerca de 14 minutos)
 
 Objetivo: mostrar a um potencial cliente (uma transportadora ou distribuidora) que o LogiFlow
 transforma uma folha de Excel desarrumada em números fiáveis, mede o nível de serviço e produz
@@ -13,8 +13,10 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
    para confirmar que o Excel os abre.
 4. No separador «Desempenho», confirme **74,3 % de entregas no prazo (26 de 35)**, **3,3 dias**
    de tempo médio de entrega e **9 entregas com atraso**.
-5. Use o browser em ecrã inteiro (F11) e feche os outros separadores.
-6. Se possível, peça ao cliente um **ficheiro real de exportação** (pode ser só um mês). Teste-o
+5. No separador «Exceções», confirme **18 encomendas com exceções: 8 de prioridade alta, 1 média
+   e 9 baixa**, e descarregue uma vez as exceções de prioridade alta.
+6. Use o browser em ecrã inteiro (F11) e feche os outros separadores.
+7. Se possível, peça ao cliente um **ficheiro real de exportação** (pode ser só um mês). Teste-o
    antes da reunião, porque o cabeçalho pode precisar de ser escolhido em «Correspondência de
    colunas».
 
@@ -57,7 +59,25 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
 - No separador **Resumo**, mostre o gráfico por estado e a lista de atrasadas, ordenada pelos
   dias de atraso.
 
-### 5. Qualidade dos dados (2 minutos) — o momento «uau»
+### 5. Exceções (2 minutos) — o que fazer hoje
+
+> «Todas as manhãs, a primeira pergunta é: o que tenho de resolver hoje? É este separador.»
+
+- Abra o separador **Exceções (18)**. Leia os cartões: **8 de prioridade alta** (atrasadas),
+  **1 média** (vence hoje), **9 baixa** (problemas de dados).
+- Aponte para a primeira linha, **ENC-26-0049**: «Atrasada há 5 dias (data prevista 15/10/2026);
+  Por entregar há 10 dias». Uma só linha com todos os motivos — e as categorias não se somam.
+- Mostre a linha **ENC-26-0050**: na coluna «Avisos de validação», «tem data de entrega mas o
+  estado é Em trânsito». Mensagem-chave: **«Antes de ligar ao motorista, confirme se já foi
+  entregue: a aplicação mostra a contradição, não decide por si.»**
+- Em **Prioridade**, escolha **Alta**: ficam 8. Em **Filtrar por cliente**, escolha **«Vinhos
+  Encosta Serena, Lda.»**: ficam 2.
+- Clique em **«Descarregar estas 2 exceções (.xlsx)»** e abra o ficheiro: só as 2 linhas visíveis,
+  com prioridade e motivos, e a folha «Informação» com os filtros aplicados. Mensagem-chave:
+  **«Exporta exatamente o que vê — pode enviá-lo a quem vai tratar do assunto.»**
+- Clique em **Limpar filtros do painel** e mostre que os cartões do topo não mudaram.
+
+### 6. Qualidade dos dados (2 minutos) — o momento «uau»
 
 - Abra o separador **Qualidade dos dados (11)**.
 - Mostre três exemplos, com o número da linha do ficheiro original:
@@ -68,7 +88,7 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
     **não** é contada como entregue.
 - Mensagem-chave: **«Nenhum dado é apagado em silêncio.»**
 
-### 6. Desempenho (2 minutos) — o argumento de venda
+### 7. Desempenho (2 minutos) — o argumento de venda
 
 > «Os vossos clientes perguntam-vos: “quantas das minhas encomendas chegaram a horas?”. Agora
 > têm a resposta em segundos.»
@@ -82,7 +102,7 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
   8 entregas: «é com este cliente que têm de falar». Mude para **Destino**.
 - Mostre **Pendentes por antiguidade**: 5 pendentes com 6 a 10 dias, todas atrasadas.
 
-### 7. Exportar (2 minutos)
+### 8. Exportar (2 minutos)
 
 - Separador **Exportar** → descarregue os **Dados limpos** e abra-os no Excel:
   - folha «Encomendas válidas» (51 linhas);
@@ -95,7 +115,7 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
   por destino). Mensagem-chave: **«Pode enviar este ficheiro ao cliente: não tem dados de mais
   ninguém.»**
 
-### 8. Fecho (1 minuto)
+### 9. Fecho (1 minuto)
 
 - Resuma: **importa → valida → mostra o que interessa → exporta**, sem instalar servidores nem
   pagar serviços externos, e com os dados a ficarem no computador da empresa.
@@ -109,6 +129,8 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
 | «Os dados vão para a nuvem?» | Não. A aplicação corre no computador e só aceita ligações dele próprio. Nada é guardado. |
 | «Guarda o histórico?» | Não nesta versão. O desempenho é calculado sobre o ficheiro aberto; para comparar meses, importe um ficheiro com esse período. O histórico está avaliado no ROTEIRO, não implementado. |
 | «Dá um PDF com o nosso logótipo?» | Não nesta versão: o relatório de desempenho é em Excel, preparado para imprimir. O PDF está avaliado no ROTEIRO, não implementado. |
+| «Porque é que esta encomenda não aparece como atrasada?» | Porque não tem prazo (nem data prevista, nem prazo padrão definido): sem prazo, a aplicação não conclui que está atrasada. Defina um prazo padrão na barra lateral, se fizer sentido para o cliente. |
+| «Posso mudar os 5 dias ou as 48 horas?» | Não nesta versão: as regras são fixas e estão escritas no próprio painel («Categorias e regras») e no Excel exportado. |
 | «Os números são fiáveis com poucos dados?» | A aplicação mostra sempre quantas entregas foram avaliadas e assinala taxas com menos de 5 entregas. |
 | «Dá para várias pessoas ao mesmo tempo?» | Não nesta versão: é uma aplicação local, para um posto de trabalho. |
 | «E se o ficheiro tiver erros?» | É para isso que serve: aponta cada erro com a linha, para o corrigir na origem, sem perder nada. |

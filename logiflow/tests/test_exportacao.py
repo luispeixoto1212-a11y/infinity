@@ -228,3 +228,96 @@ def test_relatorio_de_desempenho_pronto_a_imprimir():
     for folha in _abrir(exportar_desempenho(resultado, tabela, "t.csv")).worksheets:
         assert folha.page_setup.orientation == "landscape"
         assert folha.sheet_properties.pageSetUpPr.fitToPage and folha.page_setup.fitToWidth == 1
+
+
+# Cabeçalhos vindos do ficheiro (correção de segurança na 1.2) ------------------------
+
+def test_nome_de_coluna_com_formula_e_gravado_como_texto():
+    """Uma coluna extra cujo nome é uma fórmula: o cabeçalho exportado tem de ser texto."""
+    conteudo = csv_bytes(CABECALHO + ';"=HYPERLINK(""http://exemplo.invalid"";""x"")"',
+                         "E1;A;01/10/2026;Porto;Pendente;valor", "E2;;01/10/2026;Porto;Pendente;valor")
+    _, resultado, _, _ = processar(conteudo)
+    livro = _abrir(exportar_dados_limpos(resultado, "t.csv"))
+    cabecalhos = []
+    for folha in livro.worksheets:
+        for linha in folha.iter_rows():
+            for celula in linha:
+                assert celula.data_type != "f", f"fórmula em {folha.title}!{celula.coordinate}"
+        cabecalhos += [c.value for c in folha[1]]
+    assert cabecalhos.count('=HYPERLINK("http://exemplo.invalid";"x")') == 2  # válidas e com erros
+
+
+# Exceções -------------------------------------------------------------------------------
+
+EXCECOES = csv_bytes(
+    CABECALHO + ";Data Prevista;Data de Entrega",
+    "A1;Armazéns Alfa;01/10/2026;Porto;Pendente;05/10/2026;",        # Alta
+    "A2;Armazéns Alfa;18/10/2026;Braga;Pendente;21/10/2026;",        # Média (vence amanhã)
+    "B1;Bazar Beta;01/10/2026;Faro;Em trânsito;05/10/2026;",         # Alta
+    "B2;Bazar Beta;31/02/2026;Évora;Pendente;30/10/2026;",           # Baixa (data inválida)
+    '"C1";"=HYPERLINK(""http://exemplo.invalid"";""x"")";01/10/2026;"=1+1";Pendente;05/10/2026;',  # Alta
+)
+
+
+def _excecoes_exemplo():
+    from logiflow import excecoes as E
+
+    _, resultado, tabela, _ = processar(EXCECOES)
+    return E, E.identificar_excecoes(tabela, resultado.problemas, resultado.data_referencia)
+
+
+def test_exportacao_de_excecoes_so_com_as_filtradas_e_pela_mesma_ordem():
+    from logiflow.exportacao import exportar_excecoes
+
+    E, todas = _excecoes_exemplo()
+    filtradas = E.filtrar(todas, prioridades=[E.ALTA])
+    livro = _abrir(exportar_excecoes(filtradas, "t.csv", dt.date(2026, 10, 20), [("Prioridades", "Alta")]))
+    assert livro.sheetnames == ["Exceções", "Informação"]
+    linhas = _linhas(livro["Exceções"])
+    assert linhas[0][:5] == ["Prioridade", "N.º Encomenda", "Cliente", "Categorias", "Motivos"]
+    assert linhas[0][-1] == "Linha no ficheiro"
+    assert [r[1] for r in linhas[1:]] == list(filtradas[E.NUMERO]) and len(linhas) - 1 == 3
+    assert all(r[0] == "Alta" and r[4] for r in linhas[1:])  # prioridade e motivos incluídos
+    info = {r[0]: r[1] for r in _linhas(livro["Informação"]) if r[0]}
+    assert info["Encomendas exportadas"] == 3 and info["Prioridades"] == "Alta"
+    assert info["Média"] == 0 and info["Baixa"] == 0  # totais só das linhas exportadas
+
+
+def test_exportacao_de_excecoes_sem_formulas():
+    from logiflow.exportacao import exportar_excecoes
+
+    E, todas = _excecoes_exemplo()
+    livro = _abrir(exportar_excecoes(todas, "t.csv", dt.date(2026, 10, 20), [("Pesquisa", "=1+2")]))
+    for folha in livro.worksheets:
+        for linha in folha.iter_rows():
+            for celula in linha:
+                assert celula.data_type != "f", f"fórmula em {folha.title}!{celula.coordinate}"
+    valores = _valores(livro)
+    assert '=HYPERLINK("http://exemplo.invalid";"x")' in valores and "=1+1" in valores and "=1+2" in valores
+
+
+def test_exportacao_de_excecoes_de_um_cliente_nao_tem_dados_de_outros():
+    from logiflow.exportacao import exportar_excecoes
+
+    E, todas = _excecoes_exemplo()
+    so_alfa = E.filtrar(todas, cliente="armazens alfa")
+    livro = _abrir(exportar_excecoes(so_alfa, "t.csv", dt.date(2026, 10, 20), [("Cliente", "Armazéns Alfa")]))
+    valores = _valores(livro)
+    for alheio in ("Bazar Beta", "B1", "B2", "Faro", "Évora", "HYPERLINK", "C1", "=1+1"):
+        assert not any(alheio in v for v in valores), alheio
+    info = {r[0]: r[1] for r in _linhas(livro["Informação"]) if r[0]}
+    assert info["Encomendas exportadas"] == 2 and info["Alta"] == 1 and info["Média"] == 1
+
+
+def test_exportacao_sem_excecoes_gera_ficheiro_valido_e_explicito():
+    from logiflow import excecoes as E
+    from logiflow.exportacao import exportar_excecoes
+
+    _, todas = _excecoes_exemplo()
+    vazio = E.filtrar(todas, pesquisa="nao existe")
+    livro = _abrir(exportar_excecoes(vazio, "t.csv", dt.date(2026, 10, 20)))
+    linhas = _linhas(livro["Exceções"])
+    assert linhas[0][0] == "Prioridade" and linhas[2][0] == "Não há exceções com os filtros aplicados."
+    info = {r[0]: r[1] for r in _linhas(livro["Informação"]) if r[0]}
+    assert info["Encomendas exportadas"] == 0 and info["Alta"] == 0
+    assert livro["Exceções"].page_setup.orientation == "landscape"

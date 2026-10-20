@@ -21,6 +21,7 @@ está em [ROTEIRO.md](ROTEIRO.md).
 | Tabela com pesquisa e filtros por estado, data, situação face ao prazo e validação | Separador «Encomendas» |
 | Detetar campos vazios, números de encomenda duplicados e datas inválidas | Separador «Qualidade dos dados» |
 | Indicadores: total, entregues, pendentes e atrasadas | Topo da página |
+| **Painel de exceções**: atrasadas, prazo nas próximas 48 horas, pendentes há 5 ou mais dias, dados incompletos ou inválidos e possíveis duplicados, com prioridade, filtros e exportação | Separador «Exceções» |
 | Desempenho: taxa de entregas no prazo, tempo médio de entrega, comparação por cliente, destino e período, antiguidade das pendentes | Separador «Desempenho» |
 | Exportar dados limpos e relatório em Excel | Separador «Exportar» |
 | Exportar o relatório de desempenho, de todos os clientes ou de um só | Separador «Exportar» |
@@ -91,10 +92,11 @@ Estes comandos usam diretamente o `python.exe` da pasta `.venv`, por isso não �
    «Situação»...). Se faltar alguma coluna obrigatória, aparece uma mensagem a dizer qual, e pode
    escolher a coluna certa em «Correspondência de colunas».
 3. **Reveja os indicadores e a tabela.** Os filtros afetam a tabela, os indicadores e os gráficos.
-4. **Veja o «Desempenho»**: taxa de entregas no prazo, tempo de entrega e onde há mais atrasos.
-5. **Veja a «Qualidade dos dados»**: cada problema indica a linha do ficheiro original, para o
+4. **Abra as «Exceções»**: a lista do que precisa de intervenção, por prioridade. Filtre e exporte.
+5. **Veja o «Desempenho»**: taxa de entregas no prazo, tempo de entrega e onde há mais atrasos.
+6. **Veja a «Qualidade dos dados»**: cada problema indica a linha do ficheiro original, para o
    poder corrigir na origem.
-6. **Exporte** os dados limpos, o relatório e o relatório de desempenho (separador «Exportar»).
+7. **Exporte** os dados limpos, o relatório e o relatório de desempenho (separador «Exportar»).
 
 ### Formato do ficheiro
 
@@ -164,6 +166,52 @@ Regras importantes:
 - Quando nenhuma pendente de um grupo tem prazo, a coluna «Atrasadas» fica vazia (desconhecido),
   em vez de 0.
 
+### Painel de exceções
+
+![Separador Exceções com o ficheiro de exemplo](docs/ecra_excecoes.png)
+
+O separador «Exceções» responde a «que encomendas precisam de intervenção, e por onde
+começo?». Mostra uma linha por linha do ficheiro, com **todos os motivos** e a **prioridade
+mais alta** aplicável.
+
+| Categoria | Regra | Prioridade |
+| --- | --- | --- |
+| **Atrasada** | Estado «Pendente» ou «Em trânsito», prazo conhecido e já ultrapassado na data de referência — a mesma regra do cartão «Atrasadas» do topo. | Alta |
+| **Prazo próximo** | Por entregar, com prazo **hoje ou amanhã**. As datas não têm hora, por isso «nas próximas 48 horas» corresponde ao dia da referência e ao seguinte. | Média |
+| **Pendente há demasiado tempo** | Por entregar há **5 ou mais dias**, contados desde uma data da encomenda válida até à data de referência. | Média |
+| **Dados incompletos ou inválidos** | Erros de validação já existentes que não são duplicados: campo obrigatório vazio ou data inválida. | Baixa |
+| **Possível duplicado** | N.º de encomenda repetido, segundo a regra de validação já existente (todas as ocorrências). | Baixa |
+
+Regras importantes:
+
+- **Sem prazo, nunca se conclui que uma encomenda está atrasada** ou com prazo próximo. Sem uma
+  data da encomenda válida, os dias por entregar não são calculados — mas o erro de dados
+  continua visível no painel.
+- **Prazos calculados não são apresentados como factos:** a coluna «Origem do prazo» diz se o
+  prazo vem da «Data Prevista» do ficheiro ou do prazo padrão, e os motivos dizem «prazo
+  calculado».
+- **As categorias sobrepõem-se.** Uma encomenda atrasada há muito tempo é «Atrasada» e «Pendente há
+  demasiado tempo»; aparece uma só vez. Por isso, os totais por categoria **não se somam** — o
+  total de encomendas com exceções está no cartão «Encomendas com exceções».
+- Prioridade: **Alta** = atrasada; **Média** = prazo próximo ou pendente há demasiado tempo;
+  **Baixa** = só problemas de qualidade de dados (sem urgência operacional demonstrada).
+- Os **avisos de validação** da encomenda (por exemplo, «tem data de entrega mas o estado é Em
+  trânsito») aparecem numa coluna própria, sem mudar a prioridade. Encomendas **só com avisos**
+  (por exemplo, estado não reconhecido) não entram no painel; continuam em «Qualidade dos dados».
+- Ao contrário do separador «Desempenho», o painel considera **todas as linhas importadas**,
+  incluindo as que têm erros — são precisamente as que precisam de intervenção.
+
+**Filtros.** Os filtros do topo aplicam-se ao painel. Além disso, o painel tem filtros próprios —
+pesquisa por n.º ou cliente, categoria, prioridade, cliente e ordenação (por prioridade ou por
+antiguidade) — que **só afetam o painel e a sua exportação**: não mudam os indicadores do topo nem
+os outros separadores (verificado por testes automáticos). O botão «Limpar filtros do painel»
+repõe-nos.
+
+**Exportação.** O botão «Descarregar estas N exceções (.xlsx)» exporta **exatamente as linhas
+visíveis**, pela mesma ordem, com prioridade, categorias e motivos. A folha «Informação» regista
+os filtros aplicados e os totais **só das linhas exportadas** — com um cliente escolhido, o
+ficheiro não tem dados de mais nenhum. Acima de 5 000 exceções, o Excel é preparado a pedido.
+
 ### Erros e avisos
 
 | Tipo | Gravidade | O que acontece à linha |
@@ -185,6 +233,9 @@ quantas eram.
   estados uniformizados), «Linhas com erros» (valores originais + motivo) e «Informação».
 - **Relatório (.xlsx):** «Resumo» (indicadores, regra de prazo usada, qualidade dos dados),
   «Por estado», «Atrasadas», «Problemas» e «Todas as encomendas».
+- **Exceções (.xlsx)** (separador «Exceções»): as exceções visíveis depois dos filtros, com
+  prioridade, categorias, motivos, prazo e a sua origem, e uma folha «Informação» com os filtros
+  aplicados e as regras.
 - **Relatório de desempenho (.xlsx):** «Resumo» (âmbito, base de cálculo, regra de prazo,
   indicadores e como foram calculados), «Por período», «Por cliente», «Por destino», «Pendentes
   por antiguidade» e «Entregas com atraso». Preparado para impressão (horizontal, ajustado à
@@ -210,7 +261,9 @@ escolhido).
   Excel com XML malicioso, e os ficheiros comprimidos de forma anómala («bombas ZIP») são recusados.
 - **Limites claros:** 20 MB por ficheiro, 200 000 linhas e 200 colunas, com mensagens a explicar.
 - **Proteção contra injeção de fórmulas:** um valor como `=HYPERLINK(...)` vindo do ficheiro é
-  gravado nas exportações como texto, nunca como fórmula. Por isso, o botão de exportação CSV
+  gravado nas exportações como texto, nunca como fórmula — incluindo os **nomes de colunas**
+  extra do ficheiro, que até à versão 1.1.0 eram gravados como fórmula nos cabeçalhos dos dados
+  limpos (corrigido e coberto por um teste). Por isso, o botão de exportação CSV
   incorporado nas tabelas está desligado e as exportações fazem-se pelos botões de Excel.
 - **CSV mal formado** (por exemplo, aspas por fechar) é recusado com indicação da linha, em vez
   de juntar silenciosamente várias linhas num só campo.
@@ -249,6 +302,7 @@ Inclui problemas colocados de propósito, para a demonstração:
 
 Com a data de referência 20/10/2026 (usada automaticamente quando abre o exemplo), os indicadores
 são: 60 encomendas, 41 entregues, 11 pendentes, 8 atrasadas e 9 linhas com erros. No separador
+«Exceções»: 18 encomendas com exceções — 8 de prioridade alta, 1 média e 9 baixa. No separador
 «Desempenho» (51 encomendas sem erros): 74,3 % de entregas no prazo (26 de 35), tempo médio de
 entrega de 3,3 dias e 9 entregas com atraso.
 
@@ -265,7 +319,7 @@ Faça duplo clique em **`testar.bat`**, ou:
 .venv\Scripts\python.exe -m pytest
 ```
 
-São 128 testes, que verificam:
+São 171 testes, que verificam:
 
 - **Importação:** codificações, separadores, cabeçalho depois de um título, linhas vazias, colunas
   sem nome, ficheiros inválidos, demasiado grandes ou maliciosos, e fórmulas que não são executadas.
@@ -275,11 +329,16 @@ São 128 testes, que verificam:
 - **Desempenho:** taxa no prazo e denominadores, tempos de entrega com datas incoerentes, exclusão
   das linhas com erros, agrupamento por cliente/destino/semana/mês, antiguidade das pendentes e
   casos sem datas («não disponível» em vez de valores inventados).
+- **Exceções:** atrasadas, janela de 48 horas (dentro e fora), datas ausentes ou inválidas, vários
+  motivos numa só linha, antiguidade só com data válida, prioridades e ordenação, pesquisa e
+  combinação de filtros, filtros do topo, e que nada é alterado nos dados nem nos indicadores.
 - **Exportações:** nenhuma linha se perde, as datas ficam datas, nada é gravado como fórmula, o
-  relatório bate certo com os indicadores e o relatório de desempenho de um cliente não contém
-  dados de outros clientes.
+  relatório bate certo com os indicadores, o relatório de desempenho de um cliente não contém
+  dados de outros clientes, e a exportação de exceções tem só as linhas filtradas, sem fórmulas
+  e sem dados de clientes fora do filtro (também quando não há exceções).
 - **Interface:** a aplicação abre, carrega o exemplo, os filtros atualizam os indicadores e o
-  desempenho, e as exportações (incluindo o relatório por cliente) ficam disponíveis.
+  desempenho, os filtros do painel de exceções não afetam os outros separadores, e as exportações
+  (incluindo o relatório por cliente e as exceções filtradas) ficam disponíveis.
 
 ---
 
@@ -295,7 +354,8 @@ logiflow/
 │   ├── validacao.py        ← vazios, duplicados, datas inválidas, avisos
 │   ├── indicadores.py      ← prazos, atrasos e indicadores
 │   ├── desempenho.py       ← taxa no prazo, tempos de entrega, por cliente/destino/período
-│   ├── exportacao.py       ← Excel de dados limpos, relatório e relatório de desempenho
+│   ├── excecoes.py         ← painel de exceções: categorias, prioridades, filtros
+│   ├── exportacao.py       ← Excel de dados limpos, relatório, desempenho e exceções
 │   └── exemplo.py          ← localização do ficheiro de exemplo
 ├── tests/                  ← testes automáticos (pytest)
 ├── dados_exemplo/          ← ficheiros de exemplo (dados fictícios)
@@ -332,10 +392,12 @@ Estas funcionalidades **não estão implementadas** nesta versão:
 - **Integrações** com transportadoras, GPS, mapas, rotas, faturação, e-mail ou SMS.
 - **Histórico de importações e comparação entre ficheiros** (por exemplo, esta semana face à
   anterior): o desempenho é calculado só sobre o ficheiro aberto. Ver [ROTEIRO.md](ROTEIRO.md).
-- **Relatório em PDF, logótipo ou personalização da empresa** e **painel de exceções com
-  prioridades**: avaliados em [ROTEIRO.md](ROTEIRO.md), não implementados.
-- **Configurar os limites do desempenho** (mínimo de 5 entregas avaliadas; faixas de
-  antiguidade 2/5/10 dias): são fixos nesta versão.
+- **Relatório em PDF, logótipo ou personalização da empresa** e **modelos de importação**:
+  avaliados em [ROTEIRO.md](ROTEIRO.md), não implementados.
+- **Configurar os limites** do desempenho (mínimo de 5 entregas avaliadas; faixas de antiguidade
+  2/5/10 dias) e do painel de exceções (48 horas; 5 dias; prioridades): são fixos nesta versão.
+- **Exceções para encomendas só com avisos** (por exemplo, estado não reconhecido) e **horas nos
+  prazos** (as datas são dias inteiros): não tratados no painel.
 - **Datas guardadas como número** (por exemplo, `45930`) não são convertidas, porque não é
   possível ter a certeza de que são datas: aparecem como data inválida.
 - **Fórmulas do Excel sem valor guardado** (ficheiros gerados por outros programas) aparecem
@@ -365,5 +427,5 @@ Outras limitações:
 
 ## Demonstração a clientes
 
-Ver [DEMONSTRACAO.md](DEMONSTRACAO.md): guião de 12 minutos com o ficheiro de exemplo, incluindo
-o desempenho e o relatório por cliente.
+Ver [DEMONSTRACAO.md](DEMONSTRACAO.md): guião de cerca de 14 minutos com o ficheiro de exemplo,
+incluindo o painel de exceções, o desempenho e o relatório por cliente.
