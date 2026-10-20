@@ -5,15 +5,16 @@ exportação de dados limpos e relatório; sem persistência, sem utilizadores).
 de esforço são indicativas, para um programador que conheça o projeto.
 
 **Estado:** a melhoria 1 (Relatório de desempenho operacional) foi implementada na
-versão 1.1.0. As restantes **não estão implementadas**.
+versão 1.1.0 e a melhoria 4 (Painel de exceções com prioridades) na versão 1.2.0. As restantes
+(2, 3, 5 e 6) **não estão implementadas**.
 
 ## Resumo e recomendação
 
 | Melhoria | Valor comercial | Esforço | Risco | Estado |
 | --- | --- | --- | --- | --- |
 | 1. Relatório de desempenho operacional | Alto | Baixo–médio (2–3 dias) | Baixo | **Implementada (1.1.0)** |
-| 4. Painel de exceções com prioridades | Alto (parte já coberta) | Baixo–médio (2–3 dias) | Baixo–médio | Não implementada — próxima candidata |
-| 3. Modelos de importação reutilizáveis | Médio | Baixo–médio (3–4 dias) | Baixo–médio | Não implementada |
+| 4. Painel de exceções com prioridades | Alto (parte já coberta) | Baixo–médio (2–3 dias) | Baixo–médio | **Implementada (1.2.0)** |
+| 3. Modelos de importação reutilizáveis | Médio | Baixo–médio (3–4 dias) | Baixo–médio | Não implementada — próxima candidata |
 | 5. Relatório operacional profissional (PDF) | Médio–alto | Médio–alto (4–6 dias) | Médio | Não implementada |
 | 2. Histórico de importações | Médio–alto | Médio (5–8 dias) | Médio–alto (RGPD) | Não implementada |
 | 6. Preparação para várias empresas | Baixo a curto prazo | Alto (semanas) | Muito alto | Não implementada |
@@ -23,7 +24,7 @@ justifica a compra («qual é o nosso nível de serviço, e onde falhamos?»), p
 entregável que a transportadora pode enviar a cada cliente, usa apenas dados já validados e
 não guarda dados nem acrescenta dependências. Serve ainda de base às melhorias 5 e 2.
 
-Ordem sugerida a seguir: **4 → 3 → 5 → 2 → 6**.
+Ordem sugerida a seguir (atualizada na 1.2.0): **3 → 5 → 2 → 6**.
 
 ---
 
@@ -93,6 +94,21 @@ Ordem sugerida a seguir: **4 → 3 → 5 → 2 → 6**.
   o suportem.
 - **Testes necessários:** cada regra de prioridade; ordenação; casos sem prazo; exportação.
 - **Dependências:** nenhuma; reutiliza os prazos e pode usar os indicadores da melhoria 1.
+
+**Implementação (1.2.0).** Separador «Exceções» (`logiflow/excecoes.py`), sobre as regras de
+prazo e de validação já existentes, sem guardar dados nem acrescentar dependências:
+
+- Categorias: Atrasada (Alta), Prazo próximo — hoje ou amanhã, ≈48 h, porque as datas não têm
+  hora (Média), Pendente há demasiado tempo — 5 ou mais dias, só com data da encomenda válida
+  (Média), Dados incompletos ou inválidos (Baixa) e Possível duplicado (Baixa).
+- Uma linha por linha do ficheiro, com todos os motivos e a prioridade mais alta; as categorias
+  sobrepõem-se e os seus totais não se somam; prazos calculados com o prazo padrão identificados.
+- Filtros próprios (pesquisa, categoria, prioridade, cliente, ordenação) que só afetam o painel;
+  exportação Excel só das linhas visíveis.
+- Ficou por fazer (não implementado): regras configuráveis (48 h, 5 dias, prioridades), exceções
+  para encomendas só com avisos (por exemplo, estado não reconhecido) e prazos com hora.
+- Durante a implementação foi encontrada e corrigida uma falha herdada da 1.0: nomes de colunas
+  do ficheiro podiam ser gravados como fórmula nos cabeçalhos do Excel de dados limpos.
 
 ## 5. Relatório operacional profissional
 

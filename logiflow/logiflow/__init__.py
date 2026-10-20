@@ -6,4 +6,4 @@ e limita-se a chamar estas funções, o que permite testá-las sem abrir
 o navegador.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"

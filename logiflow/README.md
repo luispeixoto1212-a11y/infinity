@@ -6,8 +6,9 @@ operacional (entregas no prazo, tempos de entrega, por cliente, destino e perío
 dados limpos e relatórios em Excel — incluindo um relatório de desempenho por cliente, pronto
 a enviar. Funciona no seu computador, sem internet e sem guardar nada.
 
-**Versão 1.1.0.** Novidade: separador «Desempenho» e relatório de desempenho em Excel
-(ver [Desempenho operacional](#desempenho-operacional)). A avaliação das próximas melhorias
+**Versão 1.2.0.** Novidade: separador «Exceções» — as encomendas que precisam de intervenção,
+por prioridade, com filtros e exportação (ver [Painel de exceções](#painel-de-exceções)). A 1.1.0
+trouxe o separador «Desempenho» e o relatório de desempenho. A avaliação das próximas melhorias
 está em [ROTEIRO.md](ROTEIRO.md).
 
 ![Ecrã principal com o ficheiro de exemplo](docs/ecra_encomendas.png)
