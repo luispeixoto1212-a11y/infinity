@@ -48,3 +48,55 @@ def processar(conteudo: bytes, nome: str = "teste.csv", referencia: dt.date = RE
 @pytest.fixture
 def referencia() -> dt.date:
     return REFERENCIA
+
+
+def guardar(caminho_db, conteudo: bytes, nome: str = "teste.csv", referencia: dt.date = REFERENCIA,
+            prazo_padrao: int | None = None, origem: str = "ficheiro"):
+    """Lê, valida e guarda no histórico, como a aplicação faz ao importar um ficheiro."""
+    from logiflow import historico
+
+    lido, resultado, tabela, _ = processar(conteudo, nome, referencia, prazo_padrao)
+    dados = historico.preparar_dados(nome, conteudo, lido.folha, resultado.mapeamento, resultado, tabela,
+                                     referencia, prazo_padrao, origem)
+    return historico.registar_importacao(caminho_db, dados)
+
+
+@pytest.fixture
+def base_dados(pasta_dados_temporaria):
+    """Uma base de dados do histórico nova, numa pasta temporária."""
+    from logiflow.persistencia import caminho_base_dados, preparar_base_dados
+
+    caminho = caminho_base_dados()
+    preparar_base_dados(caminho)
+    return caminho
+
+
+@pytest.fixture(autouse=True)
+def pasta_dados_temporaria(tmp_path_factory):
+    """Cada teste usa uma pasta de dados própria e temporária: os testes nunca tocam no
+    histórico real do utilizador. (Usa um MonkeyPatch próprio, para que um
+    ``monkeypatch.undo()`` dentro de um teste não desfaça esta proteção.)"""
+    pasta = tmp_path_factory.mktemp("dados_logiflow")
+    with pytest.MonkeyPatch.context() as protecao:
+        protecao.setenv("LOGIFLOW_DADOS", str(pasta))
+        yield pasta
+
+
+def _fotografia_da_pasta_real() -> dict[str, tuple[int, int]]:
+    import os
+
+    from logiflow.persistencia import VARIAVEL_PASTA, pasta_dados
+
+    pasta = pasta_dados({k: v for k, v in os.environ.items() if k != VARIAVEL_PASTA})
+    if not pasta.is_dir():
+        return {}
+    return {str(p): (p.stat().st_size, p.stat().st_mtime_ns) for p in pasta.rglob("*") if p.is_file()}
+
+
+@pytest.fixture(autouse=True, scope="session")
+def pasta_real_nunca_e_tocada():
+    """Garante, no fim da bateria, que a pasta de dados real (a predefinida) não foi
+    criada nem alterada pelos testes."""
+    antes = _fotografia_da_pasta_real()
+    yield
+    assert _fotografia_da_pasta_real() == antes, "Os testes alteraram a pasta de dados real do LogiFlow."

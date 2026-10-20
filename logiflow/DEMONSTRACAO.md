@@ -1,4 +1,4 @@
-# Guião de demonstração do LogiFlow (cerca de 14 minutos)
+# Guião de demonstração do LogiFlow (cerca de 16 minutos)
 
 Objetivo: mostrar a um potencial cliente (uma transportadora ou distribuidora) que o LogiFlow
 transforma uma folha de Excel desarrumada em números fiáveis, mede o nível de serviço e produz
@@ -15,8 +15,15 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
    de tempo médio de entrega e **9 entregas com atraso**.
 5. No separador «Exceções», confirme **18 encomendas com exceções: 8 de prioridade alta, 1 média
    e 9 baixa**, e descarregue uma vez as exceções de prioridade alta.
-6. Use o browser em ecrã inteiro (F11) e feche os outros separadores.
-7. Se possível, peça ao cliente um **ficheiro real de exportação** (pode ser só um mês). Teste-o
+6. **Histórico (em validação para a 1.3.0):** no ecrã inicial, abra «Descarregar o ficheiro de
+   exemplo» e descarregue o **Exemplo em Excel** e o **Exemplo do dia seguinte**. Guarde-os numa
+   pasta fácil de encontrar (por exemplo, no Ambiente de Trabalho).
+   - Para a demonstração começar com o histórico vazio, use uma pasta de dados só para
+     demonstrações: antes de abrir a aplicação, numa janela de comandos na pasta `logiflow`,
+     `set LOGIFLOW_DADOS=C:\LogiFlowDemo` e depois `iniciar.bat`. Assim, o histórico real (se
+     existir) não aparece nem é alterado.
+7. Use o browser em ecrã inteiro (F11) e feche os outros separadores.
+8. Se possível, peça ao cliente um **ficheiro real de exportação** (pode ser só um mês). Teste-o
    antes da reunião, porque o cabeçalho pode precisar de ser escolhido em «Correspondência de
    colunas».
 
@@ -36,8 +43,8 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
 - Mostre o ecrã inicial: «Colunas esperadas». Diga que os cabeçalhos podem variar («Nº
   Encomenda», «Localidade», «Situação»...).
 - Clique em **«Experimentar com o ficheiro de exemplo»**. Sublinhe que são dados fictícios.
-- Aponte para a barra lateral: «Os ficheiros são processados neste computador e não são guardados
-  nem enviados para a internet.»
+- Aponte para a barra lateral: «Os ficheiros são processados neste computador e nada é enviado
+  para a internet. O histórico fica guardado só neste computador — e pode ser desligado.»
 
 ### 3. Indicadores (2 minutos)
 
@@ -115,7 +122,28 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
   por destino). Mensagem-chave: **«Pode enviar este ficheiro ao cliente: não tem dados de mais
   ninguém.»**
 
-### 9. Fecho (1 minuto)
+### 9. Histórico e comparação (2 minutos) — «o que mudou desde ontem?»
+
+> «Todos os dias exportam a mesma lista. A pergunta seguinte é: o que mudou desde ontem?»
+
+- Feche o exemplo. Em «1. Ficheiro», carregue o **`encomendas_exemplo.xlsx`** que descarregou.
+  Por baixo do nome do ficheiro aparece «Guardada no histórico como importação n.º 1».
+- Carregue a seguir o **`encomendas_exemplo_dia2.xlsx`**: «importação n.º 2».
+- Abra o separador **Histórico** (o último): as duas importações, com data, estado e totais.
+  Mostre os detalhes da n.º 2 e carregue em **«Comparar com a importação anterior (n.º 1)»**:
+  **5 novas, 7 alteradas, 46 sem alterações e 3 não encontradas**.
+- Em «Situações a mostrar», escolha **Alterada**: «ENC-26-0049 — Estado: Em trânsito → Entregue;
+  Data de Entrega: — → 20/10/2026».
+- Mensagem-chave: **«As 3 “não encontradas” não são dadas como entregues nem como canceladas: só
+  não vêm no ficheiro de hoje. A aplicação não inventa estados.»**
+- Abra «Linhas fora da comparação (8)»: os n.ºs repetidos não são emparelhados, para não dar
+  comparações enganadoras.
+- Volte a carregar o ficheiro do dia 1: «Este conteúdo já tinha sido importado… Não foi criado
+  nenhum registo duplicado.»
+- Em **Cópias de segurança**, carregue em «Criar cópia de segurança agora»: a cópia é criada e
+  verificada. Diga que se recomenda guardar cópias também noutro disco.
+
+### 10. Fecho (1 minuto)
 
 - Resuma: **importa → valida → mostra o que interessa → exporta**, sem instalar servidores nem
   pagar serviços externos, e com os dados a ficarem no computador da empresa.
@@ -126,8 +154,9 @@ relatórios prontos a enviar — incluindo um relatório para cada cliente dele 
 | Pergunta | Resposta honesta |
 | --- | --- |
 | «Funciona com o nosso Excel?» | Sim, se for .xlsx ou CSV. Os cabeçalhos são reconhecidos automaticamente ou escolhidos à mão. O .xls antigo tem de ser guardado como .xlsx. |
-| «Os dados vão para a nuvem?» | Não. A aplicação corre no computador e só aceita ligações dele próprio. Nada é guardado. |
-| «Guarda o histórico?» | Não nesta versão. O desempenho é calculado sobre o ficheiro aberto; para comparar meses, importe um ficheiro com esse período. O histórico está avaliado no ROTEIRO, não implementado. |
+| «Os dados vão para a nuvem?» | Não. A aplicação corre no computador e só aceita ligações dele próprio. O histórico das importações fica guardado **só neste computador**, na pasta do utilizador; pode ser desligado. O ficheiro original e as colunas extra não são guardados. |
+| «Guarda o histórico?» | Sim (funcionalidade em validação para a 1.3.0): cada importação, com os totais e os 7 campos de cada encomenda, e a comparação entre duas importações. Não há (ainda) apagamento seletivo nem prazo de conservação automático. O separador «Desempenho» continua a usar só o ficheiro aberto. |
+| «E se o computador avariar?» | Faça cópias de segurança no separador «Histórico» para outro disco ou uma pen USB. A recuperação valida a cópia antes de a usar e guarda o histórico atual à parte. |
 | «Dá um PDF com o nosso logótipo?» | Não nesta versão: o relatório de desempenho é em Excel, preparado para imprimir. O PDF está avaliado no ROTEIRO, não implementado. |
 | «Porque é que esta encomenda não aparece como atrasada?» | Porque não tem prazo (nem data prevista, nem prazo padrão definido): sem prazo, a aplicação não conclui que está atrasada. Defina um prazo padrão na barra lateral, se fizer sentido para o cliente. |
 | «Posso mudar os 5 dias ou as 48 horas?» | Não nesta versão: as regras são fixas e estão escritas no próprio painel («Categorias e regras») e no Excel exportado. |

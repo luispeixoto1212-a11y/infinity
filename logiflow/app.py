@@ -14,20 +14,25 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import math
 import re
-from pathlib import PurePath
+from dataclasses import dataclass
+from pathlib import Path, PurePath
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from logiflow import __version__
+from logiflow import __version__, comparacao, copias
 from logiflow import campos as C
 from logiflow import desempenho as D
 from logiflow import excecoes as E
+from logiflow import historico as H
+from logiflow import persistencia as P
 from logiflow.exemplo import (
     DATA_REFERENCIA_EXEMPLO,
     FICHEIRO_EXEMPLO_CSV,
+    FICHEIRO_EXEMPLO_DIA2_XLSX,
     FICHEIRO_EXEMPLO_XLSX,
 )
 from logiflow.exportacao import (
@@ -154,6 +159,7 @@ def _iniciar_estado() -> None:
     st.session_state.setdefault("prazo_padrao", 0)
     st.session_state.setdefault("periodo_desempenho", D.SEMANA)
     st.session_state.setdefault("comparar_desempenho", C.rotulo(C.CLIENTE))
+    st.session_state.setdefault("guardar_historico", True)
 
 
 def _abrir_exemplo() -> None:
@@ -169,6 +175,10 @@ def _fechar_exemplo() -> None:
 
 def _ficheiro_alterado() -> None:
     _fechar_exemplo()
+    # Cada ficheiro carregado é uma nova importação: volta a verificar-se o histórico (o mesmo
+    # conteúdo não é gravado duas vezes, mas a mensagem passa a dizer que já tinha sido importado).
+    for chave in [c for c in st.session_state if str(c).startswith("historico_registo_")]:
+        del st.session_state[chave]
 
 
 # Ecrãs ------------------------------------------------------------------------
@@ -233,7 +243,7 @@ def _boas_vindas() -> None:
                "reconhecido, pode escolher a coluna certa depois de importar. Outras colunas são mantidas.")
 
     with st.expander("Descarregar o ficheiro de exemplo"):
-        d1, d2 = st.columns(2)
+        d1, d2, d3 = st.columns(3)
         d1.download_button("Exemplo em Excel (.xlsx)", FICHEIRO_EXEMPLO_XLSX.read_bytes(),
                            file_name=FICHEIRO_EXEMPLO_XLSX.name, icon=":material/download:",
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -241,6 +251,13 @@ def _boas_vindas() -> None:
         d2.download_button("Exemplo em CSV", FICHEIRO_EXEMPLO_CSV.read_bytes(),
                            file_name=FICHEIRO_EXEMPLO_CSV.name, icon=":material/download:",
                            mime="text/csv", on_click="ignore")
+        d3.download_button("Exemplo do dia seguinte (.xlsx)", FICHEIRO_EXEMPLO_DIA2_XLSX.read_bytes(),
+                           file_name=FICHEIRO_EXEMPLO_DIA2_XLSX.name, icon=":material/download:",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                           on_click="ignore")
+        st.caption("O «dia seguinte» é o mesmo ficheiro exportado um dia depois (entregas, mudanças de estado, "
+                   "encomendas novas). Importe os dois Excel, um a seguir ao outro, para experimentar o "
+                   "histórico e a comparação.")
 
 
 def _barra_lateral_ficheiro():
@@ -249,7 +266,8 @@ def _barra_lateral_ficheiro():
         "Ficheiro de encomendas", type=["csv", "xlsx"], key="ficheiro",
         on_change=_ficheiro_alterado,
         help=f"CSV (separado por ; ou ,) ou Excel .xlsx, até {TAMANHO_MAXIMO_MB} MB. "
-             "O ficheiro é processado neste computador e não é guardado.",
+             "O ficheiro é processado neste computador. O ficheiro original não é guardado; com a opção "
+             "«Guardar importações no histórico» ligada, fica guardado neste computador um registo da importação.",
     )
     if enviado is None:
         if st.session_state.usar_exemplo:
@@ -910,6 +928,424 @@ def _separador_exportar(resultado: ResultadoValidacao, tabela_completa: pd.DataF
                                    type="primary", icon=":material/download:", on_click="ignore")
 
 
+# Histórico (versão 1.3) ------------------------------------------------------------
+# A base de dados é verificada (e criada ou atualizada) uma vez por sessão, ao abrir a
+# aplicação. Qualquer problema com o histórico é mostrado no separador «Histórico» e
+# nunca impede o resto da aplicação de funcionar.
+
+POR_PAGINA_HISTORICO = 50
+LIMITE_LINHAS_HISTORICO = 5_000  # linhas mostradas de uma vez (encomendas guardadas e comparações)
+ROTULOS_ORIGEM = {H.ORIGEM_FICHEIRO: "Ficheiro", H.ORIGEM_EXEMPLO: "Exemplo"}
+
+
+@dataclass(frozen=True)
+class _Historico:
+    caminho: Path | None
+    info: P.InfoBaseDados | None
+    erro: str | None
+
+    @property
+    def disponivel(self) -> bool:
+        return self.info is not None
+
+
+def _historico() -> _Historico:
+    try:
+        caminho = P.caminho_base_dados()
+    except P.ErroPersistencia as erro:
+        return _Historico(None, None, str(erro))
+    preparada = st.session_state.get("hist_base_preparada")
+    if preparada is None or preparada[0] != str(caminho):
+        try:
+            with st.spinner("A preparar o histórico…"):
+                preparada = (str(caminho), P.preparar_base_dados(caminho))
+        except Exception as erro:  # noqa: BLE001 — sem histórico, o resto da aplicação continua a funcionar
+            return _Historico(caminho, None, P.mensagem_segura(erro))  # volta a tentar na próxima interação
+        st.session_state.hist_base_preparada = preparada
+    return _Historico(caminho, preparada[1], None)
+
+
+def _barra_lateral_historico() -> None:
+    st.sidebar.header("3. Histórico")
+    st.sidebar.toggle(
+        "Guardar importações no histórico", key="guardar_historico",
+        help="Guarda neste computador um registo de cada ficheiro importado (nome, data, totais) e os sete "
+             "campos de cada encomenda, para consultar e comparar no separador «Histórico». O ficheiro "
+             "original e as outras colunas não são guardados. O ficheiro de exemplo só é guardado a pedido.",
+    )
+
+
+def _chave_registo(conteudo: bytes, lido: FicheiroLido, mapeamento: dict[str, str | None]) -> str:
+    return f"historico_registo_{H.impressao_digital(H.hash_conteudo(conteudo), lido.folha, mapeamento)}"
+
+
+def _gravar_importacao(hist: _Historico, chave: str, origem: str, nome: str, conteudo: bytes, lido: FicheiroLido,
+                       mapeamento: dict[str, str | None], resultado: ResultadoValidacao, tabela: pd.DataFrame,
+                       data_referencia: dt.date, prazo: int | None) -> H.ResultadoRegisto:
+    """Grava a importação e guarda o resultado na sessão (para não gravar de novo a cada interação)."""
+    try:
+        dados = H.preparar_dados(nome, conteudo, lido.folha, mapeamento, resultado, tabela, data_referencia,
+                                 prazo, origem)
+        registo = H.registar_importacao(hist.caminho, dados)
+    except Exception as erro:  # noqa: BLE001 — comunicado ao utilizador, nunca ignorado
+        registo = H.ResultadoRegisto(H.FALHOU, None, None,
+                                     f"Não foi possível guardar no histórico: {P.mensagem_segura(erro)}")
+    st.session_state[chave] = registo
+    return registo
+
+
+def _mensagem_registo(hist: _Historico, exemplo: bool, chave: str) -> None:
+    registo = st.session_state.get(chave)
+    if registo is not None and registo.situacao == H.FALHOU:
+        st.warning(_md(registo.mensagem) + " O resto da aplicação continua a funcionar normalmente.",
+                   icon=":material/warning:")
+        st.button("Tentar guardar de novo", on_click=st.session_state.pop, args=(chave, None),
+                  icon=":material/refresh:", key="hist_tentar_de_novo")
+    elif registo is not None and registo.estado == H.EM_PROCESSAMENTO:
+        st.caption(f":material/history: {_md(registo.mensagem)}")
+        st.button("Verificar de novo", on_click=st.session_state.pop, args=(chave, None),
+                  icon=":material/refresh:", key="hist_tentar_de_novo")
+    elif registo is not None:
+        st.caption(f":material/history: {_md(registo.mensagem)}")
+    elif chave in st.session_state:  # depois de recuperar uma cópia, o ficheiro aberto não é gravado sozinho
+        st.caption(":material/history: Foi recuperada uma cópia de segurança: este ficheiro não foi gravado "
+                   "outra vez no histórico.")
+        st.button("Guardar este ficheiro no histórico", on_click=st.session_state.pop, args=(chave, None),
+                  icon=":material/save:", key="hist_guardar_depois_de_recuperar")
+    elif exemplo:
+        st.caption(":material/history: O ficheiro de exemplo não é guardado automaticamente no histórico "
+                   "(pode guardá-lo no separador «Histórico»).")
+    elif not st.session_state.guardar_historico:
+        st.caption(":material/history_toggle_off: Esta importação não foi guardada no histórico "
+                   "(opção desligada na barra lateral).")
+    elif not hist.disponivel:
+        st.warning(f"O histórico não está disponível, por isso esta importação não foi guardada: {_md(hist.erro)}",
+                   icon=":material/warning:")
+
+
+def _registar_falha_leitura(hist: _Historico, nome: str, conteudo: bytes, folha: str | None,
+                            erro: ErroImportacao) -> None:
+    if not (st.session_state.guardar_historico and hist.disponivel):
+        return
+    chave = f"historico_falha_{H.hash_conteudo(conteudo + (folha or '').encode())}"
+    if chave not in st.session_state:
+        try:
+            st.session_state[chave] = H.registar_falha_leitura(hist.caminho, nome, conteudo, folha, erro).mensagem
+        except Exception as falha:  # noqa: BLE001
+            st.session_state[chave] = f"Não foi possível registar a falha no histórico: {P.mensagem_segura(falha)}"
+    st.caption(f":material/history: {_md(st.session_state[chave])}")
+
+
+def _data_iso(valor: object) -> str:
+    return dt.date.fromisoformat(valor).strftime("%d/%m/%Y") if isinstance(valor, str) and valor else "—"
+
+
+def _inteiros(serie: pd.Series) -> list[str]:
+    """Contagens para mostrar: 12 345, ou — quando não há valor (por exemplo, numa importação falhada)."""
+    return ["—" if pd.isna(v) else _n(int(v)) for v in pd.to_numeric(serie, errors="coerce")]
+
+
+def _tabela_historico(lista: pd.DataFrame) -> pd.DataFrame:
+    excecoes = [
+        "—" if pd.isna(a) else f"{int(a)} / {int(m)} / {int(b)}"
+        for a, m, b in zip(lista["exc_alta"], lista["exc_media"], lista["exc_baixa"])
+    ]
+    return pd.DataFrame({
+        "N.º": lista["id"].astype(int),
+        "Importada em": lista["iniciada_em"].map(H.formatar_momento),
+        "Ficheiro": lista["nome_ficheiro"],
+        "Origem": lista["origem"].map(ROTULOS_ORIGEM),
+        "Estado": lista["estado"].map(H.ROTULOS_ESTADO),
+        "Linhas": _inteiros(lista["linhas_lidas"]),
+        "Válidas": _inteiros(lista["encomendas_validas"]),
+        "Com erros": _inteiros(lista["linhas_com_erros"]),
+        "Com avisos": _inteiros(lista["linhas_com_avisos"]),
+        "Entregues": _inteiros(lista["ind_entregues"]),
+        "Pendentes": _inteiros(lista["ind_pendentes"]),
+        "Atrasadas": _inteiros(lista["ind_atrasadas"]),
+        "Exceções (alta / média / baixa)": excecoes,
+        "Data de referência": lista["data_referencia"].map(_data_iso),
+    })
+
+
+def _primeira_pagina() -> None:
+    st.session_state.hist_pagina = 1
+
+
+def _lista_historico(caminho: Path) -> dict[int, str]:
+    """Lista paginada com filtros próprios. Devolve as importações mostradas na página (n.º → nome)."""
+    st.markdown("#### Importações guardadas")
+    c1, c2, c3 = st.columns([2.4, 2.4, 2], vertical_alignment="bottom")
+    pesquisa = c1.text_input("Pesquisar no histórico", placeholder="Nome do ficheiro", key="hist_pesquisa",
+                             icon=":material/search:", on_change=_primeira_pagina)
+    estados = c2.multiselect("Estado da importação", list(H.ROTULOS_ESTADO), format_func=H.ROTULOS_ESTADO.get,
+                             placeholder="Todos", key="hist_estados", on_change=_primeira_pagina)
+    periodo = c3.date_input("Importadas entre", value=(), format="DD/MM/YYYY", key="hist_periodo",
+                            on_change=_primeira_pagina)
+    inicio = periodo[0] if len(periodo) >= 1 else None
+    fim = periodo[1] if len(periodo) == 2 else None
+
+    pagina = int(st.session_state.get("hist_pagina", 1))
+    lista, total = H.listar_importacoes(caminho, pesquisa, estados, inicio, fim, POR_PAGINA_HISTORICO,
+                                        (pagina - 1) * POR_PAGINA_HISTORICO)
+    paginas = max(1, math.ceil(total / POR_PAGINA_HISTORICO))
+    if pagina > paginas:  # os filtros mudaram e a página deixou de existir
+        pagina = st.session_state.hist_pagina = paginas
+        lista, total = H.listar_importacoes(caminho, pesquisa, estados, inicio, fim, POR_PAGINA_HISTORICO,
+                                            (pagina - 1) * POR_PAGINA_HISTORICO)
+    if total == 0:
+        filtrado = bool(pesquisa.strip() or estados or periodo)
+        st.info("Nenhuma importação corresponde a estes filtros." if filtrado else
+                "Ainda não há importações guardadas. Importe um ficheiro com a opção «Guardar importações no "
+                "histórico» ligada (barra lateral).", icon=":material/history:")
+        return {}
+    st.dataframe(_tabela_historico(lista), hide_index=True, width="stretch")
+    p1, p2 = st.columns([1, 4], vertical_alignment="bottom")
+    p1.number_input("Página do histórico", min_value=1, max_value=paginas, step=1, key="hist_pagina")
+    p2.caption(f"{_n(total)} importação(ões) · página {pagina} de {paginas} · {POR_PAGINA_HISTORICO} por página, "
+               "das mais recentes para as mais antigas. Os totais são os do momento da importação, com as "
+               "regras de prazo então em vigor.")
+    return dict(zip(lista["id"].astype(int), lista["nome_ficheiro"]))
+
+
+def _detalhe_importacao(caminho: Path, mostradas: dict[int, str]) -> None:
+    if not mostradas:
+        return
+    ids = list(mostradas)
+    # Por omissão mostra a mais recente da página (também quando chega uma importação nova). O valor
+    # é definido explicitamente (e não apagado) para o navegador mostrar a mesma escolha.
+    if st.session_state.get("hist_detalhe_topo") != ids[0] or st.session_state.get("hist_detalhe") not in ids:
+        st.session_state.hist_detalhe = ids[0]
+    st.session_state.hist_detalhe_topo = ids[0]
+    escolhido = st.selectbox("Importação a consultar", ids, format_func=lambda i: f"N.º {i} — {mostradas[i]}",
+                             key="hist_detalhe")
+    imp = H.obter_importacao(caminho, escolhido)
+    if imp is None:
+        st.caption("Esta importação já não existe no histórico.")
+        return
+    linhas = [
+        f"**Estado:** {H.ROTULOS_ESTADO.get(imp['estado'], imp['estado'])} · importada em "
+        f"{H.formatar_momento(imp['iniciada_em'])} · concluída em {H.formatar_momento(imp['concluida_em'])}",
+        f"**Ficheiro:** {_md(imp['nome_ficheiro'])} ({ROTULOS_ORIGEM.get(imp['origem'], imp['origem'])}, "
+        f"{_n(max(1, round((imp['tamanho_bytes'] or 0) / 1024)))} KB"
+        + (f", folha «{_md(imp['folha'])}»" if isinstance(imp["folha"], str) and imp["folha"] else "") + ")",
+        f"**Regras usadas:** data de referência {_data_iso(imp['data_referencia'])}; prazo padrão "
+        + (f"{int(imp['prazo_padrao_dias'])} dia(s)" if pd.notna(imp["prazo_padrao_dias"]) else "não usado"),
+        f"**Identificação do conteúdo:** {str(imp['hash_conteudo'])[:16]}… (SHA-256) · LogiFlow "
+        f"{_md(imp['versao_aplicacao'])}",
+    ]
+    anterior = int(imp["importacao_anterior_id"]) if pd.notna(imp["importacao_anterior_id"]) else None
+    if anterior is not None:
+        linhas.append(f"**Importação anterior concluída:** n.º {anterior}")
+    st.markdown("  \n".join(linhas))
+    if anterior is not None and imp["estado"] in H.ESTADOS_CONCLUIDOS:
+        st.button(f"Comparar com a importação anterior (n.º {anterior})", on_click=_comparar_com_anterior,
+                  args=(caminho, anterior, escolhido), icon=":material/compare_arrows:", key="hist_comparar_anterior")
+    if isinstance(imp["mensagem_erro"], str) and imp["mensagem_erro"]:
+        st.warning(_md(imp["mensagem_erro"]), icon=":material/warning:")
+    mapeamento = H.campos_presentes(imp)
+    if imp["estado"] not in H.ESTADOS_CONCLUIDOS:
+        return
+    if st.toggle("Mostrar as encomendas guardadas nesta importação", key="hist_mostrar_fotografia"):
+        guardadas = H.carregar_fotografia(caminho, escolhido, limite=LIMITE_LINHAS_HISTORICO)
+        dados = {"Linha": guardadas["linha"], "N.º Encomenda": guardadas["numero"], "Cliente": guardadas["cliente"]}
+        dados["Data"] = [H.descrever_data(i, o) for i, o in zip(guardadas["data"], guardadas["data_original"])]
+        dados["Destino"], dados["Estado"] = guardadas["destino"], guardadas["estado"]
+        for campo, coluna in ((C.DATA_PREVISTA, "data_prevista"), (C.DATA_ENTREGA, "data_entrega")):
+            if campo in mapeamento:
+                dados[C.rotulo(campo)] = [H.descrever_data(i, o)
+                                          for i, o in zip(guardadas[coluna], guardadas[f"{coluna}_original"])]
+        dados["Erros"], dados["Avisos"] = guardadas["erros"], guardadas["avisos"]
+        st.dataframe(pd.DataFrame(dados), hide_index=True, width="stretch")
+        total = int(imp["linhas_lidas"] or 0)
+        if total > LIMITE_LINHAS_HISTORICO:
+            st.caption(f"Mostradas as primeiras {_n(LIMITE_LINHAS_HISTORICO)} de {_n(total)} linhas.")
+
+
+def _comparar_com_anterior(caminho: Path, anterior: int, atual: int) -> None:
+    st.session_state.hist_cmp_anterior, st.session_state.hist_cmp_atual = anterior, atual
+    escolha = (min(anterior, atual), max(anterior, atual))
+    st.session_state.historico_comparacao = (escolha, comparacao.comparar_importacoes(caminho, *escolha))
+
+
+def _comparacao_historico(caminho: Path) -> None:
+    st.markdown("#### Comparar duas importações")
+    concluidas = H.importacoes_concluidas(caminho)
+    if len(concluidas) < 2:
+        st.caption("São precisas pelo menos duas importações concluídas para comparar.")
+        return
+    ids = concluidas["id"].astype(int).tolist()
+    rotulos = {int(r.id): f"N.º {int(r.id)} — {r.nome_ficheiro} — {H.formatar_momento(r.iniciada_em)}"
+               for r in concluidas.itertuples()}
+    for chave, predefinida in (("hist_cmp_atual", ids[0]), ("hist_cmp_anterior", ids[1])):
+        if st.session_state.get(chave) not in ids:
+            st.session_state[chave] = predefinida
+    c1, c2, c3 = st.columns([3, 3, 1.6], vertical_alignment="bottom")
+    anterior = c1.selectbox("Importação anterior", ids, format_func=rotulos.get, key="hist_cmp_anterior")
+    atual = c2.selectbox("Importação atual", ids, format_func=rotulos.get, key="hist_cmp_atual")
+    escolha = tuple(sorted((anterior, atual)))
+    if c3.button("Comparar importações", type="primary", disabled=anterior == atual, key="hist_comparar",
+                 icon=":material/compare_arrows:", width="stretch"):
+        with st.spinner("A comparar…"):
+            st.session_state.historico_comparacao = (escolha, comparacao.comparar_importacoes(caminho, *escolha))
+    if anterior == atual:
+        st.caption("Escolha duas importações diferentes.")
+        return
+    if anterior > atual:
+        st.caption("A importação de n.º mais baixo é sempre tratada como a anterior.")
+    guardada = st.session_state.get("historico_comparacao")
+    if guardada is None or guardada[0] != escolha:
+        st.caption("Carregue em «Comparar importações» para ver as diferenças.")
+        return
+    resultado: comparacao.ResultadoComparacao = guardada[1]
+    if not resultado.disponivel:
+        st.warning(_md(resultado.motivo), icon=":material/warning:")
+    else:
+        st.markdown(" · ".join(f"{categoria}: **{_n(resultado.contagens[categoria])}**"
+                               for categoria in comparacao.CATEGORIAS))
+        for aviso in resultado.avisos:
+            (st.warning if resultado.parcial else st.caption)(_md(aviso))
+        st.caption("Compara-se pelo n.º de encomenda (maiúsculas e espaços nas pontas não contam). Campos "
+                   "comparados: " + ", ".join(C.rotulo(c) for c in resultado.campos_comparados) + ". "
+                   "«Não encontrada na importação atual» quer dizer só que o n.º não aparece no ficheiro mais "
+                   "recente — não quer dizer que a encomenda foi entregue nem cancelada.")
+        situacoes = st.multiselect("Situações a mostrar", list(comparacao.CATEGORIAS), placeholder="Todas",
+                                   key="hist_cmp_situacoes")
+        tabela = resultado.tabela
+        if situacoes:
+            tabela = tabela[tabela["Situação"].isin(situacoes)]
+        visiveis = tabela.head(LIMITE_LINHAS_HISTORICO)
+        visiveis = visiveis.assign(**{c: _inteiros(visiveis[c]) for c in ("Linha (anterior)", "Linha (atual)")})
+        st.dataframe(visiveis, hide_index=True, width="stretch",
+                     column_config={"Alterações": st.column_config.TextColumn(width="large")})
+        if len(tabela) > LIMITE_LINHAS_HISTORICO:
+            st.caption(f"Mostradas as primeiras {_n(LIMITE_LINHAS_HISTORICO)} de {_n(len(tabela))} linhas; "
+                       "escolha as situações a mostrar para ver as restantes.")
+    fora = len(resultado.excluidas_anterior) + len(resultado.excluidas_atual)
+    if fora:
+        with st.expander(f"Linhas fora da comparação ({_n(fora)})", icon=":material/link_off:"):
+            st.caption("Linhas sem n.º de encomenda, ou com um n.º repetido, não podem ser emparelhadas com "
+                       "segurança e não entram nos totais acima.")
+            e1, e2 = st.columns(2)
+            e1.markdown("**Importação anterior**")
+            e1.dataframe(resultado.excluidas_anterior, hide_index=True, width="stretch")
+            e2.markdown("**Importação atual**")
+            e2.dataframe(resultado.excluidas_atual, hide_index=True, width="stretch")
+
+
+def _apos_recuperacao() -> None:
+    """Depois de recuperar uma cópia, os resultados guardados na sessão deixam de valer."""
+    st.session_state.pop("hist_base_preparada", None)
+    for chave in list(st.session_state):
+        if chave.startswith("historico_registo_"):
+            st.session_state[chave] = None  # não volta a gravar automaticamente o ficheiro aberto
+    if st.session_state.get("hist_chave_atual"):
+        st.session_state[st.session_state.hist_chave_atual] = None
+    st.session_state.pop("historico_comparacao", None)
+    st.session_state.pop("hist_detalhe_topo", None)  # os detalhes voltam à importação mais recente
+    st.session_state.hist_pagina = 1
+    st.session_state.hist_confirmar_recuperacao = False
+
+
+def _criar_copia(caminho_db: Path, pasta: Path) -> None:
+    try:
+        info = copias.criar_copia(caminho_db, pasta)
+    except Exception as erro:  # noqa: BLE001
+        st.session_state.hist_aviso = ("erro", f"A cópia não foi criada. {P.mensagem_segura(erro)}")
+    else:
+        st.session_state.hist_aviso = ("ok", f"Cópia criada e verificada: «{info.caminho.name}». {info.mensagem}")
+
+
+def _recuperar_copia(caminho_db: Path, copia: Path) -> None:
+    try:
+        resultado = copias.restaurar_copia(caminho_db, copia)
+    except Exception as erro:  # noqa: BLE001
+        st.session_state.hist_aviso = ("erro", f"A recuperação não foi feita. {P.mensagem_segura(erro)}")
+        st.session_state.hist_confirmar_recuperacao = False
+    else:
+        _apos_recuperacao()
+        st.session_state.hist_aviso = ("ok", resultado.mensagem)
+
+
+def _guardar_exemplo(hist: _Historico, chave: str, contexto: dict) -> None:
+    registo = _gravar_importacao(hist, chave, H.ORIGEM_EXEMPLO, **contexto)
+    st.session_state.hist_aviso = ("erro" if registo.situacao == H.FALHOU else "ok", registo.mensagem)
+
+
+def _secao_copias(hist: _Historico) -> None:
+    st.markdown("#### Cópias de segurança")
+    predefinida = copias.pasta_copias_predefinida(hist.caminho)
+    st.session_state.setdefault("hist_pasta_copias", str(predefinida))
+    texto = st.text_input(
+        "Pasta das cópias de segurança", key="hist_pasta_copias",
+        help="Caminho completo de uma pasta que já exista. Por omissão, a pasta «copias» junto do histórico.")
+    st.caption("Recomendação: guarde também cópias noutro disco ou numa pen USB — uma cópia no mesmo disco não "
+               "protege contra avarias do disco. Uma cópia nunca substitui um ficheiro existente.")
+    try:
+        if Path(texto.strip()) == predefinida:
+            P.criar_pasta(predefinida)
+        pasta = copias.validar_pasta_destino(texto)
+    except (P.ErroPersistencia, OSError) as erro:
+        st.warning(P.mensagem_segura(erro), icon=":material/warning:")
+        return
+    st.button("Criar cópia de segurança agora", on_click=_criar_copia, args=(hist.caminho, pasta),
+              disabled=not hist.disponivel, icon=":material/backup:", key="hist_criar_copia")
+
+    disponiveis = {p.name: p for p in copias.listar_copias(pasta)}
+    if not disponiveis:
+        st.caption("Ainda não há cópias do LogiFlow nesta pasta.")
+        return
+    if st.session_state.get("hist_copia") not in disponiveis:
+        st.session_state.hist_copia = next(iter(disponiveis))
+    nome = st.selectbox("Cópia de segurança", list(disponiveis),
+                        format_func=lambda n: copias.descrever_copia(disponiveis[n]), key="hist_copia")
+    escolhida = disponiveis[nome]
+    if st.button("Verificar a cópia escolhida", icon=":material/fact_check:", key="hist_verificar_copia"):
+        info = copias.validar_copia(escolhida)
+        (st.success if info.valida else st.error)(_md(info.mensagem))
+    confirmado = st.checkbox("Confirmo que quero substituir o histórico atual por esta cópia (o histórico atual "
+                             "é guardado antes, na pasta «copias» junto do histórico).",
+                             key="hist_confirmar_recuperacao")
+    st.button("Recuperar a cópia escolhida", on_click=_recuperar_copia, args=(hist.caminho, escolhida),
+              disabled=not confirmado, type="primary", icon=":material/restore:", key="hist_recuperar")
+
+
+def _separador_historico(hist: _Historico, exemplo: tuple[str, dict] | None = None) -> None:
+    st.caption("Registo das importações guardadas neste computador: o que foi importado, quando, com que "
+               "resultado, e as diferenças entre importações. O ficheiro original não é guardado.")
+    aviso = st.session_state.pop("hist_aviso", None)
+    if aviso is not None:
+        (st.success if aviso[0] == "ok" else st.error)(_md(aviso[1]))
+    if hist.caminho is None:
+        st.error(f"**O histórico não está disponível.** {_md(hist.erro)}", icon=":material/error:")
+        return
+    st.caption(f"Base de dados: {_md(hist.caminho)}")
+    if not hist.disponivel:
+        st.error(f"**O histórico não está disponível.** {_md(hist.erro)}", icon=":material/error:")
+        _secao_copias(hist)
+        return
+    info = hist.info
+    if info.migrada_de is not None:
+        copia = f" Antes, foi feita uma cópia: «{info.copia_antes_da_migracao.name}»." if info.copia_antes_da_migracao else ""
+        st.info(f"A base de dados do histórico foi atualizada do esquema {info.migrada_de} para o "
+                f"{info.versao_esquema}.{copia}", icon=":material/upgrade:")
+    if info.interrompidas_marcadas:
+        st.caption(f"{_n(info.interrompidas_marcadas)} importação(ões) interrompida(s) numa sessão anterior "
+                   "foram marcadas como falhadas (nenhum dado delas tinha sido guardado).")
+    if exemplo is not None:
+        st.button("Guardar o exemplo no histórico", on_click=_guardar_exemplo, args=(hist, *exemplo),
+                  icon=":material/save:", key="hist_guardar_exemplo")
+    try:
+        mostradas = _lista_historico(hist.caminho)
+        _detalhe_importacao(hist.caminho, mostradas)
+        st.divider()
+        _comparacao_historico(hist.caminho)
+    except Exception as erro:  # noqa: BLE001 — por exemplo, base de dados ocupada ou danificada entretanto
+        st.error(f"Não foi possível ler o histórico: {_md(P.mensagem_segura(erro))}", icon=":material/error:")
+    st.divider()
+    _secao_copias(hist)
+
+
 # Programa principal -------------------------------------------------------------
 
 def _obter_ficheiro(enviado) -> tuple[str, bytes] | None:
@@ -927,10 +1363,14 @@ def main() -> None:
 
     enviado = _barra_lateral_ficheiro()
     origem = _obter_ficheiro(enviado)
+    hist = _historico()
     if origem is None:
         _barra_lateral_regras(tem_data_prevista=True)
+        _barra_lateral_historico()
         _rodape()
         _boas_vindas()
+        with st.expander("Histórico de importações e cópias de segurança", icon=":material/history:"):
+            _separador_historico(hist)
         return
     nome, conteudo = origem
 
@@ -943,8 +1383,11 @@ def main() -> None:
         lido = _carregar(nome, conteudo, folha)
     except ErroImportacao as erro:
         _barra_lateral_regras(tem_data_prevista=True)
+        _barra_lateral_historico()
         _rodape()
         st.error(f"**Não foi possível importar «{_md(nome)}».**\n\n{_md(erro)}", icon=":material/error:")
+        if enviado is not None:
+            _registar_falha_leitura(hist, nome, conteudo, folha, erro)
         return
 
     assinatura = hashlib.sha256(conteudo + (folha or "").encode()).hexdigest()[:12]
@@ -953,6 +1396,7 @@ def main() -> None:
     mapeamento = _escolher_colunas(lido, assinatura)
     data_referencia, prazo = _barra_lateral_regras(
         tem_data_prevista=bool(mapeamento and mapeamento.get(C.DATA_PREVISTA)))
+    _barra_lateral_historico()
     _rodape()
     if mapeamento is None:
         with topo:
@@ -961,9 +1405,17 @@ def main() -> None:
 
     resultado = _validar(lido, assinatura, tuple(sorted(mapeamento.items())), data_referencia)
     tabela = aplicar_prazos(resultado.tabela, data_referencia, prazo)
+    contexto = dict(nome=nome, conteudo=conteudo, lido=lido, mapeamento=mapeamento, resultado=resultado,
+                    tabela=tabela, data_referencia=data_referencia, prazo=prazo)
+    chave_registo = st.session_state.hist_chave_atual = _chave_registo(conteudo, lido, mapeamento)
+    if (not exemplo and st.session_state.guardar_historico and hist.disponivel
+            and chave_registo not in st.session_state):
+        with st.spinner("A guardar no histórico…"):
+            _gravar_importacao(hist, chave_registo, H.ORIGEM_FICHEIRO, **contexto)
 
     with topo:
         _resumo_ficheiro(lido, resultado, exemplo)
+        _mensagem_registo(hist, exemplo, chave_registo)
     filtrada, notas_filtro = _filtros(tabela, assinatura)
     for nota in notas_filtro:
         st.caption(nota)
@@ -980,6 +1432,7 @@ def main() -> None:
         ":material/speed: Desempenho",
         f":material/rule: Qualidade dos dados ({_n(n_problemas)})",
         ":material/download: Exportar",
+        ":material/history: Histórico",  # versão 1.3: acrescentado no fim, sem mudar os anteriores
     ])
     with separadores[0]:
         _separador_encomendas(filtrada, resultado, prazo)
@@ -994,13 +1447,16 @@ def main() -> None:
         _separador_qualidade(filtrada, resultado)
     with separadores[5]:
         _separador_exportar(resultado, tabela, nome, assinatura, data_referencia, prazo, periodo)
+    with separadores[6]:
+        _separador_historico(hist, (chave_registo, contexto) if exemplo else None)
 
 
 def _rodape() -> None:
     st.sidebar.divider()
     st.sidebar.markdown(
         f'<p class="lf-rodape">LogiFlow {__version__} · Os ficheiros são processados neste computador '
-        "e não são guardados nem enviados para a internet.</p>",
+        "e nada é enviado para a internet. O histórico de importações fica guardado só neste computador "
+        "(pode desligá-lo acima).</p>",
         unsafe_allow_html=True,
     )
 

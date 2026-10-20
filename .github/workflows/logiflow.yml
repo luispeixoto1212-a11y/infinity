@@ -50,6 +50,12 @@ jobs:
       - name: instalar.bat
         shell: cmd
         run: call instalar.bat < NUL
+      - name: Histórico gravado na pasta de dados do Windows (fora da pasta da aplicação)
+        shell: cmd
+        run: .venv\Scripts\python.exe scripts\verificar_historico_ci.py gravar
+      - name: instalar.bat outra vez (como numa atualização)
+        shell: cmd
+        run: call instalar.bat < NUL
       - name: iniciar.bat e confirmar que a aplicação responde
         shell: pwsh
         run: |
@@ -66,3 +72,6 @@ jobs:
           Get-Process -Name python -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           if (-not $ok) { Write-Error 'A aplicação não respondeu em http://localhost:8501'; exit 1 }
           Write-Output 'A aplicação respondeu: ok'
+      - name: Histórico preservado depois de reinstalar e iniciar
+        shell: cmd
+        run: .venv\Scripts\python.exe scripts\verificar_historico_ci.py confirmar

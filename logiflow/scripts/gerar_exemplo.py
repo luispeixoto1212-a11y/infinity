@@ -86,6 +86,37 @@ def gerar() -> list[list[object]]:
     return linhas
 
 
+# Exemplo do «dia seguinte» (versão 1.3), para demonstrar o histórico e a comparação ------
+
+def _limpa(linha: list[object]) -> bool:
+    """Linha sem nenhum dos problemas colocados de propósito."""
+    return (all(linha[k] for k in range(5)) and all(isinstance(linha[k], dt.date) for k in (2, 5))
+            and not linha[6])
+
+
+def gerar_dia2(linhas_dia1: list[list[object]] | None = None) -> list[list[object]]:
+    """O mesmo sistema de origem, exportado no dia seguinte: algumas entregas, mudanças de
+    estado, um prazo reprogramado, encomendas novas e as três mais antigas já fora da exportação."""
+    linhas = [list(linha) for linha in (linhas_dia1 or gerar())]
+    numeros = [linha[0] for linha in linhas]
+    por_entregar = [i for i, l in enumerate(linhas)
+                    if l[4] in ("Pendente", "Em trânsito") and _limpa(l) and numeros.count(l[0]) == 1]
+    em_transito = [i for i in por_entregar if linhas[i][4] == "Em trânsito"]
+    pendentes = [i for i in por_entregar if linhas[i][4] == "Pendente"]
+    entregues_hoje, para_transito, reprogramada = em_transito[:3] + pendentes[:1], pendentes[1:3], em_transito[3]
+    for i in entregues_hoje:
+        linhas[i][4], linhas[i][6] = "Entregue", DATA_REFERENCIA
+    for i in para_transito:
+        linhas[i][4] = "Em trânsito"
+    linhas[reprogramada][5] = linhas[reprogramada][5] + dt.timedelta(days=2)
+
+    aleatorio = random.Random(2027)
+    novas = [[f"ENC-26-{n:04d}", aleatorio.choice(CLIENTES), DATA_REFERENCIA, aleatorio.choice(DESTINOS),
+              "Pendente", DATA_REFERENCIA + dt.timedelta(days=aleatorio.choice([2, 3, 4])), "",
+              aleatorio.choice(OBSERVACOES)] for n in range(61, 66)]
+    return linhas[3:] + novas  # as três primeiras (entregues em setembro) já não vêm no ficheiro
+
+
 def _texto_data(valor: object) -> object:
     return valor.strftime("%d/%m/%Y") if isinstance(valor, dt.date) else valor
 
@@ -127,7 +158,12 @@ def main() -> None:
     linhas = gerar()
     gravar_csv(linhas, PASTA / "encomendas_exemplo.csv")
     gravar_xlsx(linhas, PASTA / "encomendas_exemplo.xlsx")
-    print(f"Gerados {len(linhas)} registos em {PASTA}")
+    gravar_dia2()
+    print(f"Gerados {len(linhas)} registos em {PASTA} (e o exemplo do dia seguinte)")
+
+
+def gravar_dia2() -> None:
+    gravar_xlsx(gerar_dia2(), PASTA / "encomendas_exemplo_dia2.xlsx")
 
 
 if __name__ == "__main__":

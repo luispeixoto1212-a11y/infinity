@@ -3,3 +3,11 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+# Bases de dados do histórico (versão 1.3): nunca entram no Git.
+# A base real fica na pasta de dados do utilizador, fora desta pasta.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3

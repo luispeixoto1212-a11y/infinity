@@ -60,11 +60,14 @@ def test_app_com_ficheiro_de_exemplo():
     assert principais == [("Encomendas", "60"), ("Entregues", "41"), ("Pendentes", "11"),
                           ("Atrasadas", "8"), ("Linhas com erros", "9")]
     # Alteração intencional na 1.2.0: novo separador «Exceções» a seguir a «Encomendas».
-    # Os cinco separadores da 1.1.0 mantêm os mesmos nomes e a mesma ordem.
+    # Alteração intencional na 1.3.0: novo separador «Histórico», acrescentado no fim.
+    # Os separadores anteriores mantêm os mesmos nomes e a mesma ordem.
     separadores = [t.label.split(" ", 1)[1] for t in at.tabs]
-    assert [s for s in separadores if not s.startswith("Exceções")] == [
+    assert [s for s in separadores if not s.startswith("Exceções") and s != "Histórico"] == [
         "Encomendas", "Resumo", "Desempenho", "Qualidade dos dados (11)", "Exportar"]
     assert separadores[1] == "Exceções (18)"
+    assert separadores == ["Encomendas", "Exceções (18)", "Resumo", "Desempenho", "Qualidade dos dados (11)",
+                           "Exportar", "Histórico"]
 
 
 def test_app_filtro_por_estado_atualiza_indicadores():

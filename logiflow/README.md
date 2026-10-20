@@ -4,12 +4,16 @@ Aplicação para pequenas transportadoras e empresas de distribuição: importa 
 encomendas (Excel ou CSV), verifica a qualidade dos dados, mostra indicadores e o desempenho
 operacional (entregas no prazo, tempos de entrega, por cliente, destino e período) e exporta
 dados limpos e relatórios em Excel — incluindo um relatório de desempenho por cliente, pronto
-a enviar. Funciona no seu computador, sem internet e sem guardar nada.
+a enviar. Funciona no seu computador, sem internet; o histórico das importações fica guardado
+só neste computador (e pode ser desligado).
 
-**Versão 1.2.0.** Novidade: separador «Exceções» — as encomendas que precisam de intervenção,
-por prioridade, com filtros e exportação (ver [Painel de exceções](#painel-de-exceções)). A 1.1.0
-trouxe o separador «Desempenho» e o relatório de desempenho. A avaliação das próximas melhorias
-está em [ROTEIRO.md](ROTEIRO.md).
+**Versão 1.2.0**, com as funcionalidades da **1.3.0 em validação**: separador «Histórico» —
+histórico de importações guardado localmente (SQLite), comparação entre importações e cópias de
+segurança com recuperação (ver [Histórico de importações](#histórico-de-importações) e
+[docs/HISTORICO.md](docs/HISTORICO.md)). O número da versão só passa a 1.3.0 depois de todos os
+testes e verificações finais (incluindo o CI em Windows e Linux) passarem. A 1.2.0 trouxe o
+separador «Exceções» e a 1.1.0 o separador «Desempenho». A avaliação das próximas melhorias está
+em [ROTEIRO.md](ROTEIRO.md).
 
 ![Ecrã principal com o ficheiro de exemplo](docs/ecra_encomendas.png)
 
@@ -26,7 +30,10 @@ está em [ROTEIRO.md](ROTEIRO.md).
 | Desempenho: taxa de entregas no prazo, tempo médio de entrega, comparação por cliente, destino e período, antiguidade das pendentes | Separador «Desempenho» |
 | Exportar dados limpos e relatório em Excel | Separador «Exportar» |
 | Exportar o relatório de desempenho, de todos os clientes ou de um só | Separador «Exportar» |
-| Ficheiro de exemplo com dados fictícios | Botão «Experimentar com o ficheiro de exemplo» |
+| **Histórico de importações** guardado neste computador: lista com pesquisa e filtros, detalhes e encomendas guardadas | Separador «Histórico» (último) |
+| **Comparar duas importações**: encomendas novas, alteradas, sem alterações e não encontradas | Separador «Histórico» |
+| **Cópias de segurança** da base de dados e recuperação validada | Separador «Histórico» |
+| Ficheiro de exemplo com dados fictícios (e o mesmo ficheiro «do dia seguinte») | Botão «Experimentar com o ficheiro de exemplo» |
 
 ---
 
@@ -65,6 +72,21 @@ Abra a pasta `logiflow` e faça **duplo clique em `instalar.bat`**. O script:
 Faça **duplo clique em `iniciar.bat`**. Abre-se uma janela preta (deixe-a aberta) e o navegador
 mostra a aplicação (normalmente em <http://localhost:8501>). Para fechar, feche essa janela preta.
 
+No primeiro arranque, a aplicação cria a pasta de dados do histórico em
+`%LOCALAPPDATA%\LogiFlow` (fora da pasta da aplicação). Não é preciso instalar nada para isso: o
+SQLite faz parte do Python.
+
+### Atualizar a partir da versão 1.2.0
+
+1. Feche o LogiFlow e substitua a pasta da aplicação pela nova (ou extraia o ZIP novo por cima).
+2. Faça duplo clique em `instalar.bat` (as dependências são as mesmas; não faz mal correr de novo)
+   e depois em `iniciar.bat`.
+
+A 1.2.0 não guardava dados, por isso não há nada a migrar. Nas atualizações seguintes, o histórico
+fica fora da pasta substituída e, se o formato da base de dados mudar, é atualizado
+automaticamente no arranque, com uma cópia de segurança feita antes. Detalhes em
+[docs/HISTORICO.md](docs/HISTORICO.md#11-atualizar-a-partir-da-versão-120).
+
 ### Alternativa: comandos no PowerShell
 
 Se preferir a linha de comandos (clique com o botão direito na pasta `logiflow` → «Abrir no
@@ -98,6 +120,8 @@ Estes comandos usam diretamente o `python.exe` da pasta `.venv`, por isso não �
 6. **Veja a «Qualidade dos dados»**: cada problema indica a linha do ficheiro original, para o
    poder corrigir na origem.
 7. **Exporte** os dados limpos, o relatório e o relatório de desempenho (separador «Exportar»).
+8. **Consulte o «Histórico»**: as importações anteriores, as diferenças entre duas importações e as
+   cópias de segurança.
 
 ### Formato do ficheiro
 
@@ -247,15 +271,72 @@ quantas eram.
 
 As exportações incluem sempre todas as encomendas do ficheiro, independentemente dos filtros do
 topo (o relatório de desempenho usa as encomendas sem erros, de todos os clientes ou do cliente
-escolhido).
+escolhido). O histórico não muda o conteúdo de nenhuma exportação (verificado por testes).
+
+### Histórico de importações
+
+![Separador Histórico com duas importações comparadas](docs/ecra_historico.png)
+
+Funcionalidade em validação para a 1.3.0. Explicação completa (onde ficam os dados, esquema,
+migrações, cópias e recuperação manual) em [docs/HISTORICO.md](docs/HISTORICO.md).
+
+- **O que fica guardado:** com «Guardar importações no histórico» ligado (barra lateral, ligado
+  por omissão), cada ficheiro carregado fica registado: nome (sem a pasta), data e hora, estado,
+  totais (linhas, válidas, com erros e avisos, entregues, pendentes, atrasadas, exceções por
+  prioridade) e os **7 campos** de cada encomenda, já validados. **Não** se guardam o ficheiro
+  original nem as outras colunas. O ficheiro de exemplo só é guardado a pedido.
+- **Onde:** num ficheiro SQLite em `%LOCALAPPDATA%\LogiFlow` (Windows; em Linux
+  `~/.local/share/logiflow`), fora da pasta da aplicação. O caminho aparece no separador.
+- **Estados:** «Concluída», «Concluída com avisos» (há linhas com erros ou avisos — incluindo zero
+  encomendas válidas: problemas nos dados não são falhas), «Falhada» (o ficheiro não pôde ser lido,
+  ou a gravação falhou e foi **totalmente desfeita**) e «Em processamento» (transitório).
+- **Importações repetidas:** o mesmo conteúdo (mesmo com outro nome) não volta a ser gravado — a
+  aplicação diz quando foi importado. Um ficheiro **diferente** com os mesmos n.ºs de encomenda é
+  uma importação nova: é isso que permite comparar.
+- **Lista:** das mais recentes para as mais antigas, 50 por página, com pesquisa pelo nome do
+  ficheiro, estado e período. Estes filtros **só afetam o histórico** (verificado por testes).
+  Os totais são os do momento da importação; nunca são recalculados.
+- **Comparar duas importações** (ou «Comparar com a importação anterior», nos detalhes):
+
+  | Categoria | Significado |
+  | --- | --- |
+  | Nova | Aparece na importação atual e não na anterior. |
+  | Alterada | Aparece nas duas, com diferenças (por exemplo, «Estado: Pendente → Entregue»). |
+  | Sem alterações | Aparece nas duas, igual. |
+  | Não encontrada na importação atual | Estava na anterior e não aparece na atual. **Não** quer dizer entregue nem cancelada: a aplicação nunca infere estados. |
+
+  As encomendas emparelham-se pelo n.º (maiúsculas e espaços nas pontas não contam). Linhas sem
+  n.º ou com n.º repetido em qualquer das duas importações **ficam de fora** e são listadas à
+  parte; com mais de 20 % de linhas de fora, a comparação é assinalada como parcial. Espaços a mais,
+  sinónimos de estado e formatos de data diferentes não contam como alterações.
+- **Cópias de segurança:** botão «Criar cópia de segurança agora», para uma pasta à escolha
+  (validada; por omissão `copias` junto do histórico). Cada cópia tem um nome com data e hora,
+  nunca substitui outra e é verificada logo a seguir. **Guarde cópias também noutro disco.**
+- **Recuperar uma cópia:** a cópia é validada e preparada num ficheiro temporário; só depois o
+  histórico atual é guardado à parte (`logiflow-antes-da-recuperacao-….db`) e substituído. Uma
+  cópia inválida ou incompatível não altera nada. Há também um
+  [procedimento de recuperação manual](docs/HISTORICO.md#10-recuperação-manual-sem-a-aplicação).
+- **Se a base de dados estiver danificada**, a aplicação continua a funcionar (importar, validar,
+  exportar) e o separador «Histórico» explica o problema e permite recuperar uma cópia. A base
+  danificada nunca é apagada.
 
 ---
 
 ## Segurança e privacidade
 
-- **Tudo local.** A aplicação só aceita ligações do próprio computador (`localhost`). Não há base
-  de dados nem ficheiros guardados: ao fechar, os dados desaparecem. A recolha de estatísticas do
-  Streamlit está desligada. Depois da instalação, não precisa de internet.
+- **Tudo local.** A aplicação só aceita ligações do próprio computador (`localhost`) e nada é
+  enviado para a internet. A recolha de estatísticas do Streamlit está desligada. Depois da
+  instalação, não precisa de internet.
+- **O que fica guardado no disco (novo, em validação para a 1.3.0):** o histórico de importações,
+  numa base de dados SQLite na pasta de dados do utilizador (`%LOCALAPPDATA%\LogiFlow`), com os
+  7 campos de cada encomenda (incluindo cliente e destino, que podem ser dados pessoais) e os
+  totais — **nunca** o ficheiro original nem as outras colunas. Pode desligar a gravação na barra
+  lateral. Nesta versão não há apagamento seletivo nem prazo de conservação automático: para
+  apagar tudo, feche a aplicação e apague essa pasta (ver
+  [docs/HISTORICO.md](docs/HISTORICO.md#apagar-todo-o-histórico)). A base de dados não é
+  encriptada: depende da proteção da conta do Windows.
+- **Base de dados:** consultas sempre parametrizadas, transações em todas as gravações,
+  integridade referencial ligada e mensagens de erro guardadas sem dados das encomendas.
 - **Sem credenciais nem serviços pagos.**
 - **Os ficheiros são tratados como dados, nunca como código.** As fórmulas do Excel não são
   calculadas e as macros nunca são executadas. O pacote `defusedxml` protege contra ficheiros
@@ -278,6 +359,8 @@ escolhido).
 | `openpyxl` | Ler e escrever ficheiros Excel |
 | `defusedxml` | Segurança na leitura de Excel (o openpyxl usa-o automaticamente) |
 | `pytest` | Só para os testes (`requirements-dev.txt`) |
+
+O histórico usa o **SQLite incluído no Python** (módulo `sqlite3`): nenhuma dependência nova.
 
 ---
 
@@ -307,6 +390,14 @@ são: 60 encomendas, 41 entregues, 11 pendentes, 8 atrasadas e 9 linhas com erro
 «Desempenho» (51 encomendas sem erros): 74,3 % de entregas no prazo (26 de 35), tempo médio de
 entrega de 3,3 dias e 9 entregas com atraso.
 
+**Exemplo do dia seguinte** (`dados_exemplo/encomendas_exemplo_dia2.xlsx`, para experimentar o
+histórico): o mesmo ficheiro exportado um dia depois — 4 encomendas entregues a 20/10/2026, 2 que
+passaram a «Em trânsito», 1 data prevista adiada, 5 encomendas novas (ENC-26-0061 a 0065) e as 3
+mais antigas (ENC-26-0001 a 0003) já fora da exportação. Comparado com o dia 1: **5 novas,
+7 alteradas, 46 sem alterações e 3 não encontradas**; ficam de fora da comparação 4 linhas de cada
+lado (os n.ºs ENC-26-0022 e ENC-26-0059, repetidos de propósito). Descarregue-o em «Descarregar o
+ficheiro de exemplo», no ecrã inicial.
+
 Para voltar a gerar os ficheiros: `.venv\Scripts\python.exe scripts\gerar_exemplo.py`
 
 ---
@@ -320,7 +411,9 @@ Faça duplo clique em **`testar.bat`**, ou:
 .venv\Scripts\python.exe -m pytest
 ```
 
-São 171 testes, que verificam:
+São 285 testes: os 171 da versão 1.2.0 (um deles atualizado de propósito para exigir o separador
+«Histórico» no fim, depois dos restantes) e 114 novos do histórico. Um deles (pasta sem permissão de
+escrita) só corre em Linux/macOS sem privilégios de administrador. Verificam:
 
 - **Importação:** codificações, separadores, cabeçalho depois de um título, linhas vazias, colunas
   sem nome, ficheiros inválidos, demasiado grandes ou maliciosos, e fórmulas que não são executadas.
@@ -340,6 +433,22 @@ São 171 testes, que verificam:
 - **Interface:** a aplicação abre, carrega o exemplo, os filtros atualizam os indicadores e o
   desempenho, os filtros do painel de exceções não afetam os outros separadores, e as exportações
   (incluindo o relatório por cliente e as exceções filtradas) ficam disponíveis.
+- **Histórico (novo):** criação da base de dados, migração de esquema com cópia prévia e
+  reabertura, dados que persistem noutro processo, importações válidas, com avisos, sem linhas
+  válidas e ilegíveis, falhas a meio da gravação com rollback e preservação do histórico,
+  deduplicação, duas janelas a gravar e a arrancar ao mesmo tempo, base ocupada, comparação
+  (novas, alteradas, sem alterações, não encontradas, n.ºs repetidos ou vazios, normalização de
+  datas, espaços, estados e números), cópias de segurança (criação, nomes, validação, cópias
+  inválidas, danificadas, de outra aplicação ou mais recentes) e recuperação (incluindo base atual
+  danificada e falha na verificação final), base danificada ou incompatível que nunca é
+  substituída, pastas de dados em Windows/macOS/Linux, filtros do histórico isolados, exportações
+  inalteradas e volumes de 100 000 encomendas. Os testes usam sempre pastas temporárias e
+  verificam no fim que a pasta de dados real não foi tocada.
+
+No GitHub, o CI corre estes testes em Windows e Linux e, num Windows limpo, corre o `instalar.bat`,
+grava uma importação de exemplo na pasta de dados real (`%LOCALAPPDATA%\LogiFlow`), corre o
+`instalar.bat` outra vez (como numa atualização) e o `iniciar.bat`, e confirma que o histórico se
+mantém (`scripts/verificar_historico_ci.py`).
 
 ---
 
@@ -357,11 +466,16 @@ logiflow/
 │   ├── desempenho.py       ← taxa no prazo, tempos de entrega, por cliente/destino/período
 │   ├── excecoes.py         ← painel de exceções: categorias, prioridades, filtros
 │   ├── exportacao.py       ← Excel de dados limpos, relatório, desempenho e exceções
-│   └── exemplo.py          ← localização do ficheiro de exemplo
+│   ├── persistencia.py     ← SQLite: pasta de dados, ligações, transações, esquema e migrações
+│   ├── historico.py        ← gravar importações (transações, deduplicação) e consultar o histórico
+│   ├── comparacao.py       ← comparar duas importações
+│   ├── copias.py           ← cópias de segurança e recuperação
+│   └── exemplo.py          ← localização dos ficheiros de exemplo
 ├── tests/                  ← testes automáticos (pytest)
 ├── dados_exemplo/          ← ficheiros de exemplo (dados fictícios)
 ├── scripts/gerar_exemplo.py← gera os ficheiros de exemplo
-├── docs/                   ← capturas de ecrã
+├── scripts/verificar_historico_ci.py ← verificação do histórico usada pelo CI no Windows
+├── docs/                   ← capturas de ecrã e HISTORICO.md (base de dados, cópias, recuperação)
 ├── ROTEIRO.md              ← avaliação das próximas melhorias
 ├── DEMONSTRACAO.md         ← guião de demonstração a clientes
 ├── .streamlit/config.toml  ← configuração (só localhost, sem estatísticas, tema)
@@ -382,8 +496,6 @@ Estas funcionalidades **não estão implementadas** nesta versão:
 
 - **Ficheiros `.xls` (Excel 97-2003)** e ficheiros Excel protegidos por palavra-passe — guarde
   como `.xlsx`.
-- **Guardar dados entre sessões, histórico ou base de dados** — decisão deliberada: não era
-  necessário para importar, validar e exportar, e assim nenhum dado de cliente fica no disco.
 - **Editar encomendas dentro da aplicação** — corrija o ficheiro de origem e importe-o de novo.
 - **Importar vários ficheiros de uma vez** ou juntar ficheiros.
 - **Exportar só as encomendas filtradas**, ou exportar em CSV ou PDF (exporta-se sempre o
@@ -391,8 +503,11 @@ Estas funcionalidades **não estão implementadas** nesta versão:
 - **Utilizadores, palavras-passe, acesso por várias pessoas na rede ou separação de dados por
   empresa.** A aplicação **não** está preparada para utilização empresarial multiutilizador.
 - **Integrações** com transportadoras, GPS, mapas, rotas, faturação, e-mail ou SMS.
-- **Histórico de importações e comparação entre ficheiros** (por exemplo, esta semana face à
-  anterior): o desempenho é calculado só sobre o ficheiro aberto. Ver [ROTEIRO.md](ROTEIRO.md).
+- **Apagar importações do histórico** uma a uma, **prazo de conservação** automático e **cópias
+  de segurança automáticas periódicas** (só há a cópia automática antes de uma migração).
+- **Desempenho e exceções ao longo do tempo** a partir do histórico (gráficos de várias
+  importações): o histórico guarda os totais de cada importação, mas o separador «Desempenho»
+  continua a usar só o ficheiro aberto.
 - **Relatório em PDF, logótipo ou personalização da empresa** e **modelos de importação**:
   avaliados em [ROTEIRO.md](ROTEIRO.md), não implementados.
 - **Configurar os limites** do desempenho (mínimo de 5 entregas avaliadas; faixas de antiguidade
@@ -408,6 +523,16 @@ Outras limitações:
 
 - Ficheiros com mais de 5 000 encomendas: os Excel são preparados a pedido (botão «Preparar
   ficheiros Excel»). Com 100 000 encomendas, pode demorar perto de um minuto.
+- **Histórico com ficheiros grandes** (medido com 100 000 encomendas, neste ambiente de
+  desenvolvimento em Linux): guardar no histórico acrescenta cerca de 1,5 s, **uma vez** por
+  ficheiro carregado; cada interação seguinte demora o mesmo que na 1.2.0 (cerca de +0,05 s; as
+  consultas do separador «Histórico» levam cerca de 2 ms, porque a lista é paginada); comparar duas
+  importações de 100 000 encomendas demora cerca de 3 s, só quando se carrega no botão. Cada
+  100 000 encomendas guardadas ocupam cerca de 15 MB.
+- O histórico é deste computador: não é partilhado entre computadores nem utilizadores, e a base de
+  dados não é encriptada. Não a coloque numa pasta sincronizada (OneDrive, Dropbox) nem num disco
+  de rede.
+- As listas de encomendas guardadas e as comparações mostram no máximo 5 000 linhas de cada vez.
 - Alguns textos internos do Streamlit aparecem em inglês (menu de ordenação das colunas e nomes
   dos meses no calendário).
 - A interface foi pensada para ecrãs de computador (a partir de 1366 × 768); não está otimizada
@@ -424,9 +549,12 @@ Outras limitações:
 | Abriu-se em <http://localhost:8502> | Já havia outro LogiFlow aberto. Pode fechar a janela preta mais antiga. |
 | Acentos trocados num CSV | No Excel, guarde com «CSV UTF-8 (delimitado por vírgulas)». |
 | «Faltam colunas obrigatórias» | Abra «Correspondência de colunas» e escolha a coluna certa para cada campo. |
+| «A base de dados do histórico não pode ser lida» | A aplicação continua a funcionar. No separador «Histórico», recupere uma cópia de segurança; ou siga a [recuperação manual](docs/HISTORICO.md#10-recuperação-manual-sem-a-aplicação). A base danificada não é apagada. |
+| «A base de dados estava ocupada por outra janela» | Outra janela do LogiFlow estava a gravar. Carregue em «Tentar guardar de novo». |
+| Não quero guardar histórico | Desligue «Guardar importações no histórico» na barra lateral. |
 | O antivírus bloqueia o `.bat` | Os scripts só criam a pasta `.venv` e iniciam a aplicação; pode abri-los no Bloco de Notas para confirmar. Em alternativa, use os comandos do PowerShell acima. |
 
 ## Demonstração a clientes
 
-Ver [DEMONSTRACAO.md](DEMONSTRACAO.md): guião de cerca de 14 minutos com o ficheiro de exemplo,
-incluindo o painel de exceções, o desempenho e o relatório por cliente.
+Ver [DEMONSTRACAO.md](DEMONSTRACAO.md): guião de cerca de 16 minutos com o ficheiro de exemplo,
+incluindo o painel de exceções, o desempenho, o relatório por cliente e o histórico.

@@ -5,8 +5,10 @@ exportação de dados limpos e relatório; sem persistência, sem utilizadores).
 de esforço são indicativas, para um programador que conheça o projeto.
 
 **Estado:** a melhoria 1 (Relatório de desempenho operacional) foi implementada na
-versão 1.1.0 e a melhoria 4 (Painel de exceções com prioridades) na versão 1.2.0. As restantes
-(2, 3, 5 e 6) **não estão implementadas**.
+versão 1.1.0 e a melhoria 4 (Painel de exceções com prioridades) na versão 1.2.0. A melhoria 2
+(Histórico de importações) está **implementada e em validação para a versão 1.3.0** (o número da
+versão só muda depois da verificação final no CI). As restantes (3, 5 e 6) **não estão
+implementadas**.
 
 ## Resumo e recomendação
 
@@ -16,7 +18,7 @@ versão 1.1.0 e a melhoria 4 (Painel de exceções com prioridades) na versão 1
 | 4. Painel de exceções com prioridades | Alto (parte já coberta) | Baixo–médio (2–3 dias) | Baixo–médio | **Implementada (1.2.0)** |
 | 3. Modelos de importação reutilizáveis | Médio | Baixo–médio (3–4 dias) | Baixo–médio | Não implementada — próxima candidata |
 | 5. Relatório operacional profissional (PDF) | Médio–alto | Médio–alto (4–6 dias) | Médio | Não implementada |
-| 2. Histórico de importações | Médio–alto | Médio (5–8 dias) | Médio–alto (RGPD) | Não implementada |
+| 2. Histórico de importações | Médio–alto | Médio (5–8 dias) | Médio–alto (RGPD) | **Implementada (em validação para a 1.3.0)** |
 | 6. Preparação para várias empresas | Baixo a curto prazo | Alto (semanas) | Muito alto | Não implementada |
 
 A melhoria 1 tem a melhor relação entre valor, esforço e risco: responde à pergunta que
@@ -24,7 +26,8 @@ justifica a compra («qual é o nosso nível de serviço, e onde falhamos?»), p
 entregável que a transportadora pode enviar a cada cliente, usa apenas dados já validados e
 não guarda dados nem acrescenta dependências. Serve ainda de base às melhorias 5 e 2.
 
-Ordem sugerida a seguir (atualizada na 1.2.0): **3 → 5 → 2 → 6**.
+Ordem sugerida a seguir (atualizada na 1.3.0): **completar a 2 (apagamento e prazo de conservação)
+→ 3 → 5 → 6**.
 
 ---
 
@@ -64,6 +67,28 @@ Ordem sugerida a seguir (atualizada na 1.2.0): **3 → 5 → 2 → 6**.
   base de dados danificada; o que fica (e o que não fica) guardado.
 - **Dependências:** é pré-requisito da melhoria 6; beneficia da melhoria 1 (indicadores a
   guardar).
+
+**Implementação (em validação para a 1.3.0).** Separador «Histórico», acrescentado no fim, e
+módulos `persistencia.py`, `historico.py`, `comparacao.py` e `copias.py`, só com o `sqlite3` do
+Python. Documentação completa em [docs/HISTORICO.md](docs/HISTORICO.md).
+
+- Base de dados SQLite na pasta de dados do utilizador (fora da pasta da aplicação), esquema
+  versionado com migrações só aditivas, cópia automática antes de migrar, transações, integridade
+  referencial, espera de 5 s por bases ocupadas; bases danificadas, incompatíveis ou mais recentes
+  nunca são substituídas.
+- Cada importação guarda metadados, totais congelados e os 7 campos validados de cada linha (não o
+  ficheiro original nem as colunas extra). Estados: em processamento, concluída, concluída com
+  avisos e falhada; gravação em duas fases com verificação dos totais e rollback.
+- Deduplicação pelo conteúdo + folha + correspondência de colunas; ficheiros diferentes com os
+  mesmos n.ºs são importações novas.
+- Comparação: nova, alterada, sem alterações e não encontrada na importação atual (sem inferir
+  entregas nem cancelamentos); n.ºs vazios ou repetidos ficam de fora; aviso de comparação parcial
+  acima de 20 %.
+- Cópias de segurança com a API do SQLite, nomes únicos, validação, recuperação via ficheiro
+  temporário com preservação da base atual; procedimento manual documentado.
+- **Ficou por fazer** (riscos de RGPD ainda abertos): apagamento seletivo de importações, prazo de
+  conservação automático, cópias periódicas automáticas, encriptação da base de dados e gráficos
+  de evolução entre importações.
 
 ## 3. Modelos de importação reutilizáveis
 
