@@ -5,6 +5,7 @@ import { timelinePt } from './pt-PT-timeline';
 import { extremePt } from './pt-PT-extreme';
 import { smallBodiesPt } from './pt-PT-small-bodies';
 import { beyondPt } from './pt-PT-beyond';
+import { tourPt } from './pt-PT-tour';
 
 export const ptPT = {
   planetarium: planetariumPt,
@@ -13,6 +14,7 @@ export const ptPT = {
   extreme: extremePt,
   smallBodies: smallBodiesPt,
   beyond: beyondPt,
+  tour: tourPt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',

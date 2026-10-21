@@ -3,9 +3,21 @@ import { test as base, expect, type Page } from '@playwright/test';
 /**
  * Página de teste sem dependências externas: as fontes do Google são bloqueadas e a NASA Image and Video
  * Library devolve uma lista vazia. No fim de cada teste, verifica que não houve erros na consola.
+ * Salvo indicação em contrário (firstVisit), a visita guiada é dada como vista, para a oferta não tapar a interface.
  */
-export const test = base.extend<{ consoleErrors: string[] }>({
-  consoleErrors: async ({ page }, use) => {
+export const test = base.extend<{ consoleErrors: string[]; firstVisit: boolean }>({
+  /** Simula uma primeira visita (com a oferta da visita guiada). Por omissão, a visita já foi vista. */
+  firstVisit: [false, { option: true }],
+  consoleErrors: async ({ page, firstVisit }, use) => {
+    if (!firstVisit) {
+      await page.addInitScript(() => {
+        try {
+          if (localStorage.getItem('universe-infinity:tour') === null) localStorage.setItem('universe-infinity:tour', 'true');
+        } catch {
+          /* sem armazenamento local */
+        }
+      });
+    }
     const errors: string[] = [];
     page.on('console', (m) => {
       if (m.type() === 'error' && !/Failed to load resource|net::ERR/.test(m.text())) errors.push(m.text());

@@ -1,18 +1,22 @@
-import { Suspense, lazy, useEffect, useMemo } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { I18nContext, getMessages } from '../i18n';
 import { ErrorBoundary } from './ErrorBoundary';
 import { TopBar } from './TopBar';
 import { useRoute, type Route } from './router';
-import { SearchDialog } from '../features/search/SearchDialog';
-import { ShortcutsDialog } from '../components/ShortcutsDialog';
-import { SolarSystemPage } from '../features/solar-system/SolarSystemPage';
-import { FavoritesPage } from '../features/favorites/FavoritesPage';
-import { DataPage } from '../features/about/DataPage';
 import { NotFoundPage } from '../features/NotFoundPage';
-import { openSearch, isTypingTarget, uiStore } from '../state/ui';
+import { TourOffer } from '../features/onboarding/TourOffer';
+import { openSearch, isTypingTarget, uiStore, useUi } from '../state/ui';
 
 // As secções com 3D (Three.js) são carregadas só quando necessárias.
 const ExplorerPage = lazy(() => import('../features/explorer/ExplorerPage'));
+// Cada secção é um pedaço de código separado, carregado só quando é aberto.
+const SolarSystemPage = lazy(() => import('../features/solar-system/SolarSystemPage').then((m) => ({ default: m.SolarSystemPage })));
+const FavoritesPage = lazy(() => import('../features/favorites/FavoritesPage').then((m) => ({ default: m.FavoritesPage })));
+const DataPage = lazy(() => import('../features/about/DataPage').then((m) => ({ default: m.DataPage })));
+const loadSearchDialog = () => import('../features/search/SearchDialog');
+const SearchDialog = lazy(() => loadSearchDialog().then((m) => ({ default: m.SearchDialog })));
+const ShortcutsDialog = lazy(() => import('../components/ShortcutsDialog').then((m) => ({ default: m.ShortcutsDialog })));
+const Tour = lazy(() => import('../features/onboarding/Tour').then((m) => ({ default: m.Tour })));
 const BodyPage = lazy(() => import('../features/body/BodyPage'));
 const ExoplanetsPage = lazy(() => import('../features/exoplanets/ExoplanetsPage'));
 const ExoplanetPage = lazy(() => import('../features/exoplanets/ExoplanetPage'));
@@ -28,6 +32,33 @@ const ExtremePage = lazy(() => import('../features/extreme/ExtremePage'));
 const MissionPage = lazy(() => import('../features/missions/MissionPage'));
 const SmallBodiesPage = lazy(() => import('../features/small-bodies/SmallBodiesPage'));
 const SmallBodyPage = lazy(() => import('../features/small-bodies/SmallBodyPage'));
+
+/**
+ * Diálogos globais (pesquisa, atalhos e visita guiada): o código só é pedido na primeira abertura e o da pesquisa é
+ * pré-carregado quando o navegador fica livre, para Ctrl K continuar instantâneo.
+ */
+function GlobalDialogs() {
+  const { searchOpen, shortcutsOpen, tourOpen } = useUi();
+  const [searchUsed, setSearchUsed] = useState(false);
+  const [shortcutsUsed, setShortcutsUsed] = useState(false);
+  const [tourUsed, setTourUsed] = useState(false);
+  if (searchOpen && !searchUsed) setSearchUsed(true);
+  if (shortcutsOpen && !shortcutsUsed) setShortcutsUsed(true);
+  if (tourOpen && !tourUsed) setTourUsed(true);
+  useEffect(() => {
+    const idle = (cb: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 2500));
+    idle(() => {
+      void loadSearchDialog().catch(() => undefined);
+    });
+  }, []);
+  return (
+    <Suspense fallback={null}>
+      {searchUsed ? <SearchDialog /> : null}
+      {shortcutsUsed ? <ShortcutsDialog /> : null}
+      {tourUsed ? <Tour /> : null}
+    </Suspense>
+  );
+}
 
 function PageFallback() {
   return (
@@ -149,8 +180,8 @@ export function App() {
           </ErrorBoundary>
         </main>
       </div>
-      <SearchDialog />
-      <ShortcutsDialog />
+      <TourOffer route={route} />
+      <GlobalDialogs />
     </I18nContext.Provider>
   );
 }

@@ -80,3 +80,17 @@ export function setPreference<K extends keyof Preferences>(key: K, value: Prefer
 }
 
 export const usePreferences = () => useStore(preferencesStore);
+
+// ---------- Visita guiada ----------
+
+const TOUR_KEY = 'tour';
+const isBool = (v: unknown): v is boolean => typeof v === 'boolean';
+
+/** Verdadeiro depois de a visita guiada ter sido feita ou recusada (a oferta da primeira visita deixa de aparecer). */
+export const tourSeenStore = createStore<boolean>(readJson(TOUR_KEY, false, isBool), (v) => writeJson(TOUR_KEY, v));
+
+export function markTourSeen(): void {
+  if (!tourSeenStore.get()) tourSeenStore.set(true);
+}
+
+export const useTourSeen = () => useStore(tourSeenStore);

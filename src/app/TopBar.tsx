@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { useI18n } from '../i18n';
-import { openSearch } from '../state/ui';
+import { openSearch, openTour } from '../state/ui';
 import { href, type Route } from './router';
 
 interface NavItem {
@@ -100,6 +100,18 @@ export function TopBar({ route }: { route: Route }) {
                   </li>
                 );
               })}
+              <li className="nav-more-sep">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    setMenuOpen(false);
+                    openTour();
+                  }}
+                >
+                  {t.tour.menuItem}
+                </button>
+              </li>
             </ul>
           </li>
         </ul>

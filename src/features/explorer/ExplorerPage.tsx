@@ -4,8 +4,8 @@ import type { BodyId } from '../../data/types';
 import { dateToJulianDayTdb } from '../../core/astro/time';
 import { useI18n } from '../../i18n';
 import { navigate, href } from '../../app/router';
-import { isTypingTarget, openShortcuts, uiStore } from '../../state/ui';
-import { pushHistory, setPreference, usePreferences } from '../../state/userData';
+import { isTypingTarget, openShortcuts, openTour, uiStore } from '../../state/ui';
+import { markTourSeen, pushHistory, setPreference, usePreferences, useTourSeen } from '../../state/userData';
 import { SolarSystemEngine, type ViewMode } from './engine/SolarSystemEngine';
 import { QUALITY, detectQualityTier, isWebGLAvailable, prefersReducedMotion } from './engine/quality';
 import { DEFAULT_SPEED_INDEX, SPEEDS, clampSpeedIndex, rateFor } from './timeControl';
@@ -24,6 +24,7 @@ type Status = 'loading' | 'ready' | 'no-webgl' | 'lost';
 export default function ExplorerPage({ focus }: { focus?: string }) {
   const { t } = useI18n();
   const prefs = usePreferences();
+  const tourSeen = useTourSeen();
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
@@ -293,9 +294,25 @@ export default function ExplorerPage({ focus }: { focus?: string }) {
                       <li key={h}>{h}</li>
                     ))}
                 </ul>
-                <button type="button" className="btn btn--small" onClick={() => setPreference('hintDismissed', true)}>
-                  {t.explorer.hintDismiss}
-                </button>
+                <div className="hint-actions">
+                  {!tourSeen ? (
+                    <button type="button" className="btn btn--small" onClick={openTour}>
+                      {t.tour.offerStart}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={tourSeen ? 'btn btn--small' : 'btn btn--ghost btn--small'}
+                    onClick={() => {
+                      setPreference('hintDismissed', true);
+                      // A oferta da visita guiada foi vista aqui: não volta a aparecer noutro cartão
+                      markTourSeen();
+                    }}
+                  >
+                    {t.explorer.hintDismiss}
+                  </button>
+                </div>
+                {!tourSeen ? <p className="hint-note">{t.tour.later}</p> : null}
               </aside>
             ) : null}
             <TimeDock

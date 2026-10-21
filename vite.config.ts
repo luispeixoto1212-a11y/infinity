@@ -10,6 +10,17 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        // Bibliotecas em pedaços próprios: mudam raramente, por isso ficam em cache entre versões da aplicação.
+        // O three.js só é pedido pelas secções 3D.
+        manualChunks(id) {
+          if (id.includes('node_modules/three/')) return 'three';
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react';
+          return undefined;
+        },
+      },
+    },
   },
   test: {
     environment: 'node',

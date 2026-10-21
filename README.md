@@ -1,6 +1,6 @@
 # Universe Infinity
 
-Atlas científico interativo para explorar o Universo em 3D. Esta versão cobre a **Fase 1 (fundação)**, a **Fase 2 (Sistema Solar)** e a **Fase 3 (espaço profundo e exoplanetas)**: uma vista 3D com as posições reais dos planetas e de 21 luas na data atual, fichas científicas com fontes para 32 objetos do Sistema Solar, os 110 objetos Messier e 18 objetos para além do catálogo (Nuvens de Magalhães, nebulosas austrais, pulsares) com um mapa do céu interativo, 509 estrelas com o diagrama H–R, buracos negros notáveis, o catálogo completo de exoplanetas do NASA Exoplanet Archive e uma página que explica os métodos e valida os cálculos.
+Atlas científico interativo para explorar o Universo em 3D. Esta versão cobre as cinco fases do projeto — **fundação**, **Sistema Solar**, **atlas astronómico**, **ferramentas** (pesquisa global, planetário, linha temporal, missões e favoritos) e **qualidade** (desempenho, acessibilidade, testes e documentação): uma vista 3D com as posições reais dos planetas e de 21 luas na data atual, fichas científicas com fontes para 32 objetos do Sistema Solar, os 110 objetos Messier e 18 objetos para além do catálogo (Nuvens de Magalhães, nebulosas austrais, pulsares) com um mapa do céu interativo, 509 estrelas com o diagrama H–R, buracos negros notáveis, o catálogo completo de exoplanetas do NASA Exoplanet Archive e uma página que explica os métodos e valida os cálculos.
 
 Interface em português de Portugal.
 
@@ -108,6 +108,7 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 - Lista do Sistema Solar, tabela das luas principais e comparação de tamanhos reais à mesma escala.
 - Página "Dados e métodos" com a validação das posições dos planetas, das luas e do planetário contra o JPL Horizons, calculada no próprio navegador.
 - Atalhos de teclado (prima `?` na vista 3D).
+- Visita guiada opcional em seis passos (secções, pesquisa, planetário e como ler os valores medidos, calculados, médios e estimados). Na primeira visita é oferecida num cartão que se pode recusar; depois fica no menu "Mais". Navega-se com o rato, o toque ou as setas do teclado.
 
 ## Rigor científico
 
@@ -125,7 +126,8 @@ Não são precisas chaves de API. A galeria de fotografias usa a API pública da
 
 - **React 19 + TypeScript + Vite**, com **Three.js** usado diretamente (sem React Three Fiber). Motivo: o motor 3D é uma classe independente da interface, mais fácil de testar e com controlo explícito da libertação de recursos WebGL.
 - Sem dependências além de React e Three.js: router por hash, store reativa e i18n são pequenos módulos próprios.
-- As secções com 3D são carregadas só quando necessárias (divisão do código); as texturas carregam primeiro em 512 px e depois em 2048 px.
+- Cada secção é um pedaço de código separado, carregado só quando é aberto; a pesquisa e os diálogos globais só são pedidos na primeira utilização (a pesquisa é pré-carregada quando o navegador fica livre). O React e o Three.js ficam em pedaços próprios, que se mantêm em cache entre versões, e o Three.js só é pedido pelas secções 3D. As texturas carregam primeiro em 512 px e depois em 2048 px.
+- JavaScript transferido ao abrir cada página (medido com o Chromium sobre a versão de produção, antes e depois da Fase 5): vista 3D 1120 → 857 KB, Missões 582 → 305 KB, ficha de M31 563 → 255 KB.
 
 ```
 src/
@@ -178,12 +180,12 @@ O script lê `systems-exoplanetarchive.xml.gz` (cópia noturna da tabela PSCompP
 
 ### Acrescentar uma língua
 
-Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts`, registá-lo em `src/i18n/index.ts` e preencher os campos `en` dos textos científicos em `src/data/`. O seletor de língua só deve ser ativado com a tradução completa.
+Criar `src/i18n/en.ts` com o mesmo formato de `pt-PT.ts` (o TypeScript obriga a ter todas as chaves), registá-lo em `src/i18n/index.ts` e preencher os campos `en` dos textos científicos das fichas do Sistema Solar (`src/data/bodies/`, tipo `LocalizedText`). Os textos de conteúdo das secções mais recentes estão por enquanto só em português, diretamente nos módulos de dados, e teriam de passar para o mesmo formato: `src/data/smallBodies.ts`, `src/features/missions/missionsData.ts`, `src/features/timeline/cosmicEvents.ts`, `src/features/extreme/topics.ts`, `src/features/deepsky/deepSkyText.ts`, `src/features/deepsky/beyondMessier.ts` e `src/features/deepsky/blackHoles.ts`. O seletor de língua só deve ser ativado com a tradução completa, para não misturar línguas na mesma interface.
 
 ## Testes
 
 - `npm test` corre 253 testes unitários (incluindo os 18 objetos para além do catálogo Messier — constelação verificada com os limites da IAU, conversões de parsecs, rotas e pesquisa —, a propagação das órbitas de 26 asteroides e cometas comparada com 105 posições do JPL Horizons, incluindo a coerência das 36 missões, a cosmologia — idade do Planck, solução analítica, distância ao último espalhamento — e a ordem cronológica da linha temporal). Os do planetário comparam com o JPL Horizons o tempo sideral, a Lua em cinco datas, o Sol e os planetas em duas datas (posição, distância, fase e magnitude), o azimute e a altura em Lisboa e em Sydney e as horas de nascer, passagem e ocaso, e verificam os exemplos de Meeus para a precessão e o tempo sideral, a constelação das 509 estrelas com nome, os fusos horários (incluindo a mudança de hora), a projeção, as noites brancas e a noite polar. Os restantes cobrem: escalas de tempo, equação de Kepler, posições dos planetas e das luas comparadas com o JPL Horizons, períodos das luas face aos publicados, Lua, orientação IAU, escala da cena (incluindo as luas fora dos anéis), coerência do catálogo, existência das texturas, catálogo de exoplanetas (contagens, valores de referência das páginas da NASA, distinção medido/estimado, luminosidade, fluxo e terceira lei de Kepler, pesquisa e ordenação, e comparação com consultas diretas à API do arquivo), objetos Messier (distâncias da NASA e da Gaia, ordenação, tamanho real), projeção do mapa do céu (ida e volta, corte na margem, eclíptica), estrelas (distâncias comparadas com as paralaxes do Hipparcos consultadas diretamente, tipos espectrais, temperatura, luminosidade, pesquisa), buracos negros (raio de Schwarzschild), pesquisa global, formatação pt-PT, router, cliente da NASA e armazenamento local.
-- `npm run test:e2e` corre 47 testes de interface no Chromium (pasta `e2e/`), sobre a versão de produção: arranque da vista 3D, menu "Mais", pesquisa global (planetas, missões e conceitos), rota inválida, ficha de Marte com favoritos e ligação ao planetário, planetário (painel "Esta noite", mudança de data, alvo vindo de uma ficha, comparação de lugares, animação, teclado), espaço profundo (incluindo os objetos para além do Messier), estrelas, buracos negros, exoplanetas, missões (filtros e ficha), linha temporal (escalas e calculadora), fenómenos extremos, asteroides e cometas (lista, ficha e camada 3D) e página de métodos. Inclui uma verificação automática de acessibilidade (axe-core, WCAG 2.1 A e AA) em 15 páginas, a ausência de deslocamento horizontal em telemóvel em 13 páginas e falha se houver erros na consola. As fontes externas são bloqueadas e a API da NASA é simulada, para os testes não dependerem da rede.
+- `npm run test:e2e` corre 49 testes de interface no Chromium (pasta `e2e/`), sobre a versão de produção: arranque da vista 3D, menu "Mais", pesquisa global (planetas, missões e conceitos), rota inválida, ficha de Marte com favoritos e ligação ao planetário, planetário (painel "Esta noite", mudança de data, alvo vindo de uma ficha, comparação de lugares, animação, teclado), espaço profundo (incluindo os objetos para além do Messier), estrelas, buracos negros, exoplanetas, missões (filtros e ficha), linha temporal (escalas e calculadora), fenómenos extremos, asteroides e cometas (lista, ficha e camada 3D), página de métodos e visita guiada (oferta na primeira visita, passos, teclado, memória e acesso pelo menu). Inclui uma verificação automática de acessibilidade (axe-core, WCAG 2.1 A e AA) em 15 páginas e no diálogo da visita guiada, a ausência de deslocamento horizontal em telemóvel em 13 páginas e falha se houver erros na consola. As fontes externas são bloqueadas e a API da NASA é simulada, para os testes não dependerem da rede.
 
 ## Publicar no GitHub Pages
 
@@ -195,7 +197,7 @@ O workflow `ci.yml` verifica tipos, testes unitários e build em cada push e, a 
 
 ## Próximos passos
 
-1. **Fase 5**: tutorial inicial, desempenho, inglês e espanhol.
+1. **Traduções**: inglês e espanhol, começando por passar os textos de conteúdo listados em "Acrescentar uma língua" para o formato traduzível.
 2. **Sistema Solar (complementos)**: sombras e eclipses, formas irregulares dos pequenos corpos em 3D.
 
 ## Créditos

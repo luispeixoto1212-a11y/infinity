@@ -3,14 +3,17 @@ import { createStore, useStore } from '../core/store';
 export interface UiState {
   searchOpen: boolean;
   shortcutsOpen: boolean;
+  tourOpen: boolean;
 }
 
-export const uiStore = createStore<UiState>({ searchOpen: false, shortcutsOpen: false });
+export const uiStore = createStore<UiState>({ searchOpen: false, shortcutsOpen: false, tourOpen: false });
 
 export const openSearch = () => uiStore.set((s) => ({ ...s, searchOpen: true }));
 export const closeSearch = () => uiStore.set((s) => ({ ...s, searchOpen: false }));
 export const openShortcuts = () => uiStore.set((s) => ({ ...s, shortcutsOpen: true }));
 export const closeShortcuts = () => uiStore.set((s) => ({ ...s, shortcutsOpen: false }));
+export const openTour = () => uiStore.set((s) => ({ ...s, tourOpen: true }));
+export const closeTour = () => uiStore.set((s) => ({ ...s, tourOpen: false }));
 
 export const useUi = () => useStore(uiStore);
 
