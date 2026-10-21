@@ -1,6 +1,6 @@
 import { test, expect, openRoute, expectNoHorizontalScroll } from './fixtures';
 
-const ROUTES = ['#/sistema-solar', '#/objeto/saturno', '#/planetario', '#/missoes', '#/missoes/perseverance', '#/linha-temporal', '#/fenomenos-extremos', '#/espaco-profundo', '#/exoplanetas', '#/dados', '#/asteroides-e-cometas', '#/asteroides-e-cometas/bennu', '#/espaco-profundo/gnm'];
+const ROUTES = ['#/sistema-solar', '#/objeto/saturno', '#/planetario', '#/missoes', '#/missoes/perseverance', '#/linha-temporal', '#/fenomenos-extremos', '#/espaco-profundo', '#/exoplanetas', '#/dados', '#/asteroides-e-cometas', '#/asteroides-e-cometas/bennu', '#/espaco-profundo/gnm', '#/mapa-estelar'];
 
 for (const hash of ROUTES) {
   test(`sem deslocamento horizontal em ${hash}`, async ({ page, consoleErrors }) => {

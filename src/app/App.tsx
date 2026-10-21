@@ -32,6 +32,7 @@ const ExtremePage = lazy(() => import('../features/extreme/ExtremePage'));
 const MissionPage = lazy(() => import('../features/missions/MissionPage'));
 const SmallBodiesPage = lazy(() => import('../features/small-bodies/SmallBodiesPage'));
 const SmallBodyPage = lazy(() => import('../features/small-bodies/SmallBodyPage'));
+const StarMapPage = lazy(() => import('../features/starmap/StarMapPage'));
 
 /**
  * Diálogos globais (pesquisa, atalhos e visita guiada): o código só é pedido na primeira abertura e o da pesquisa é
@@ -109,6 +110,8 @@ function renderRoute(route: Route) {
       return <SmallBodiesPage />;
     case 'small-body':
       return <SmallBodyPage slug={route.slug} />;
+    case 'star-map':
+      return <StarMapPage slug={route.slug} />;
     default:
       return <NotFoundPage />;
   }
@@ -127,6 +130,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   timeline: 'Linha temporal do Universo',
   extreme: 'Fenómenos extremos',
   'small-bodies': 'Asteroides e cometas',
+  'star-map': 'A vizinhança do Sol em 3D',
   'not-found': 'Página não encontrada',
 };
 

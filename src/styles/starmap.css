@@ -1,0 +1,235 @@
+/* Mapa 3D da vizinhança do Sol */
+
+.starmap-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  align-items: start;
+}
+
+.starmap-stage {
+  position: relative;
+  height: min(72vh, 680px);
+  min-height: 360px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #03050c;
+  touch-action: none;
+}
+
+.starmap-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.starmap-canvas:active {
+  cursor: grabbing;
+}
+
+.starmap-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.starmap-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -0.55rem 0 0 0.55rem;
+  color: var(--dust);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  text-shadow: 0 0 4px #03050c, 0 0 2px #03050c;
+  will-change: transform;
+}
+
+.starmap-label--sun {
+  color: var(--sol);
+  font-weight: 600;
+}
+
+.starmap-label--star {
+  color: var(--star);
+}
+
+.starmap-label--star.is-selected {
+  color: var(--ion-strong);
+  font-weight: 600;
+}
+
+.starmap-label--ring {
+  color: rgba(157, 187, 255, 0.75);
+}
+
+.starmap-label--gc {
+  color: var(--sol);
+}
+
+.starmap-label--ngp {
+  color: var(--ion-strong);
+}
+
+.starmap-zoom {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.starmap-zoom .icon-btn {
+  background: var(--glass-strong);
+  border: 1px solid var(--line-strong);
+  font-size: var(--fs-md);
+}
+
+.starmap-side {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.starmap-search input {
+  width: 100%;
+}
+
+.starmap-results {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.starmap-results button {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--star);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.starmap-results li + li button {
+  border-top: 1px solid var(--line);
+}
+
+.starmap-results button:hover,
+.starmap-results button:focus-visible {
+  background: var(--ion-soft);
+}
+
+.starmap-result-dist {
+  color: var(--dust);
+  white-space: nowrap;
+}
+
+.starmap-selected {
+  padding: var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--glass);
+}
+
+.starmap-selected-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.starmap-selected-head h2 {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  line-height: 1.1;
+}
+
+.starmap-facts {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.starmap-facts dt {
+  color: var(--dust);
+  font-size: var(--fs-xs);
+}
+
+.starmap-facts dd {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.starmap-fact-value {
+  color: var(--star);
+  font-variant-numeric: tabular-nums;
+}
+
+.starmap-fact-meta {
+  color: var(--dust);
+  font-size: var(--fs-xs);
+}
+
+.starmap-fact-note {
+  color: var(--dust-dim);
+  font-size: var(--fs-xs);
+}
+
+.starmap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.starmap-filters {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.starmap-filters legend {
+  padding: 0 var(--space-2);
+  font-weight: 600;
+}
+
+.starmap-filters input[type='range'] {
+  width: 100%;
+  accent-color: var(--ion);
+}
+
+.starmap-filter-title {
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--dust);
+  font-size: var(--fs-sm);
+}
+
+.star-table tr.is-selected th,
+.star-table tr.is-selected td {
+  background: var(--ion-soft);
+}
+
+@media (max-width: 1000px) {
+  .starmap-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .starmap-stage {
+    height: 62vh;
+  }
+}

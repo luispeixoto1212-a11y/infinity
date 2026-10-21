@@ -12,6 +12,7 @@ import './styles/timeline.css';
 import './styles/extreme.css';
 import './styles/small-bodies.css';
 import './styles/tour.css';
+import './styles/starmap.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Elemento #root em falta no index.html');

@@ -144,12 +144,20 @@ function StarView({ s }: { s: Star }) {
             {ly !== undefined ? `${s.constellation ? ' · ' : ''}${formatStarDistance(s)}` : ''}
           </p>
           {ly !== undefined ? <p className="exo-summary">{t.space.lightAgo(ly < 100 ? formatNumber(ly, 1) : formatNumber(Math.round(ly), 0))}</p> : null}
-          {s.hip && s.mag !== undefined && s.mag <= 6 ? (
+          {(s.hip && s.mag !== undefined && s.mag <= 6) || (s.distPc !== undefined && s.distPc <= 100) ? (
             <p className="body-actions">
-              <a className="btn btn--ghost btn--small" href={href({ name: 'planetarium', target: s.slug })}>
-                <Icon name="sky" size={15} />
-                {t.body.viewInSky}
-              </a>
+              {s.hip && s.mag !== undefined && s.mag <= 6 ? (
+                <a className="btn btn--ghost btn--small" href={href({ name: 'planetarium', target: s.slug })}>
+                  <Icon name="sky" size={15} />
+                  {t.body.viewInSky}
+                </a>
+              ) : null}
+              {s.distPc !== undefined && s.distPc <= 100 ? (
+                <a className="btn btn--ghost btn--small" href={href({ name: 'star-map', slug: s.slug })}>
+                  <Icon name="orbit" size={15} />
+                  {t.starMap.starPageLink}
+                </a>
+              ) : null}
             </p>
           ) : null}
         </div>

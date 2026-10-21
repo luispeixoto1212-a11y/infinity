@@ -150,10 +150,18 @@ const PAGE_ENTRIES: SearchEntry[] = [
   {
     id: 'page:deep-sky',
     title: 'Espaço profundo',
-    subtitle: 'Os 110 objetos Messier: galáxias, nebulosas e enxames',
+    subtitle: 'Os 110 objetos Messier e mais 18 para além do catálogo: galáxias, nebulosas, enxames e pulsares',
     category: 'page',
     terms: ['espaço profundo', 'deep sky', 'messier', 'galáxias', 'nebulosas', 'enxames', 'galaxies', 'nebulae'],
     route: { name: 'deep-sky' },
+  },
+  {
+    id: 'page:star-map',
+    title: 'Mapa 3D das estrelas',
+    subtitle: 'A vizinhança do Sol em 3D: estrelas a menos de 100 parsecs, com dados da Gaia',
+    category: 'page',
+    terms: ['mapa 3d', 'mapa estelar', 'vizinhança do sol', 'estrelas próximas', 'via láctea', 'gaia', 'star map', '3d map', 'solar neighbourhood'],
+    route: { name: 'star-map' },
   },
   {
     id: 'page:stars',

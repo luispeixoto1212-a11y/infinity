@@ -6,6 +6,7 @@ import { extremePt } from './pt-PT-extreme';
 import { smallBodiesPt } from './pt-PT-small-bodies';
 import { beyondPt } from './pt-PT-beyond';
 import { tourPt } from './pt-PT-tour';
+import { starMapPt } from './pt-PT-starmap';
 
 export const ptPT = {
   planetarium: planetariumPt,
@@ -15,6 +16,7 @@ export const ptPT = {
   smallBodies: smallBodiesPt,
   beyond: beyondPt,
   tour: tourPt,
+  starMap: starMapPt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -388,7 +390,7 @@ export const ptPT = {
     unknown: '—',
   },
   space: {
-    tabs: { deepSky: 'Galáxias, nebulosas e enxames', stars: 'Estrelas', blackHoles: 'Buracos negros', extreme: 'Fenómenos extremos' },
+    tabs: { deepSky: 'Galáxias, nebulosas e enxames', stars: 'Estrelas', starMap: 'Mapa 3D das estrelas', blackHoles: 'Buracos negros', extreme: 'Fenómenos extremos' },
     tabsLabel: 'Secções do espaço profundo',
     loading: 'A carregar o catálogo…',
     loadError: 'Não foi possível carregar o catálogo. Verifique a ligação e tente novamente.',

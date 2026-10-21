@@ -66,6 +66,26 @@ test.describe('espaço profundo', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pulsar de Hulse–Taylor');
   });
 
+  test('mapa 3D das estrelas: filtros, lista acessível e ligação às fichas', async ({ page, consoleErrors }) => {
+    void consoleErrors;
+    await openRoute(page, '#/mapa-estelar');
+    await expect(page.locator('canvas.starmap-canvas')).toBeVisible();
+    const count = page.locator('.starmap-filters .catalog-count');
+    await expect(count).toHaveText(/^22\s917 estrelas visíveis$/);
+    await page.locator('#starmap-dist').fill('5');
+    await expect(count).not.toHaveText(/^22\s917/);
+    const visible = Number((await count.innerText()).replace(/\D/g, ''));
+    expect(visible).toBeGreaterThan(20);
+    expect(visible).toBeLessThan(200);
+    await page.getByRole('button', { name: 'Mostrar no mapa: Proxima Centauri' }).click();
+    await expect(page.locator('#starmap-selected-title')).toHaveText('Proxima Centauri');
+    await expect(page.getByRole('link', { name: 'Abrir ficha da estrela' })).toHaveAttribute('href', '#/estrelas/proxima-centauri');
+    // Da ficha de uma estrela para o mapa
+    await openRoute(page, '#/estrelas/vega');
+    await page.getByRole('link', { name: 'Ver no mapa 3D' }).click();
+    await expect(page.locator('#starmap-selected-title')).toHaveText('Vega');
+  });
+
   test('estrelas e buracos negros', async ({ page, consoleErrors }) => {
     void consoleErrors;
     await openRoute(page, '#/estrelas/sirius');

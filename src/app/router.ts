@@ -25,6 +25,7 @@ export type Route =
   | { name: 'mission'; id: string }
   | { name: 'small-bodies' }
   | { name: 'small-body'; slug: string }
+  | { name: 'star-map'; slug?: string }
   | { name: 'not-found'; path: string };
 
 export function parseHash(hash: string): Route {
@@ -64,6 +65,8 @@ export function parseHash(hash: string): Route {
       return arg ? { name: 'small-body', slug: arg } : { name: 'small-bodies' };
     case 'planetario':
       return arg ? { name: 'planetarium', target: arg } : { name: 'planetarium' };
+    case 'mapa-estelar':
+      return arg ? { name: 'star-map', slug: arg } : { name: 'star-map' };
     default:
       return { name: 'not-found', path };
   }
@@ -109,6 +112,8 @@ export function routeToHash(route: Route): string {
       return '#/asteroides-e-cometas';
     case 'small-body':
       return `#/asteroides-e-cometas/${route.slug}`;
+    case 'star-map':
+      return route.slug ? `#/mapa-estelar/${route.slug}` : '#/mapa-estelar';
     case 'not-found':
       return `#${route.path}`;
   }
