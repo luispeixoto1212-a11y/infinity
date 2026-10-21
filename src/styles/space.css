@@ -597,3 +597,14 @@
   border-radius: 0;
   border-top: 2px dashed rgba(255, 200, 116, 0.8);
 }
+
+/* Para além do catálogo Messier */
+.dso-beyond-group {
+  margin-top: var(--space-4);
+}
+
+.dso-detail .prose .source-meta,
+.dso-detail .prose-list .source-meta {
+  display: inline;
+  white-space: nowrap;
+}

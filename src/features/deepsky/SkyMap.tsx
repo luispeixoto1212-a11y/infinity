@@ -8,7 +8,7 @@ import { constellationName } from '../../data/constellations';
 import { useI18n } from '../../i18n';
 import { colorFromBv } from '../stars/starData';
 import { SUBTYPE_COLOR } from './DeepSkyGlyph';
-import { formatLightYears, type DeepSkyObject } from './deepSkyData';
+import { formatLightYears, type SkyObject } from './deepSkyData';
 import { loadMilkyWay, loadSkyMap, milkyWayLevel, type MilkyWayGrid } from './skyMapData';
 import { SKY_HEIGHT, SKY_WIDTH, eclipticPoints, outlinePath, polylinePaths, project, unproject } from './skyProjection';
 
@@ -62,18 +62,23 @@ function paintSky(canvas: HTMLCanvasElement, grid: MilkyWayGrid | null, view: Vi
   ctx.putImageData(img, 0, 0);
 }
 
+/** Tipos que só aparecem na legenda quando há objetos desse tipo no mapa. */
+const EXTRA_LEGEND = new Set<string>(['snr', 'dark', 'pulsar']);
+
 export interface SkyMapProps {
-  objects: readonly DeepSkyObject[];
+  objects: readonly SkyObject[];
   /** Objeto em destaque (ficha). */
   highlightId?: string;
   /** Vista inicial centrada num ponto do céu. */
   focus?: { ra: number; dec: number; zoom: number };
-  /** Números Messier com etiqueta mesmo na vista geral. */
-  labelled?: readonly number[];
+  /** Ids dos objetos com etiqueta mesmo na vista geral. */
+  labelled?: readonly string[];
   compact?: boolean;
+  /** Descrição acessível do mapa (por omissão, a do mapa dos objetos Messier). */
+  ariaLabel?: string;
 }
 
-export function SkyMap({ objects, highlightId, focus, labelled = [], compact = false }: SkyMapProps) {
+export function SkyMap({ objects, highlightId, focus, labelled = [], compact = false, ariaLabel }: SkyMapProps) {
   const { t } = useI18n();
   const { state } = useAsync(loadSkyMap);
   const [grid, setGrid] = useState<MilkyWayGrid | null>(null);
@@ -87,7 +92,7 @@ export function SkyMap({ objects, highlightId, focus, labelled = [], compact = f
     return clampView({ cx: p.x, cy: p.y, k: focus.zoom });
   }, [focus, narrow]);
   const [view, setView] = useState<View>(initial);
-  const [hover, setHover] = useState<{ o: DeepSkyObject; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ o: SkyObject; x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; view: View; moved: boolean } | null>(null);
   const justDragged = useRef(false);
@@ -241,7 +246,7 @@ export function SkyMap({ objects, highlightId, focus, labelled = [], compact = f
         style={{ height: height || undefined }}
         tabIndex={0}
         role="group"
-        aria-label={t.space.skyMap.aria}
+        aria-label={ariaLabel ?? t.space.skyMap.aria}
         aria-describedby="skymap-help"
         onWheel={onWheel}
         onPointerDown={onPointerDown}
@@ -291,7 +296,7 @@ export function SkyMap({ objects, highlightId, focus, labelled = [], compact = f
                   <a
                     key={o.id}
                     href={href({ name: 'deep-sky-object', id: o.id })}
-                    aria-label={`M${o.m}${o.namePt ? `, ${o.namePt}` : ''}: ${t.space.subtypes[o.subtype]}`}
+                    aria-label={`${o.label}${o.namePt && o.namePt !== o.label ? `, ${o.namePt}` : ''}: ${t.space.subtypes[o.subtype]}`}
                     className={isHi ? 'skymap-obj is-highlight' : 'skymap-obj'}
                     onPointerEnter={(e) => {
                       const rect = (e.currentTarget.closest('.skymap-stage') ?? e.currentTarget).getBoundingClientRect();
@@ -303,9 +308,9 @@ export function SkyMap({ objects, highlightId, focus, labelled = [], compact = f
                     {isHi ? <circle cx={p.x} cy={p.y} r={markerR * 3} className="skymap-hi-ring" vectorEffect="non-scaling-stroke" /> : null}
                     <circle cx={p.x} cy={p.y} r={markerR * 2.6} fill="transparent" />
                     <circle cx={p.x} cy={p.y} r={markerR} fill={color} className="skymap-dot" vectorEffect="non-scaling-stroke" />
-                    {(showLabels || (labelSet.has(o.m) && !narrow) || isHi) && !nearHi ? (
+                    {(showLabels || (labelSet.has(o.id) && !narrow) || isHi) && !nearHi ? (
                       <text x={p.x + markerR * 1.6} y={p.y + markerR * 0.9} fontSize={fontPx * upp} strokeWidth={2.5 * upp} className="skymap-obj-label">
-                        M{o.m}
+                        {o.label}
                       </text>
                     ) : null}
                   </a>
@@ -318,8 +323,8 @@ export function SkyMap({ objects, highlightId, focus, labelled = [], compact = f
         {hover ? (
           <div className="skymap-tip" style={{ left: hover.x, top: hover.y }} role="tooltip">
             <strong>
-              M{hover.o.m}
-              {hover.o.namePt ? ` · ${hover.o.namePt}` : ''}
+              {hover.o.label}
+              {hover.o.namePt && hover.o.namePt !== hover.o.label ? ` · ${hover.o.namePt}` : ''}
             </strong>
             <span>
               {t.space.subtypes[hover.o.subtype]} · {constellationName(hover.o.constellation)}
@@ -352,8 +357,13 @@ export function SkyMap({ objects, highlightId, focus, labelled = [], compact = f
               ['open', t.space.skyMap.open],
               ['emission', t.space.filters.nebula],
               ['planetary', t.space.skyMap.planetary],
+              ['snr', t.space.skyMap.snr],
+              ['dark', t.space.skyMap.dark],
+              ['pulsar', t.space.skyMap.pulsar],
             ] as const
-          ).map(([k, label]) => (
+          )
+            .filter(([k]) => !EXTRA_LEGEND.has(k) || objects.some((o) => o.subtype === k))
+            .map(([k, label]) => (
             <li key={k}>
               <span className="skymap-swatch" style={{ background: SUBTYPE_COLOR[k] }} aria-hidden="true" />
               {label}

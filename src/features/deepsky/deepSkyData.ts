@@ -21,13 +21,15 @@ export type DeepSkySubtype =
   | 'snr'
   | 'star-cloud'
   | 'double-star'
-  | 'asterism';
+  | 'asterism'
+  | 'dark'
+  | 'pulsar';
 
-export interface DeepSkyObject {
-  m: number;
+/** Campos comuns a todos os objetos do espaço profundo (Messier e restantes), usados nos mapas e no planetário. */
+export interface SkyObject {
   id: string;
-  /** Designação NGC/IC formatada (NGC 224) ou outra designação (Melotte 22). */
-  catalogId?: string;
+  /** Designação curta mostrada nos mapas (M31, NGC 3372, ω Cen…). */
+  label: string;
   category: DeepSkyCategory;
   subtype: DeepSkySubtype;
   /** Ascensão reta e declinação (graus, J2000). */
@@ -37,15 +39,22 @@ export interface DeepSkyObject {
   /** Eixos maior e menor aparentes (minutos de arco). */
   majorArcmin?: number;
   minorArcmin?: number;
+  mag?: number;
+  distanceLy?: number;
+  namePt?: string;
+}
+
+export interface DeepSkyObject extends SkyObject {
+  m: number;
+  /** Designação NGC/IC formatada (NGC 224) ou outra designação (Melotte 22). */
+  catalogId?: string;
   /** Magnitude visual: OpenNGC (V) ou, na falta, a indicada pela NASA. */
   mag?: number;
   magSource?: 'openngc' | 'nasa';
   hubbleType?: string;
   /** Distância (anos-luz): a indicada pela NASA ou, para 13 enxames abertos, a da Gaia (Cantat-Gaudin et al. 2020). */
-  distanceLy?: number;
   distanceSource?: 'nasa' | 'gaia-cg2020';
   distanceApprox: boolean;
-  namePt?: string;
   nameEn?: string;
   notePt?: string;
   season?: string;
@@ -108,6 +117,7 @@ export function parseDeepSky(raw: unknown): DeepSkyObject[] {
   return r.objects.map((o) => ({
     m: o.m,
     id: `m${o.m}`,
+    label: `M${o.m}`,
     catalogId: formatCatalogId(o.ngc, o.other),
     category: o.cat,
     subtype: o.sub,
@@ -148,8 +158,12 @@ export function loadDeepSky(fetchImpl: typeof fetch = fetch): Promise<DeepSkyObj
   return promise;
 }
 
-export function displayName(o: DeepSkyObject): string {
-  return o.namePt ?? `Messier ${o.m}`;
+export function isMessier(o: SkyObject): o is DeepSkyObject {
+  return 'm' in o;
+}
+
+export function displayName(o: SkyObject): string {
+  return o.namePt ?? (isMessier(o) ? `Messier ${o.m}` : o.label);
 }
 
 export function nasaHubblePage(m: number): string {
@@ -157,7 +171,7 @@ export function nasaHubblePage(m: number): string {
 }
 
 /** Tamanho real aproximado (anos-luz) a partir do tamanho aparente e da distância: D ≈ d × θ. */
-export function physicalSizeLy(o: DeepSkyObject): number | undefined {
+export function physicalSizeLy(o: SkyObject): number | undefined {
   if (!o.majorArcmin || !o.distanceLy) return undefined;
   const theta = (o.majorArcmin / 60) * (Math.PI / 180);
   return o.distanceLy * theta;

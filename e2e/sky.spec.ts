@@ -18,6 +18,8 @@ test.describe('planetário', () => {
     await expect(page.locator('.sky-info-title')).toHaveText('Sirius');
     await openRoute(page, '#/planetario/m42');
     await expect(page.locator('.sky-info-title')).toContainText('M42');
+    await openRoute(page, '#/planetario/ngc5139');
+    await expect(page.locator('.sky-info-title')).toContainText('Omega Centauri');
   });
 
   test('comparação de dois lugares e animação do tempo', async ({ page, consoleErrors }) => {
@@ -48,6 +50,20 @@ test.describe('espaço profundo', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await openRoute(page, '#/espaco-profundo/m31');
     await expect(page.locator('a[href="#/planetario/m31"]')).toBeVisible();
+  });
+
+  test('objetos para além do catálogo Messier', async ({ page, consoleErrors }) => {
+    void consoleErrors;
+    await openRoute(page, '#/espaco-profundo');
+    await expect(page.getByRole('heading', { name: 'Para além do catálogo Messier' })).toBeVisible();
+    await page.locator('.dso-beyond-group a[href="#/espaco-profundo/gnm"]').click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Grande Nuvem de Magalhães');
+    await expect(page.locator('.facts-table')).toContainText('162 000 anos-luz');
+    await openRoute(page, '#/espaco-profundo/psr-b1919');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('PSR B1919+21');
+    await expect(page.locator('.facts-table')).toContainText('1,33730 s');
+    await page.getByRole('link', { name: 'PSR B1913+16 →' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pulsar de Hulse–Taylor');
   });
 
   test('estrelas e buracos negros', async ({ page, consoleErrors }) => {

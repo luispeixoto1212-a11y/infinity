@@ -4,6 +4,7 @@ import { missionsPt } from './pt-PT-missions';
 import { timelinePt } from './pt-PT-timeline';
 import { extremePt } from './pt-PT-extreme';
 import { smallBodiesPt } from './pt-PT-small-bodies';
+import { beyondPt } from './pt-PT-beyond';
 
 export const ptPT = {
   planetarium: planetariumPt,
@@ -11,6 +12,7 @@ export const ptPT = {
   timeline: timelinePt,
   extreme: extremePt,
   smallBodies: smallBodiesPt,
+  beyond: beyondPt,
   appName: 'Universe Infinity',
   nav: {
     explore: 'Explorar',
@@ -392,7 +394,7 @@ export const ptPT = {
     // Messier
     deepTitle: 'Espaço profundo',
     deepLede:
-      'Os 110 objetos do catálogo Messier: galáxias, nebulosas e enxames de estrelas que se veem com binóculos ou pequenos telescópios. Posições e dimensões do OpenNGC; distâncias e descrições da NASA e, para 13 enxames abertos, distâncias da Gaia.',
+      'Os 110 objetos do catálogo Messier: galáxias, nebulosas e enxames de estrelas que se veem com binóculos ou pequenos telescópios. Posições e dimensões do OpenNGC; distâncias e descrições da NASA e, para 13 enxames abertos, distâncias da Gaia. Mais abaixo, objetos que ficaram fora do catálogo: do céu austral aos pulsares.',
     filters: { all: 'Todos', galaxy: 'Galáxias', nebula: 'Nebulosas', cluster: 'Enxames', other: 'Outros' },
     filterLabel: 'Filtrar por tipo',
     sortLabel: 'Ordenar por',
@@ -414,6 +416,8 @@ export const ptPT = {
       'star-cloud': 'Nuvem estelar',
       'double-star': 'Estrela dupla',
       asterism: 'Asterismo',
+      dark: 'Nebulosa escura',
+      pulsar: 'Pulsar',
     },
     noDistance: 'distância não indicada',
     tableTitle: 'Tabela do catálogo',
@@ -464,12 +468,15 @@ export const ptPT = {
       globular: 'Enxames globulares',
       open: 'Enxames abertos',
       planetary: 'Nebulosas planetárias',
+      snr: 'Restos de supernova',
+      dark: 'Nebulosas escuras',
+      pulsar: 'Pulsares',
       ecliptic: 'Eclíptica (caminho do Sol)',
       whereTitle: 'Onde fica no céu',
     },
     viewModes: { cards: 'Cartões', table: 'Tabela' },
     viewLabel: 'Forma de apresentação',
-    whereNote: (con: string) => `Na constelação de ${con}. O objeto está assinalado com um círculo; os outros pontos são objetos Messier vizinhos.`,
+    whereNote: (con: string) => `Na constelação de ${con}. O objeto está assinalado com um círculo; os outros pontos são objetos vizinhos do espaço profundo.`,
     // Estrelas
     starsTitle: 'Estrelas',
     starsLede:

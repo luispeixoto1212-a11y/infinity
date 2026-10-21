@@ -12,7 +12,8 @@ import { CONSTELLATIONS } from '../../data/constellations';
 import { findBodyBySlug } from '../../data/catalog';
 import type { SkyBodyId } from '../../core/astro/sky';
 import type { SelectionKey } from './skyRenderer';
-import { type DeepSkyObject, loadDeepSky } from '../deepsky/deepSkyData';
+import { BEYOND } from '../deepsky/beyondMessier';
+import { type SkyObject, loadDeepSky } from '../deepsky/deepSkyData';
 import { type MilkyWayGrid, loadMilkyWay, loadSkyMap } from '../deepsky/skyMapData';
 import { colorFromBv, loadStars } from '../stars/starData';
 
@@ -45,7 +46,7 @@ export interface SkyScene {
   lines: ScenePolyline[];
   bounds: ScenePolyline[];
   labels: Array<{ abbr: string; v: Vec3; rank: number }>;
-  dsos: Array<{ obj: DeepSkyObject; v: Vec3 }>;
+  dsos: Array<{ obj: SkyObject; v: Vec3 }>;
   locator: ConstellationLocator;
   /** HIP → identificador da ficha da estrela (para as estrelas com ficha). */
   starPages: Map<number, string>;
@@ -173,7 +174,7 @@ export function loadSkyScene(): Promise<SkyScene> {
           lines: Object.entries(sky.map.lines).flatMap(([abbr, segs]) => segs.map((seg) => ({ abbr, pts: polylineFromRaDec(seg) }))),
           bounds: Object.entries(bounds).flatMap(([abbr, rings]) => rings.map((ring) => ({ abbr, pts: densifyBoundaryRing(ring) }))),
           labels: sky.map.labels.map(([abbr, ra, dec, rank]) => ({ abbr, v: radecToUnit(ra, dec), rank })),
-          dsos: dsos.map((obj) => ({ obj, v: radecToUnit(obj.ra, obj.dec) })),
+          dsos: [...dsos, ...BEYOND].map((obj) => ({ obj, v: radecToUnit(obj.ra, obj.dec) })),
           locator: new ConstellationLocator(bounds),
           starPages,
           milkyWay,
@@ -187,7 +188,7 @@ export function loadSkyScene(): Promise<SkyScene> {
   return scenePromise;
 }
 
-/** Resolve o alvo do endereço (#/planetario/<alvo>): corpo do Sistema Solar, objeto Messier ou estrela com ficha. */
+/** Resolve o alvo do endereço (#/planetario/<alvo>): corpo do Sistema Solar, objeto do espaço profundo ou estrela com ficha. */
 export function resolveTarget(target: string, scene: SkyScene): SelectionKey | null {
   const body = findBodyBySlug(target);
   const SKY_IDS: string[] = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune'];

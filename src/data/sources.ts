@@ -465,6 +465,14 @@ const list = [
     note: 'Distâncias de 13 enxames abertos do catálogo Messier sem página da NASA, a partir das paralaxes da Gaia DR2.',
   },
   {
+    id: 'nasa-hubble-caldwell',
+    title: 'Hubble Caldwell Catalog',
+    publisher: 'NASA Science',
+    url: 'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog',
+    accessed: '2026-10-21',
+    note: 'Distâncias, magnitudes e descrições de objetos do céu austral fora do catálogo Messier (Omega Centauri, 47 Tucanae, Nebulosa de Carina…).',
+  },
+  {
     id: 'nasa-hubble-messier',
     title: 'Hubble Messier Catalog',
     publisher: 'NASA Science',

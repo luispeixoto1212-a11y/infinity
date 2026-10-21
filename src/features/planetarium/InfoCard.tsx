@@ -91,7 +91,7 @@ export function InfoCard({ selection, inst, scene, place, dayStartJd, onClose, o
       const d = scene.dsos.find((o) => o.obj.id === selection.id);
       if (!d) return null;
       const o = d.obj;
-      title = `M${o.m}${o.namePt ? ` · ${o.namePt}` : ''}`;
+      title = `${o.label}${o.namePt && o.namePt !== o.label ? ` · ${o.namePt}` : ''}`;
       subtitle = t.space.subtypes[o.subtype];
       raDeg = o.ra;
       decDeg = o.dec;

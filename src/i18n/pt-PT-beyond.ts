@@ -1,0 +1,27 @@
+/** Textos da secção "Para além do catálogo Messier" (espaço profundo). */
+export const beyondPt = {
+  title: 'Para além do catálogo Messier',
+  lede: 'Charles Messier observava de Paris e não chegava à parte mais a sul do céu. Estes objetos ficaram fora do seu catálogo: as Nuvens de Magalhães, nebulosas e enxames do céu austral, restos de supernovas e pulsares. Cada valor tem a fonte ao lado.',
+  groups: {
+    galaxies: 'Galáxias',
+    nebulae: 'Nebulosas',
+    clusters: 'Enxames de estrelas',
+    remnants: 'Supernovas e estrelas de neutrões',
+  },
+  mapTitle: 'Onde ficam no céu',
+  mapAria: 'Mapa do céu com os objetos para além do catálogo Messier. Use as setas para deslocar, + e − para aproximar e 0 para repor.',
+  mapNote: 'Os pulsares não se veem a olho nu nem com telescópios de amador: a posição indica onde estão.',
+  designations: 'Designações',
+  highlights: 'Em destaque',
+  sources: 'Fontes',
+  sourcesNote: (date: string) => `Consultadas a ${date}. Nas fichas do Hubble Caldwell Catalog da NASA, as distâncias são valores arredondados.`,
+  noDistance: 'Distância',
+  distanceNote: 'Valor arredondado indicado pela fonte.',
+  positionNote: 'Posição J2000 do OpenNGC.',
+  sizeNote: 'Eixo maior aparente (OpenNGC). A Lua cheia tem cerca de 31 minutos de arco.',
+  magNote: 'Magnitude visual (V) do OpenNGC. Quanto menor, mais brilhante; a olho nu vê-se até cerca de 6.',
+  magNoteOther: 'Magnitude indicada pela fonte.',
+  galleryNote: 'Imagens da NASA Image and Video Library.',
+  count: (n: number) => `${n} objetos`,
+  promo: 'Ver os objetos para além do catálogo Messier',
+};

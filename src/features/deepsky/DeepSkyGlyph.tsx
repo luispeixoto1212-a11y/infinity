@@ -17,6 +17,8 @@ export const SUBTYPE_COLOR: Record<DeepSkySubtype, string> = {
   'star-cloud': '#e6e2d3',
   'double-star': '#e9edf8',
   asterism: '#e9edf8',
+  dark: '#b48a7a',
+  pulsar: '#a8e6ff',
 };
 
 /** Pontos pseudoaleatórios estáveis (para enxames). */
@@ -116,6 +118,30 @@ export function DeepSkyGlyph({ subtype, size = 48 }: { subtype: DeepSkySubtype; 
           <circle cx="25" cy="17" r="8" fill={`url(#g-neb-${subtype})`} opacity="0.7" />
           <circle cx="23" cy="24" r="1.6" fill="#fff" />
           <circle cx="30" cy="20" r="1.1" fill="#fff" />
+        </svg>
+      );
+    case 'dark':
+      return (
+        <svg {...common}>
+          <defs>
+            <radialGradient id="g-dark-glow">
+              <stop offset="0" stopColor="#f4a6c6" stopOpacity="0.55" />
+              <stop offset="1" stopColor="#f4a6c6" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <circle cx="24" cy="24" r="20" fill="url(#g-dark-glow)" />
+          <path d="M14 40c1-7 3-11 7-14-2-3-2-7 1-10 3-3 8-3 10 0 2 2 1 5-1 7 3 2 5 6 5 17Z" fill="#070b19" stroke={c} strokeWidth="1.2" />
+        </svg>
+      );
+    case 'pulsar':
+      return (
+        <svg {...common}>
+          <g stroke={c} strokeLinecap="round" opacity="0.85">
+            <path d="M24 24 13 5M24 24 35 43" strokeWidth="2.4" />
+            <path d="M24 24 9 7M24 24 17 3M24 24 39 41M24 24 31 45" strokeWidth="1" opacity="0.6" />
+          </g>
+          <circle cx="24" cy="24" r="10" fill="none" stroke={c} strokeWidth="1" opacity="0.45" strokeDasharray="2 3" />
+          <circle cx="24" cy="24" r="3.2" fill="#fff" />
         </svg>
       );
     case 'double-star':

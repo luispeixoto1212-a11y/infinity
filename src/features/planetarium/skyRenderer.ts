@@ -594,7 +594,7 @@ export function renderSky(
         ctx.stroke();
         ctx.globalAlpha = 1;
         if (view.fovDeg <= 100 || (obj.mag ?? 9) < 5) {
-          labels.add({ text: `M${obj.m}`, x: q.x, y: q.y, r: rr - 1, around: true, priority: 300 + (obj.mag ?? 9), font: '500 11px "IBM Plex Sans", system-ui, sans-serif', color: 'rgba(200, 214, 240, 0.85)' });
+          labels.add({ text: obj.label, x: q.x, y: q.y, r: rr - 1, around: true, priority: 300 + (obj.mag ?? 9), font: '500 11px "IBM Plex Sans", system-ui, sans-serif', color: 'rgba(200, 214, 240, 0.85)' });
         }
       }
     }

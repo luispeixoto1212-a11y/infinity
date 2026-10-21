@@ -7,6 +7,7 @@ import { formatNumber } from '../../core/format';
 import { constellationName } from '../../data/constellations';
 import { useI18n } from '../../i18n';
 import { DeepSkyGlyph } from './DeepSkyGlyph';
+import { BEYOND, BEYOND_GROUPS, type BeyondObject } from './beyondMessier';
 import { formatLightYears, loadDeepSky, type DeepSkyCategory, type DeepSkyObject } from './deepSkyData';
 import { SkyMap } from './SkyMap';
 import { SpaceTabs } from './SpaceTabs';
@@ -16,6 +17,9 @@ type Sort = 'm' | 'distance' | 'mag' | 'size';
 type ViewMode = 'cards' | 'table';
 
 const FEATURED = [31, 42, 45, 1, 16, 51, 104, 13, 57, 87];
+const FEATURED_IDS = FEATURED.map((m) => `m${m}`);
+// A SN 1987A e a Tarântula ficam dentro da Grande Nuvem: na vista geral, só esta tem etiqueta
+const BEYOND_IDS = BEYOND.map((o) => o.id).filter((id) => id !== 'sn1987a' && id !== 'ngc2070');
 
 export function sortDeepSky(list: readonly DeepSkyObject[], sort: Sort): DeepSkyObject[] {
   const val: Record<Sort, (o: DeepSkyObject) => number | undefined> = {
@@ -50,6 +54,53 @@ function Card({ o }: { o: DeepSkyObject }) {
         <span className="dso-card-meta">{o.distanceLy ? formatLightYears(o.distanceLy) : t.space.noDistance}</span>
       </span>
     </a>
+  );
+}
+
+function BeyondCard({ o }: { o: BeyondObject }) {
+  const { t } = useI18n();
+  return (
+    <a className="dso-card" href={href({ name: 'deep-sky-object', id: o.id })}>
+      <DeepSkyGlyph subtype={o.subtype} size={44} />
+      <span className="dso-card-text">
+        <span className="dso-card-id">{o.label}</span>
+        <span className="dso-card-name">{o.namePt}</span>
+        <span className="dso-card-meta">
+          {t.space.subtypes[o.subtype]} · {constellationName(o.constellation)}
+        </span>
+        <span className="dso-card-meta">{o.distance ? `${o.distance.approx ? '≈ ' : ''}${formatLightYears(o.distance.ly)}` : t.space.noDistance}</span>
+      </span>
+    </a>
+  );
+}
+
+/** Objetos fora do catálogo Messier: céu austral, remanescentes de supernovas e pulsares (dados no código, sem pedido à rede). */
+function BeyondMessier() {
+  const { t } = useI18n();
+  const tb = t.beyond;
+  return (
+    <section className="body-section" aria-labelledby="dso-beyond">
+      <h2 id="dso-beyond">{tb.title}</h2>
+      <p className="section-lede">{tb.lede}</p>
+      <h3 className="sb-subtitle">{tb.mapTitle}</h3>
+      <SkyMap objects={BEYOND} labelled={BEYOND_IDS} ariaLabel={tb.mapAria} />
+      <p className="section-note">{tb.mapNote}</p>
+      {BEYOND_GROUPS.map((g) => (
+        <div key={g.group} className="dso-beyond-group">
+          <h3 className="sb-subtitle">{tb.groups[g.group]}</h3>
+          <ul className="dso-grid">
+            {g.ids.map((id) => {
+              const o = BEYOND.find((x) => x.id === id)!;
+              return (
+                <li key={id}>
+                  <BeyondCard o={o} />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -139,7 +190,7 @@ function Atlas({ objects }: { objects: DeepSkyObject[] }) {
         <h2 id="dso-map">{t.space.skyMap.title}</h2>
         <p className="section-lede">{t.space.skyMap.intro}</p>
         <div className="catalog-controls">{chips}</div>
-        <SkyMap objects={filtered} labelled={FEATURED} />
+        <SkyMap objects={filtered} labelled={FEATURED_IDS} />
       </section>
 
       <section className="body-section" aria-labelledby="dso-all">
@@ -195,9 +246,11 @@ export default function DeepSkyPage() {
       <SpaceTabs current="deep-sky" />
       <LoadState state={state} retry={retry} loading={t.space.loading} error={t.space.loadError} retryLabel={t.space.retry} />
       {state.status === 'ready' ? <Atlas objects={state.value} /> : null}
+      <BeyondMessier />
       <section className="body-section" aria-labelledby="dso-sources">
         <h2 id="dso-sources">{t.body.sources}</h2>
-        <SourcesList ids={['openngc', 'nasa-hubble-messier', 'cantat-gaudin-2020']} showNotes />
+        <SourcesList ids={['openngc', 'nasa-hubble-messier', 'cantat-gaudin-2020', 'nasa-hubble-caldwell']} showNotes />
+        <p className="section-note">As fontes de cada objeto fora do catálogo Messier estão na respetiva ficha.</p>
         <p className="section-note">Os ícones indicam o tipo de objeto; não são imagens dos objetos. As fotografias estão em cada ficha.</p>
       </section>
     </div>
