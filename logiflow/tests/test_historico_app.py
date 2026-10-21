@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import io
+import time
 from pathlib import Path
 
+import pytest
 from openpyxl import load_workbook
 from streamlit.testing.v1 import AppTest
 
@@ -22,6 +25,34 @@ XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DIA1, DIA2 = FICHEIRO_EXEMPLO_XLSX.read_bytes(), FICHEIRO_EXEMPLO_DIA2_XLSX.read_bytes()
 SEPARADORES = ["Encomendas", "Exceções (18)", "Resumo", "Desempenho", "Qualidade dos dados (11)", "Exportar",
                "Histórico"]
+
+
+# Relógio fixo ------------------------------------------------------------------------------------------
+# A aplicação usa o dia de hoje (datetime.date.today) como data de referência predefinida, e os atrasos
+# dependem dela. Nos testes que contam atrasos, o relógio fica no dia para que os dados do exemplo foram
+# feitos; a aplicação não é alterada. Como date.today() equivale a date.fromtimestamp(time.time()), basta
+# deslocar time.time: as horas continuam a passar e as datas continuam a ser do tipo normal.
+
+_TIME_REAL = time.time
+_desvio_s = 0.0  # diferente de 0 só durante um teste com o relógio fixo
+
+
+def _time_deslocado() -> float:
+    return _TIME_REAL() + _desvio_s
+
+
+@pytest.fixture
+def hoje_e_o_dia_do_exemplo(monkeypatch):
+    """O relógio passa a marcar 20/10/2026 (ao meio-dia, e a avançar) só durante o teste, seja qual for a
+    data do sistema. No fim, o desvio volta a 0: se algum módulo tiver guardado a função, dá a hora real."""
+    global _desvio_s
+    _desvio_s = dt.datetime.combine(DATA_REFERENCIA_EXEMPLO, dt.time(12)).timestamp() - _TIME_REAL()
+    monkeypatch.setattr(time, "time", _time_deslocado)
+    try:
+        assert dt.date.today() == DATA_REFERENCIA_EXEMPLO
+        yield DATA_REFERENCIA_EXEMPLO
+    finally:
+        _desvio_s = 0.0
 
 
 def _app() -> AppTest:
@@ -52,7 +83,7 @@ def _base() -> Path:
 
 # Gravação automática e mensagens ----------------------------------------------------------------------
 
-def test_ficheiro_importado_fica_no_historico(pasta_dados_temporaria):
+def test_ficheiro_importado_fica_no_historico(pasta_dados_temporaria, hoje_e_o_dia_do_exemplo):
     at = _carregar(_app(), "semana42.xlsx", DIA1)
     assert not at.exception and not at.error
     assert _mensagens(at) == [":material/history: Guardada no histórico como importação n\\.º 1 "
@@ -60,6 +91,7 @@ def test_ficheiro_importado_fica_no_historico(pasta_dados_temporaria):
     assert [t.label.split(" ", 1)[1] for t in at.tabs] == SEPARADORES
     lista = _lista(at)
     assert list(lista["Ficheiro"]) == ["semana42.xlsx"] and list(lista["Estado"]) == ["Concluída com avisos"]
+    assert at.date_input(key="data_referencia").value == hoje_e_o_dia_do_exemplo
     assert (lista.loc[0, "Linhas"], lista.loc[0, "Entregues"], lista.loc[0, "Atrasadas"]) == ("60", "41", "8")
     # Interagir com a aplicação não volta a gravar.
     at.number_input(key="prazo_padrao").set_value(3).run()
@@ -81,12 +113,13 @@ def test_voltar_a_carregar_o_mesmo_ficheiro_na_mesma_sessao(pasta_dados_temporar
     assert H.listar_importacoes(_base())[1] == 2
 
 
-def test_opcao_desligada_nao_grava_nada(pasta_dados_temporaria):
+def test_opcao_desligada_nao_grava_nada(pasta_dados_temporaria, hoje_e_o_dia_do_exemplo):
     at = _app()
     at.toggle(key="guardar_historico").set_value(False).run()
     _carregar(at, "a.xlsx", DIA1)
     assert any("não foi guardada no histórico" in m for m in _mensagens(at))
     assert H.listar_importacoes(_base())[1] == 0
+    assert at.date_input(key="data_referencia").value == hoje_e_o_dia_do_exemplo
     assert [(m.label, m.value) for m in at.metric][:5] == [("Encomendas", "60"), ("Entregues", "41"),
                                                           ("Pendentes", "11"), ("Atrasadas", "8"),
                                                           ("Linhas com erros", "9")]

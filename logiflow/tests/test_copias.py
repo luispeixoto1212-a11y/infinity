@@ -7,6 +7,8 @@ from __future__ import annotations
 import hashlib
 import os
 import sqlite3
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -263,6 +265,116 @@ def test_falha_no_fim_com_a_base_danificada_deixa_a_danificada_no_lugar(base_dad
     assert len(guardadas) == 1 and _hash(guardadas[0]) == estragada  # e também guardada à parte, igual
     assert not list(base_dados.parent.glob(".recuperacao-*"))
     assert not P.caminho_manutencao(base_dados).exists()  # o bloqueio foi libertado
+
+
+# Base em uso danificada e outra janela a gravar logo depois da troca de ficheiro -------------------------
+# A base recuperada é posta no lugar fora do modo WAL; ao passá-la para WAL, o SQLite não usa o prazo de
+# espera se outra janela tiver o bloqueio de escrita. A recuperação espera (até ao prazo) e, se desistir,
+# repõe a base anterior.
+
+class _OutraJanela:
+    """Mal a base recuperada fica no lugar, outra janela começa a gravar (bloqueio de escrita do SQLite)."""
+
+    def __init__(self, base_dados: Path, monkeypatch, segundos: float | None = None):
+        self.ligacao, self.terminada, self._fecho, self._relogio = None, False, threading.Lock(), None
+        real = os.replace
+
+        def substituir(origem, destino):
+            real(origem, destino)
+            if Path(destino) == base_dados and self.ligacao is None:
+                self.ligacao = sqlite3.connect(str(base_dados), isolation_level=None, check_same_thread=False)
+                self.ligacao.execute("BEGIN IMMEDIATE")
+                if segundos is not None:
+                    self._relogio = threading.Timer(segundos, self.terminar)
+                    self._relogio.start()
+
+        monkeypatch.setattr(os, "replace", substituir)
+
+    def terminar(self) -> None:
+        with self._fecho:
+            if self.ligacao is not None and not self.terminada:
+                self.ligacao.execute("ROLLBACK")
+                self.ligacao.close()
+                self.terminada = True
+
+    def fechar(self) -> None:
+        if self._relogio is not None:
+            self._relogio.cancel()
+            self._relogio.join()
+        self.terminar()
+
+
+def _base_danificada_com_copia(base_dados: Path, destino: Path) -> tuple[Path, str]:
+    guardar(base_dados, DIA1, "dia1.csv")
+    copia = B.criar_copia(base_dados, destino).caminho
+    base_dados.write_bytes(b"danificada" * 500)
+    for sufixo in ("-wal", "-shm"):
+        Path(f"{base_dados}{sufixo}").unlink(missing_ok=True)
+    return copia, _hash(base_dados)
+
+
+def test_recuperar_sobre_base_danificada_espera_por_outra_janela_a_gravar(base_dados, destino, monkeypatch):
+    copia, estragada = _base_danificada_com_copia(base_dados, destino)
+    janela = _OutraJanela(base_dados, monkeypatch, segundos=0.5)
+    try:
+        resultado = B.restaurar_copia(base_dados, copia)
+    finally:
+        janela.fechar()
+    assert janela.ligacao is not None  # a outra janela estava mesmo a gravar durante a passagem a WAL
+    assert resultado.base_anterior_danificada and _hash(resultado.preservada_em) == estragada
+    assert _nomes(base_dados) == ["dia1.csv"]
+    with P.ligar(base_dados) as ligacao:
+        assert ligacao.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+    assert not list(base_dados.parent.glob(".recuperacao-*"))
+    assert not P.caminho_manutencao(base_dados).exists()
+
+
+def test_recuperar_sobre_base_danificada_desiste_no_fim_do_prazo(base_dados, destino, monkeypatch):
+    """Se a outra janela continuar a gravar, desiste ao fim do prazo (não fica a tentar para sempre) e a
+    base anterior volta ao lugar tal como estava; depois, sem a outra janela, a recuperação funciona."""
+    copia, estragada = _base_danificada_com_copia(base_dados, destino)
+    copia_antes = _hash(copia)
+    monkeypatch.setattr(P, "TEMPO_ESPERA_S", 0.5)
+    janela = _OutraJanela(base_dados, monkeypatch)
+    repor = B._repor_em_bruto
+
+    def repor_depois_de_a_outra_janela_terminar(preservada, caminho_db):
+        janela.terminar()  # (no Windows, um ficheiro aberto noutra ligação não pode ser substituído)
+        repor(preservada, caminho_db)
+
+    monkeypatch.setattr(B, "_repor_em_bruto", repor_depois_de_a_outra_janela_terminar)
+    resultado = {}
+
+    def recuperar():
+        inicio = time.monotonic()
+        try:
+            B.restaurar_copia(base_dados, copia)
+        except Exception as erro:
+            resultado["erro"] = erro
+        resultado["segundos"] = time.monotonic() - inicio
+
+    fio = threading.Thread(target=recuperar, daemon=True)
+    try:
+        fio.start()
+        fio.join(20)
+        desistiu = not fio.is_alive()
+    finally:
+        janela.fechar()
+        fio.join(20)
+    assert desistiu, "continuou a tentar depois do prazo"
+    erro = resultado.get("erro")
+    assert isinstance(erro, sqlite3.OperationalError) and erro.sqlite_errorcode == sqlite3.SQLITE_BUSY
+    assert "ocupada por outra janela" in P.mensagem_segura(erro)
+    assert 0.5 <= resultado["segundos"] < 10
+    assert _hash(base_dados) == estragada  # a base anterior voltou ao lugar, igual byte a byte
+    assert not [s for s in P.SUFIXOS_AUXILIARES if Path(f"{base_dados}{s}").exists()]
+    guardadas = list((base_dados.parent / P.NOME_PASTA_COPIAS).glob("logiflow-danificada-*.db"))
+    assert len(guardadas) == 1 and _hash(guardadas[0]) == estragada
+    assert _hash(copia) == copia_antes  # a cópia de origem não foi alterada
+    assert not list(base_dados.parent.glob(".recuperacao-*")) and not list(base_dados.parent.rglob("*.parcial"))
+    assert not P.caminho_manutencao(base_dados).exists()
+    assert B.restaurar_copia(base_dados, copia).importacoes == 1  # sem a outra janela, recupera
+    assert _nomes(base_dados) == ["dia1.csv"]
 
 
 def test_recuperar_quando_ainda_nao_ha_base_de_dados(pasta_dados_temporaria, tmp_path, destino):

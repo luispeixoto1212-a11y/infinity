@@ -9,6 +9,7 @@ import sqlite3
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -351,3 +352,98 @@ def test_duas_janelas_a_arrancar_ao_mesmo_tempo(pasta_dados_temporaria):
     with P.ligar(caminho) as ligacao:
         assert P.ler_identificacao(ligacao)[1] == P.esquema_atual()
         assert ligacao.execute("SELECT COUNT(*) FROM eventos WHERE tipo = 'base_dados_criada'").fetchone()[0] == 1
+
+
+# Passagem ao modo WAL com outra janela a gravar ------------------------------------------------------
+# Nesta mudança, o SQLite não usa o prazo de espera: se outra janela tiver o bloqueio de escrita,
+# devolve logo «database is locked». Era a causa de uma falha intermitente do teste anterior.
+
+def _base_ainda_sem_wal() -> Path:
+    """Base válida, mas ainda no modo inicial do SQLite (como logo depois de ser criada)."""
+    caminho = P.caminho_base_dados()
+    P.preparar_base_dados(caminho)
+    with P.ligar(caminho) as ligacao:
+        ligacao.execute("PRAGMA journal_mode = DELETE")
+    return caminho
+
+
+def _modo(caminho: Path) -> str:
+    with P.ligar(caminho) as ligacao:
+        return ligacao.execute("PRAGMA journal_mode").fetchone()[0]
+
+
+def test_passagem_a_wal_espera_por_outra_janela_a_gravar(pasta_dados_temporaria):
+    caminho = _base_ainda_sem_wal()
+    outra = sqlite3.connect(str(caminho), isolation_level=None, check_same_thread=False)
+    a_gravar = threading.Event()
+
+    def gravar_meio_segundo():
+        outra.execute("BEGIN IMMEDIATE")
+        a_gravar.set()
+        time.sleep(0.5)
+        outra.execute("COMMIT")
+
+    fio = threading.Thread(target=gravar_meio_segundo)
+    fio.start()
+    try:
+        assert a_gravar.wait(5)
+        info = P.preparar_base_dados(caminho)
+    finally:
+        fio.join()
+        outra.close()
+    assert info.integra and _modo(caminho) == "wal"
+
+
+def test_passagem_a_wal_desiste_no_fim_do_prazo(pasta_dados_temporaria, monkeypatch):
+    """Se a outra janela continuar a gravar, desiste ao fim do prazo (não fica a tentar para
+    sempre), com o erro de sempre, e a base fica como estava."""
+    monkeypatch.setattr(P, "TEMPO_ESPERA_S", 0.5)
+    caminho = _base_ainda_sem_wal()
+    resultado = {}
+
+    def arrancar():
+        inicio = time.monotonic()
+        try:
+            P.preparar_base_dados(caminho)
+        except Exception as erro:
+            resultado["erro"] = erro
+        resultado["segundos"] = time.monotonic() - inicio
+
+    outra = sqlite3.connect(str(caminho), isolation_level=None, check_same_thread=False)
+    outra.execute("BEGIN IMMEDIATE")
+    fio = threading.Thread(target=arrancar, daemon=True)
+    try:
+        fio.start()
+        fio.join(10)
+        desistiu = not fio.is_alive()
+    finally:
+        outra.execute("ROLLBACK")
+        outra.close()
+        fio.join(10)
+    assert desistiu, "continuou a tentar depois do prazo"
+    erro = resultado.get("erro")
+    assert isinstance(erro, sqlite3.OperationalError) and erro.sqlite_errorcode == sqlite3.SQLITE_BUSY
+    assert "ocupada por outra janela" in P.mensagem_segura(erro)
+    assert 0.5 <= resultado["segundos"] < 3
+    assert _modo(caminho) == "delete"
+    with P.ligar(caminho) as ligacao:
+        assert P.verificar_integridade(ligacao) == "ok"
+    assert P.preparar_base_dados(caminho).integra and _modo(caminho) == "wal"  # sem a outra janela, passa
+
+
+def test_passagem_a_wal_nao_repete_outros_erros():
+    """Só a base ocupada é tentada de novo; qualquer outro erro é lançado logo, como antes."""
+    class Ligacao:
+        def __init__(self):
+            self.instrucoes = []
+
+        def execute(self, instrucao):
+            self.instrucoes.append(instrucao)
+            if instrucao == "PRAGMA journal_mode = WAL":
+                raise sqlite3.OperationalError("disk I/O error")
+
+    ligacao = Ligacao()
+    with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
+        P.ativar_wal(ligacao)
+    assert ligacao.instrucoes.count("PRAGMA journal_mode = WAL") == 1
+    assert ligacao.instrucoes[-1] == f"PRAGMA busy_timeout = {int(P.TEMPO_ESPERA_S * 1000)}"  # prazo reposto

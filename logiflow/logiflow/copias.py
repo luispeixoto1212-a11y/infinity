@@ -50,6 +50,7 @@ from .persistencia import (
     BaseDadosOcupada,
     ErroPersistencia,
     ExameBaseDados,
+    ativar_wal,
     bloqueio_manutencao,
     copiar_paginas,
     copiar_sqlite,
@@ -353,7 +354,7 @@ def _substituir_ficheiro(temporario: Path, caminho_db: Path, preservada: Path | 
         raise
     try:
         with ligar(caminho_db) as ligacao:
-            ligacao.execute("PRAGMA journal_mode = WAL")
+            ativar_wal(ligacao)  # a base nova ainda não está em WAL: espera se outra janela estiver a gravar
         if _validar_base(caminho_db) != total:
             raise ErroPersistencia("A verificação final da base recuperada falhou.")
     except Exception as erro:

@@ -652,13 +652,36 @@ def preparar_base_dados(caminho: Path, *, copia_antes_de_migrar: bool = True) ->
             verificacao = str(erro)
         marcadas = 0
         if verificacao == "ok":
-            ligacao.execute("PRAGMA journal_mode = WAL")
+            ativar_wal(ligacao)
             marcadas = marcar_interrompidas(ligacao)
     limpos = 0
     if verificacao == "ok" and not manutencao_ativa(caminho):
         limpos = limpar_temporarios(caminho.parent) + limpar_temporarios(caminho.parent / NOME_PASTA_COPIAS)
     return InfoBaseDados(caminho, esquema_atual(), nova, None if nova or versao == esquema_atual() else versao,
                          copia, marcadas, verificacao, limpos)
+
+
+def ativar_wal(ligacao: sqlite3.Connection) -> None:
+    """Passa a base de dados para o modo WAL (fica gravado no ficheiro; depois disso, não muda nada).
+
+    Esta mudança precisa de um bloqueio exclusivo e, se outra janela estiver a gravar nesse
+    instante, o SQLite devolve logo «database is locked», sem usar o prazo de espera. Só nesse
+    caso tenta de novo, até ``TEMPO_ESPERA_S`` no total (cada tentativa espera, no máximo, o tempo
+    que falta). Os outros erros, ou a base ainda ocupada no fim do prazo, são lançados como antes."""
+    limite = time.monotonic() + TEMPO_ESPERA_S
+    try:
+        while True:
+            ligacao.execute(f"PRAGMA busy_timeout = {max(int((limite - time.monotonic()) * 1000), 0)}")
+            try:
+                ligacao.execute("PRAGMA journal_mode = WAL")
+                return
+            except sqlite3.OperationalError as erro:
+                ocupada = ((getattr(erro, "sqlite_errorcode", None) or 0) & 0xFF) == sqlite3.SQLITE_BUSY
+                if not ocupada or time.monotonic() >= limite:
+                    raise
+            time.sleep(min(0.05, max(limite - time.monotonic(), 0.0)))
+    finally:
+        ligacao.execute(f"PRAGMA busy_timeout = {int(TEMPO_ESPERA_S * 1000)}")
 
 
 def marcar_interrompidas(ligacao: sqlite3.Connection, minutos: float | None = None) -> int:
