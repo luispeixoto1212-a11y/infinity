@@ -1383,9 +1383,12 @@ def _secao_conservacao(hist: _Historico) -> None:
 def _secao_copias(hist: _Historico) -> None:
     st.markdown("#### Cópias de segurança")
     predefinida = copias.pasta_copias_predefinida(hist.caminho)
-    st.session_state.setdefault("hist_pasta_copias", str(predefinida))
+    # A pasta predefinida é o valor inicial do próprio campo (e não um valor posto no estado da sessão), para
+    # o navegador a receber em todas as execuções. O campo aparece primeiro num painel fechado da página
+    # inicial e depois no separador «Histórico»; com o valor só no estado da sessão, o navegador recebia-o
+    # uma única vez e, às vezes, mostrava o campo vazio e apagava-o na interação seguinte.
     texto = st.text_input(
-        "Pasta das cópias de segurança", key="hist_pasta_copias",
+        "Pasta das cópias de segurança", value=str(predefinida), key="hist_pasta_copias",
         help="Caminho completo de uma pasta que já exista. Por omissão, a pasta «copias» junto do histórico.")
     st.caption("Recomendação: guarde também cópias noutro disco ou numa pen USB — uma cópia no mesmo disco não "
                "protege contra avarias do disco. Uma cópia nunca substitui um ficheiro existente e só aparece "

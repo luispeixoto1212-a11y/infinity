@@ -302,6 +302,78 @@ def test_pasta_de_copias_invalida_e_explicada(pasta_dados_temporaria):
     assert not any(b.key == "hist_criar_copia" for b in at.button)
 
 
+# Pasta das cópias: o valor tem de chegar ao navegador em todas as execuções --------------------------------
+# O campo aparece primeiro num painel fechado da página inicial e depois no separador «Histórico». Um navegador
+# que não guardou nenhum valor para o campo mostra o da mensagem do servidor (value, se set_value; senão,
+# default) e devolve-o na interação seguinte. Se a mensagem não trouxer a pasta, o campo fica vazio, a pasta
+# é apagada e o botão de criar cópias desaparece (observado no navegador, na primeira sessão).
+
+def _pasta_predefinida() -> str:
+    return str(_base().parent / P.NOME_PASTA_COPIAS)
+
+
+def _mostrado_sem_valor_guardado(at: AppTest) -> str:
+    """O que mostra (e devolve na interação seguinte) um navegador que não guardou nenhum valor para o campo."""
+    proto = at.text_input(key="hist_pasta_copias").proto
+    return proto.value if proto.set_value else proto.default
+
+
+def test_pasta_das_copias_chega_ao_navegador_em_todas_as_execucoes(pasta_dados_temporaria):
+    at = _app()  # página inicial: o campo está no painel fechado do histórico
+    assert at.session_state["hist_pasta_copias"] == _pasta_predefinida()
+    assert _mostrado_sem_valor_guardado(at) == _pasta_predefinida()
+    at.button(key="usar_exemplo_inicio").click().run()  # o campo passa para o separador «Histórico»
+    assert _mostrado_sem_valor_guardado(at) == _pasta_predefinida()
+    _carregar(at, "dia1.xlsx", DIA1)
+    assert _mostrado_sem_valor_guardado(at) == _pasta_predefinida()
+
+
+def test_navegador_sem_o_valor_guardado_nao_apaga_a_pasta(pasta_dados_temporaria):
+    """O caso observado: depois do exemplo, o navegador não tinha a pasta guardada, mostrou o que vinha na
+    mensagem do servidor e devolveu-o ao carregar um ficheiro."""
+    at = _app()
+    at.button(key="usar_exemplo_inicio").click().run()
+    at.text_input(key="hist_pasta_copias").set_value(_mostrado_sem_valor_guardado(at))
+    _carregar(at, "dia1.xlsx", DIA1)  # primeira interação
+    assert at.text_input(key="hist_pasta_copias").value == _pasta_predefinida()
+    assert not any("Indique a pasta" in w.value for w in at.warning)
+    assert any(b.key == "hist_criar_copia" for b in at.button)
+
+
+def test_pasta_personalizada_mantem_se_e_recebe_a_copia(pasta_dados_temporaria, tmp_path):
+    personalizada = tmp_path / "cópias noutro disco"
+    personalizada.mkdir()
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    at.text_input(key="hist_pasta_copias").set_value(str(personalizada)).run()
+    _carregar(at, "dia2.xlsx", DIA2)  # outras interações não repõem a pasta predefinida
+    assert at.text_input(key="hist_pasta_copias").value == str(personalizada)
+    at.button(key="hist_criar_copia").click().run()
+    assert any("Cópia criada e verificada" in s.value for s in at.success)
+    assert len(list(personalizada.glob("logiflow-copia-*.db"))) == 1
+    assert not list((pasta_dados_temporaria / P.NOME_PASTA_COPIAS).glob("logiflow-copia-*.db"))
+
+
+def test_pasta_das_copias_vazia_e_explicada(pasta_dados_temporaria):
+    at = _carregar(_app(), "dia1.xlsx", DIA1)
+    at.text_input(key="hist_pasta_copias").set_value("").run()
+    assert any("Indique a pasta onde guardar a cópia" in w.value for w in at.warning)
+    assert not any(b.key == "hist_criar_copia" for b in at.button)
+
+
+def test_abrir_a_pagina_nao_cria_nem_apaga_ficheiros(pasta_dados_temporaria):
+    def ficheiros():  # (os ficheiros auxiliares do SQLite, -wal e -shm, são temporários e não contam)
+        return sorted(str(p.relative_to(pasta_dados_temporaria)) for p in pasta_dados_temporaria.rglob("*")
+                      if p.is_file() and not p.name.endswith(("-wal", "-shm")))
+
+    _app()  # a primeira abertura cria a base de dados do histórico
+    antes = ficheiros()
+    at = _app()
+    at.button(key="usar_exemplo_inicio").click().run()
+    _app()
+    assert ficheiros() == antes
+    assert not list((pasta_dados_temporaria / P.NOME_PASTA_COPIAS).glob("*"))  # nenhuma cópia feita sozinha
+
+
 def test_pasta_de_dados_invalida_nao_impede_a_aplicacao(monkeypatch):
     monkeypatch.setenv(P.VARIAVEL_PASTA, "relativo")
     at = _carregar(_app(), "dia1.xlsx", DIA1)
