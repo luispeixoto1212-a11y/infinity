@@ -1,0 +1,61 @@
+﻿N.º Encomenda;Cliente;Data;Destino;Estado;Data Prevista;Data de Entrega;Observações
+ENC-26-0001;Eletro Faísca, Lda.;01/09/2026;Viana do Castelo;Entregue;03/09/2026;04/09/2026;
+ENC-26-0002;Vinhos Encosta Serena, Lda.;01/09/2026;Évora;Entregue;04/09/2026;06/09/2026;2 paletes
+ENC-26-0003;Ferragens Ponte Nova;02/09/2026;Coimbra;Entregue;06/09/2026;08/09/2026;
+ENC-26-0004;Oficina Rota do Sul;03/09/2026;Viana do Castelo;Devolvida;08/09/2026;;
+ENC-26-0005;Eletro Faísca, Lda.;04/09/2026;Viseu;Cancelada;08/09/2026;;Entregar de manhã
+ENC-26-0006;Livraria Quinta das Letras;05/09/2026;Ponta Delgada;Entregue;08/09/2026;08/09/2026;Cais de carga 2
+ENC-26-0007;Têxteis Ribeira Alta, S.A.;05/09/2026;Leiria;Entregue;10/09/2026;10/09/2026;2 paletes
+ENC-26-0008;;06/09/2026;Funchal;entregue;09/09/2026;08/09/2026;Frágil
+ENC-26-0009;Livraria Quinta das Letras;07/09/2026;Viseu;Entregue;09/09/2026;09/09/2026;Cais de carga 2
+ENC-26-0010;Vinhos Encosta Serena, Lda.;08/09/2026;Viseu;Entregue;10/09/2026;12/09/2026;
+ENC-26-0011;Ferragens Ponte Nova;09/09/2026;Évora;Entregue;13/09/2026;15/09/2026;2 paletes
+ENC-26-0012;Ferragens Ponte Nova;10/09/2026;Leiria;Entregue;13/09/2026;15/09/2026;2 paletes
+ENC-26-0013;Mercearia Vale Azul, Lda.;10/09/2026;Funchal;Entregue;12/09/2026;11/09/2026;2 paletes
+ENC-26-0014;Ferragens Ponte Nova;11/09/2026;Braga;Entregue;13/09/2026;13/09/2026;Contactar a receção à chegada
+ENC-26-0015;Eletro Faísca, Lda.;12/09/2026;Funchal;Entregue;15/09/2026;14/09/2026;Contactar a receção à chegada
+ENC-26-0016;Oficina Rota do Sul;13/09/2026;;Entregue;17/09/2026;18/09/2026;Cais de carga 2
+ENC-26-0017;Cerâmicas Barro Fino;14/09/2026;Viseu;Entregue;17/09/2026;18/09/2026;Cais de carga 2
+ENC-26-0018;Mercearia Vale Azul, Lda.;14/09/2026;Lisboa;Entregue;18/09/2026;18/09/2026;
+ENC-26-0019;Ferragens Ponte Nova;15/09/2026;Faro;Entregue;20/09/2026;21/09/2026;
+ENC-26-0020;Vinhos Encosta Serena, Lda.;16/09/2026;Ponta Delgada;Entregue;19/09/2026;19/09/2026;Contactar a receção à chegada
+ENC-26-0021;Oficina Rota do Sul;17/09/2026;Faro;Entregue;21/09/2026;19/09/2026;Contactar a receção à chegada
+ENC-26-0022;Oficina Rota do Sul;18/09/2026;Viseu;Entregue;20/09/2026;21/09/2026;
+ENC-26-0022;Têxteis Ribeira Alta, S.A.;19/09/2026;Guimarães;Entregue;23/09/2026;23/09/2026;Frágil
+ENC-26-0024;Cerâmicas Barro Fino;19/09/2026;Viana do Castelo;Entregue;23/09/2026;23/09/2026;Cais de carga 2
+ENC-26-0025;Têxteis Ribeira Alta, S.A.;20/09/2026;Lisboa;Entregue;23/09/2026;21/09/2026;Contactar a receção à chegada
+ENC-26-0026;Padaria Moinho Dourado;21/09/2026;Ponta Delgada;Entregue;26/09/2026;25/09/2026;
+ENC-26-0027;Vinhos Encosta Serena, Lda.;22/09/2026;Aveiro;Entregue;25/09/2026;23/09/2026;Entregar de manhã
+ENC-26-0028;Eletro Faísca, Lda.;23/09/2026;Setúbal;Cancelada;26/09/2026;;Contactar a receção à chegada
+ENC-26-0029;Padaria Moinho Dourado;23/09/2026;Braga;Entregue;26/09/2026;26/09/2026;2 paletes
+ENC-26-0030;Eletro Faísca, Lda.;24/09/2026;Braga;Devolvida;27/09/2026;;
+ENC-26-0031;Florista Jardim Imaginário;31/02/2026;Ponta Delgada;Entregue;30/09/2026;30/09/2026;
+ENC-26-0032;Mercearia Vale Azul, Lda.;26/09/2026;Porto;Entregue;01/10/2026;01/10/2026;Cais de carga 2
+ENC-26-0033;Livraria Quinta das Letras;27/09/2026;Guimarães;Cancelada;29/09/2026;;Entregar de manhã
+ENC-26-0034;Ferragens Ponte Nova;28/09/2026;Faro;Cancelada;30/09/2026;;Frágil
+ENC-26-0035;Ferragens Ponte Nova;28/09/2026;Viseu;Entregue;02/10/2026;01/10/2026;
+ENC-26-0036;Florista Jardim Imaginário;29/09/2026;Setúbal;Entregue;02/10/2026;02/10/2026;Entregar de manhã
+ENC-26-0037;Vinhos Encosta Serena, Lda.;30/09/2026;Évora;Entregue;04/10/2026;03/10/2026;
+ENC-26-0038;Mercearia Vale Azul, Lda.;01/10/2026;Guimarães;Entregue;04/10/2026;03/10/2026;2 paletes
+ENC-26-0039;Ferragens Ponte Nova;02/10/2026;Funchal;Entregue;brevemente;04/10/2026;
+ENC-26-0040;Vinhos Encosta Serena, Lda.;02/10/2026;Castelo Branco;Entregue;05/10/2026;05/10/2026;
+ENC-26-0041;Florista Jardim Imaginário;03/10/2026;Aveiro;Entregue;06/10/2026;05/10/2026;Cais de carga 2
+ENC-26-0042;Florista Jardim Imaginário;04/10/2026;Aveiro;Entregue;09/10/2026;08/10/2026;
+ENC-26-0043;Ferragens Ponte Nova;05/10/2026;Ponta Delgada;Entregue;08/10/2026;08/10/2026;Cais de carga 2
+ENC-26-0044;Vinhos Encosta Serena, Lda.;06/10/2026;Viseu;Entregue;09/10/2026;09/10/2026;Contactar a receção à chegada
+ENC-26-0045;Oficina Rota do Sul;07/10/2026;Viana do Castelo;Entregue;09/10/2026;10/10/2026;
+ENC-26-0046;Ferragens Ponte Nova;07/10/2026;Guimarães;Entregue;10/10/2026;09/10/2026;Entregar de manhã
+ENC-26-0047;Mercearia Vale Azul, Lda.;08/10/2026;Faro;Entregue;12/10/2026;11/10/2026;
+ENC-26-0048;Vinhos Encosta Serena, Lda.;09/10/2026;Coimbra;A confirmar;12/10/2026;;
+ENC-26-0049;Vinhos Encosta Serena, Lda.;10/10/2026;Ponta Delgada;Em trânsito;15/10/2026;;
+ENC-26-0050;Padaria Moinho Dourado;11/10/2026;Aveiro;Em trânsito;16/10/2026;13/10/2026;2 paletes
+ENC-26-0051;Oficina Rota do Sul;12/10/2026;Porto;;15/10/2026;;Cais de carga 2
+ENC-26-0052;Eletro Faísca, Lda.;12/10/2026;Lisboa;Pendente;15/10/2026;;Entregar de manhã
+ENC-26-0053;Vinhos Encosta Serena, Lda.;13/10/2026;Faro;em transito;16/10/2026;;Frágil
+ENC-26-0054;Oficina Rota do Sul;14/10/2026;Castelo Branco;Pendente;19/10/2026;;Entregar de manhã
+ENC-26-0055;Oficina Rota do Sul;15/10/2026;Porto;Em trânsito;18/10/2026;;
+ENC-26-0056;Florista Jardim Imaginário;16/10/2026;Lisboa;Em trânsito;20/10/2026;;
+ENC-26-0057;Mercearia Vale Azul, Lda.;16/10/2026;Aveiro;Pendente;18/10/2026;;
+ENC-26-0058;Livraria Quinta das Letras;17/10/2026;Ponta Delgada;Em trânsito;19/10/2026;;Contactar a receção à chegada
+ENC-26-0059;Florista Jardim Imaginário;18/10/2026;Faro;Pendente;23/10/2026;;
+ENC-26-0059;Florista Jardim Imaginário;18/10/2026;Faro;Pendente;23/10/2026;;
